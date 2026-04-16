@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Register – goodgurl.gg{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5">
+        <div class="card glass-card p-4">
+            <h2 class="text-center brand-gradient mb-4"><i class="bi bi-stars"></i> Join goodgurl.gg</h2>
+            <form method="POST">
+                <div class="mb-3">
+                    <label class="form-label">Username</label>
+                    <input type="text" name="username" class="form-control" required maxlength="64" autofocus>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Email</label>
+                    <input type="email" name="email" class="form-control" required maxlength="120">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Password</label>
+                    <input type="password" name="password" id="regPassword" class="form-control" required minlength="8">
+                    <div id="pwStrength" class="mt-1" style="height:4px;border-radius:2px;transition:all .3s"></div>
+                    <small id="pwFeedback" class="text-muted"></small>
+                </div>
+                <div class="mb-4">
+                    <label class="form-label">I am a…</label>
+                    <div class="d-flex gap-3">
+                        <div class="form-check flex-fill">
+                            <input class="form-check-input" type="radio" name="role" value="sissy" id="roleSissy" checked>
+                            <label class="form-check-label role-card sissy-card p-3 rounded w-100" for="roleSissy">
+                                <i class="bi bi-heart-fill text-pink"></i><br>
+                                <strong>Sissy</strong><br>
+                                <small class="text-muted">Post content, complete tasks, earn coins &amp; XP</small>
+                            </label>
+                        </div>
+                        <div class="form-check flex-fill">
+                            <input class="form-check-input" type="radio" name="role" value="master" id="roleMaster">
+                            <label class="form-check-label role-card master-card p-3 rounded w-100" for="roleMaster">
+                                <i class="bi bi-crown-fill text-gold"></i><br>
+                                <strong>Master / Mistress</strong><br>
+                                <small class="text-muted">Create tasks, invest, access exclusive content</small>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-pink w-100 btn-lg">Create Account</button>
+            </form>
+            <p class="text-center mt-3 mb-0">
+                Already have an account? <a href="{{ url_for('login') }}">Log in</a>
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+(function(){
+    var pw=document.getElementById('regPassword'),bar=document.getElementById('pwStrength'),fb=document.getElementById('pwFeedback');
+    pw.addEventListener('input',function(){
+        var v=pw.value,s=0;
+        if(v.length>=8)s++;if(v.length>=12)s++;
+        if(/[a-z]/.test(v)&&/[A-Z]/.test(v))s++;
+        if(/\d/.test(v))s++;
+        if(/[^A-Za-z0-9]/.test(v))s++;
+        var colors=['#dc3545','#fd7e14','#ffc107','#20c997','#00ff88'];
+        var labels=['Very Weak','Weak','Fair','Strong','Very Strong'];
+        var i=Math.min(s,4);
+        bar.style.width=(s/4*100)+'%';bar.style.background=colors[i];
+        fb.textContent=v.length?labels[i]:'';
+        fb.style.color=colors[i];
+    });
+})();
+</script>
+{% endblock %}

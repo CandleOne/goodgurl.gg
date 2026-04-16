@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Login – goodgurl.gg{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-5 col-lg-4">
+        <div class="card glass-card p-4">
+            <h2 class="text-center brand-gradient mb-4"><i class="bi bi-stars"></i> Welcome Back</h2>
+            <form method="POST">
+                <div class="mb-3">
+                    <label class="form-label">Username</label>
+                    <input type="text" name="username" class="form-control" required autofocus>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Password</label>
+                    <input type="password" name="password" class="form-control" required>
+                </div>
+                <button type="submit" class="btn btn-pink w-100 btn-lg">Log In</button>
+            </form>
+            <div class="text-center mt-2">
+                <a href="{{ url_for('forgot_password') }}" class="text-muted small">Forgot password?</a>
+            </div>
+            <p class="text-center mt-3 mb-0">
+                New here? <a href="{{ url_for('register') }}">Create an account</a>
+            </p>
+            <div class="text-center mt-2">
+                <a href="{{ url_for('feed') }}" class="btn btn-outline-light btn-sm"><i class="bi bi-eye"></i> Browse as Guest</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

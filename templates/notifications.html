@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Notifications – goodgurl.gg{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h3><i class="bi bi-bell"></i> Notifications</h3>
+    {% if notifications %}
+    <form method="POST" action="{{ url_for('mark_notifications_read') }}">
+        <button class="btn btn-sm btn-outline-light"><i class="bi bi-check2-all"></i> Mark all read</button>
+    </form>
+    {% endif %}
+</div>
+
+{% if not notifications %}
+<div class="text-center text-muted py-5">
+    <i class="bi bi-bell-slash display-1"></i>
+    <p class="mt-3">No notifications yet.</p>
+</div>
+{% else %}
+<div class="list-group">
+    {% for n in notifications %}
+    <a href="{{ n.link or '#' }}" class="list-group-item list-group-item-action glass-card mb-1 {% if not n.is_read %}border-start border-4 border-info{% endif %}">
+        <div class="d-flex justify-content-between align-items-start">
+            <div>
+                {% if n.type == 'like' %}<i class="bi bi-heart-fill text-danger"></i>
+                {% elif n.type == 'comment' %}<i class="bi bi-chat-dots-fill text-info"></i>
+                {% elif n.type == 'follow' %}<i class="bi bi-person-plus-fill text-success"></i>
+                {% elif n.type == 'task' %}<i class="bi bi-clipboard-check text-warning"></i>
+                {% elif n.type == 'invest' %}<i class="bi bi-graph-up text-success"></i>
+                {% elif n.type == 'level_up' %}<i class="bi bi-arrow-up-circle-fill text-purple"></i>
+                {% elif n.type == 'achievement' %}<i class="bi bi-trophy-fill text-warning"></i>
+                {% elif n.type == 'gift' %}<i class="bi bi-gift-fill text-pink"></i>
+                {% elif n.type == 'streak_reward' %}<i class="bi bi-fire text-danger"></i>
+                {% elif n.type == 'message' %}<i class="bi bi-envelope-fill text-info"></i>
+                {% elif n.type == 'moderation' %}<i class="bi bi-shield-exclamation text-danger"></i>
+                {% else %}<i class="bi bi-bell-fill"></i>
+                {% endif %}
+                <span class="ms-2">{{ n.message }}</span>
+            </div>
+            <small class="text-muted text-nowrap ms-3">{{ n.created_at.strftime('%b %d %H:%M') }}</small>
+        </div>
+    </a>
+    {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

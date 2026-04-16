@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block title %}{{ post.title }} – goodgurl.gg{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card glass-card p-4">
+            <div class="d-flex align-items-center mb-3">
+                <span class="badge bg-pink me-2">{{ post.author.rank }}</span>
+                <a href="{{ url_for('profile', username=post.author.username) }}" class="fw-bold text-decoration-none fs-5">
+                    {{ post.author.username }}
+                </a>
+                <small class="text-muted ms-auto">{{ post.created_at.strftime('%B %d, %Y at %H:%M') }}</small>
+            </div>
+
+            <h2>{{ post.title }}</h2>
+
+            {% if post.media_url %}
+            <div class="my-3">
+                {% if post.media_url.endswith(('.mp4', '.webm')) %}
+                <div class="plyr-wrap rounded overflow-hidden">
+                    <video class="plyr-player" playsinline controls>
+                        <source src="{{ post.media_url }}" type="video/{{ 'mp4' if post.media_url.endswith('.mp4') else 'webm' }}">
+                    </video>
+                </div>
+                {% elif post.media_url.endswith('.gif') %}
+                <div class="media-wrap rounded overflow-hidden">
+                    <img src="{{ post.media_url }}" class="w-100" alt="Post media">
+                </div>
+                {% else %}
+                <img src="{{ post.media_url }}" class="img-fluid rounded w-100" alt="Post media">
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <div class="my-3" style="white-space: pre-wrap;">{{ post.body|hashtagify }}</div>
+
+            <div class="d-flex flex-wrap gap-1 mb-3">
+                {% for tag in post.tags %}
+                <a href="{{ url_for('hashtag_page', tag_name=tag.name) }}" class="badge bg-secondary text-decoration-none">#{{ tag.name }}</a>
+                {% endfor %}
+            </div>
+
+            <div class="d-flex align-items-center gap-3">
+                {% if current_user.is_authenticated %}
+                <form method="POST" action="{{ url_for('like_post', post_id=post.id) }}">
+                    <button type="submit" class="btn {% if current_user in post.liked_by.all() %}btn-danger{% else %}btn-outline-danger{% endif %}">
+                        <i class="bi bi-heart-fill"></i> {{ post.liked_by.count() }} Likes
+                    </button>
+                </form>
+                {% else %}
+                <span class="btn btn-outline-danger disabled">
+                    <i class="bi bi-heart-fill"></i> {{ post.liked_by.count() }} Likes
+                </span>
+                {% endif %}
+                <span class="text-muted"><i class="bi bi-chat-dots"></i> {{ post.comments.count() }} Comments</span>
+                <a href="{{ url_for('feed') }}" class="btn btn-outline-light">Back to Feed</a>
+                {% if current_user.is_authenticated and post.author_id != current_user.id %}
+                <button class="btn btn-outline-warning btn-sm ms-auto" type="button" data-bs-toggle="collapse" data-bs-target="#reportForm">
+                    <i class="bi bi-flag"></i>
+                </button>
+                {% endif %}
+            </div>
+
+            {% if current_user.is_authenticated and post.author_id != current_user.id %}
+            <div class="collapse mt-2" id="reportForm">
+                <form method="POST" action="{{ url_for('report_post', post_id=post.id) }}" class="d-flex gap-2">
+                    <input type="text" name="reason" class="form-control form-control-sm" placeholder="Reason for reporting..." required maxlength="256">
+                    <button class="btn btn-sm btn-warning">Report</button>
+                </form>
+            </div>
+            {% endif %}
+
+            <!-- Comments Section -->
+            <hr class="my-4">
+            <h5><i class="bi bi-chat-dots"></i> Comments</h5>
+
+            {% if current_user.is_authenticated %}
+            <form method="POST" action="{{ url_for('add_comment', post_id=post.id) }}" class="mb-4">
+                <div class="d-flex gap-2">
+                    <textarea name="body" class="form-control" rows="2" placeholder="Write a comment..." required></textarea>
+                    <button class="btn btn-pink align-self-end"><i class="bi bi-send"></i></button>
+                </div>
+            </form>
+            {% else %}
+            <p class="text-muted mb-4"><a href="{{ url_for('login') }}">Log in</a> to leave a comment.</p>
+            {% endif %}
+
+            {% for comment in post.comments.order_by(None).all()|sort(attribute='created_at', reverse=true) %}
+            <div class="mb-3 p-2 rounded" style="background: rgba(255,255,255,0.03);">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <div>
+                        <a href="{{ url_for('profile', username=comment.author.username) }}" class="fw-bold text-decoration-none">{{ comment.author.username }}</a>
+                        <span class="badge {% if comment.author.role == 'sissy' %}bg-pink{% else %}bg-warning text-dark{% endif %} ms-1" style="font-size:0.65rem">{{ comment.author.role }}</span>
+                    </div>
+                    <small class="text-muted">{{ comment.created_at.strftime('%b %d %H:%M') }}</small>
+                </div>
+                <div style="white-space: pre-wrap;">{{ comment.body|hashtagify }}</div>
+            </div>
+            {% else %}
+            <p class="text-muted">No comments yet. Be the first!</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

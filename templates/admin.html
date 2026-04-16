@@ -1,0 +1,347 @@
+{% extends "base.html" %}
+{% block title %}Admin Panel – goodgurl.gg{% endblock %}
+{% block content %}
+<script src="{{ url_for('static', filename='admin_tab_persistence.js') }}"></script>
+<h3 class="mb-4"><i class="bi bi-shield-lock"></i> Admin Panel</h3>
+
+<ul class="nav nav-tabs mb-4" id="adminTab" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="dashboard-tab" data-bs-toggle="tab" data-bs-target="#dashboard" type="button" role="tab">Dashboard</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="users-tab" data-bs-toggle="tab" data-bs-target="#users" type="button" role="tab">Users</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="moderation-tab" data-bs-toggle="tab" data-bs-target="#moderation" type="button" role="tab">Moderation</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="events-tab" data-bs-toggle="tab" data-bs-target="#events" type="button" role="tab">Events</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="simulation-tab" data-bs-toggle="tab" data-bs-target="#simulation" type="button" role="tab">Simulation</button>
+                </li>
+            </ul>
+            <div class="tab-content" id="adminTabContent">
+                <!-- Dashboard Tab -->
+                <div class="tab-pane fade show active" id="dashboard" role="tabpanel">
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <div class="card glass-card p-3 text-center mb-4">
+                                <div class="fs-3 fw-bold text-info">{{ users|length }}</div>
+                                <small class="text-muted">Total Users</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card glass-card p-3 text-center mb-4">
+                                <div class="fs-3 fw-bold text-purple">{{ posts|length }}</div>
+                                <small class="text-muted">Recent Posts</small>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="card glass-card p-4 mb-2">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h5 class="mb-0"><i class="bi bi-graph-up-arrow text-info"></i> Site Growth</h5>
+                                    <div class="btn-group btn-group-sm" id="growth-tf-btns">
+                                        <button class="btn btn-outline-secondary" data-tf="1h">1H</button>
+                                        <button class="btn btn-outline-secondary" data-tf="6h">6H</button>
+                                        <button class="btn btn-outline-secondary" data-tf="1d">1D</button>
+                                        <button class="btn btn-outline-secondary" data-tf="7d">7D</button>
+                                        <button class="btn btn-outline-secondary active" data-tf="30d">30D</button>
+                                        <button class="btn btn-outline-secondary" data-tf="all">All</button>
+                                    </div>
+                                </div>
+                                <img id="growthChart" src="{{ url_for('admin_growth_chart', tf='30d') }}" class="img-fluid rounded" alt="Site growth chart" style="max-width: 100%;">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Users Tab -->
+                <div class="tab-pane fade" id="users" role="tabpanel">
+                    <div class="card glass-card p-4 mb-4">
+                        <h5><i class="bi bi-people"></i> All User Accounts</h5>
+                        <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
+                            <table class="table table-sm table-hover align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>User</th>
+                                        <th>Role</th>
+                                        <th>Joined</th>
+                                        <th>Rank</th>
+                                        <th>Level</th>
+                                        <th>XP</th>
+                                        <th>Market Value</th>
+                                        <th>Coins</th>
+                                        <th>Funded</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for user in users %}
+                                    <tr>
+                                        <td>
+                                            <a href="{{ url_for('profile', username=user.username) }}" class="text-decoration-none">{{ user.username }}</a>
+                                            {% if user.is_bot %}<span class="badge bg-secondary ms-1">BOT</span>{% endif %}
+                                        </td>
+                                        <td><span class="badge {% if user.role == 'sissy' %}bg-pink{% elif user.role == 'admin' %}bg-danger{% else %}bg-warning text-dark{% endif %}">{{ user.role }}</span></td>
+                                        <td class="text-muted">{{ user.created_at.strftime('%b %d, %Y') }}</td>
+                                        <td><span class="badge" style="background: {{ user.tier.color }}; color: #fff;"><iconify-icon icon="{{ user.tier.icon }}" inline></iconify-icon> {{ user.rank }}</span></td>
+                                        <td>{{ user.level }}</td>
+                                        <td>{{ user.xp }}</td>
+                                        <td>{% if user.role == 'sissy' %}<span class="text-info">{{ user.market_value }}</span>{% else %}-{% endif %}</td>
+                                        <td><span class="text-warning">{{ user.coins }}</span></td>
+                                        <td>{{ user.funded_coins }}</td>
+                                        <td>
+                                            {% if user.bio and user.bio.startswith('[BANNED]') %}<span class="badge bg-danger">BANNED</span> {% endif %}
+                                            {% if user.is_verified %}<span class="badge bg-success">VERIFIED</span> {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if user.role != 'admin' %}
+                                            <form method="POST" action="{{ url_for('admin_ban_user', user_id=user.id) }}" class="d-inline">
+                                                <button class="btn btn-sm btn-outline-danger" onclick="return confirm('Ban this user?')" title="Ban"><i class="bi bi-ban"></i></button>
+                                            </form>
+                                            {% endif %}
+                                            <form method="POST" action="{{ url_for('admin_rankup') }}" class="d-inline ms-1">
+                                                <input type="hidden" name="username" value="{{ user.username }}">
+                                                <input type="number" name="target_level" value="{{ user.level + 1 }}" min="{{ user.level + 1 }}" max="99" style="width:60px;" class="form-control form-control-sm d-inline-block" title="Target Level">
+                                                <button class="btn btn-sm btn-outline-success" title="Rank Up"><i class="bi bi-arrow-up-circle"></i></button>
+                                            </form>
+                                            {% if user.role == 'sissy' %}
+                                            <form method="POST" action="{{ url_for('admin_set_market_value') }}" class="d-inline ms-1">
+                                                <input type="hidden" name="username" value="{{ user.username }}">
+                                                <input type="number" name="market_value" value="{{ user.market_value + 100 }}" min="0" max="1000000" style="width:90px;" class="form-control form-control-sm d-inline-block" title="Market Value">
+                                                <button class="btn btn-sm btn-outline-info" title="Boost Market Value"><i class="bi bi-graph-up-arrow"></i></button>
+                                            </form>
+                                            {% endif %}
+                                            <form method="POST" action="{{ url_for('admin_give_coins') }}" class="d-inline ms-1">
+                                                <input type="hidden" name="username" value="{{ user.username }}">
+                                                <input type="number" name="amount" value="100" min="1" max="1000000" style="width:70px;" class="form-control form-control-sm d-inline-block" title="Amount">
+                                                <button class="btn btn-sm btn-outline-warning" title="Give Coins"><i class="bi bi-coin"></i></button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <!-- Moderation Tab -->
+                <div class="tab-pane fade" id="moderation" role="tabpanel">
+                    <div class="row g-4">
+                        <div class="col-12">
+                            <div class="card glass-card p-4 mb-4">
+                                <h5><i class="bi bi-flag text-danger"></i> Reports Queue
+                                    {% if open_reports %}<span class="badge bg-danger ms-2">{{ open_reports|length }}</span>{% endif %}
+                                </h5>
+                                {% if open_reports %}
+                                <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                                    <table class="table table-sm mb-0">
+                                        <thead><tr><th>Reporter</th><th>Content</th><th>Reason</th><th>Date</th><th>Actions</th></tr></thead>
+                                        <tbody>
+                                            {% for report in open_reports %}
+                                            <tr>
+                                                <td><a href="{{ url_for('profile', username=report.reporter.username) }}">{{ report.reporter.username }}</a></td>
+                                                <td>
+                                                    {% if report.post %}
+                                                    <a href="{{ url_for('view_post', post_id=report.post.id) }}">Post: {{ report.post.title[:40] }}</a>
+                                                    {% elif report.thread %}
+                                                    <a href="{{ url_for('forum_thread', thread_id=report.thread.id) }}">Thread: {{ report.thread.title[:40] }}</a>
+                                                    {% endif %}
+                                                </td>
+                                                <td class="text-muted">{{ report.reason[:60] }}</td>
+                                                <td class="text-muted">{{ report.created_at.strftime('%b %d %H:%M') }}</td>
+                                                <td>
+                                                    <form method="POST" action="{{ url_for('admin_action_report', report_id=report.id) }}" class="d-inline">
+                                                        <button class="btn btn-sm btn-outline-danger" onclick="return confirm('Remove this content?')"><i class="bi bi-trash"></i> Remove</button>
+                                                    </form>
+                                                    <form method="POST" action="{{ url_for('admin_dismiss_report', report_id=report.id) }}" class="d-inline ms-1">
+                                                        <button class="btn btn-sm btn-outline-secondary"><i class="bi bi-x-circle"></i> Dismiss</button>
+                                                    </form>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                {% else %}
+                                <p class="text-muted mb-0">No open reports. 🎉</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="card glass-card p-4 mb-4">
+                                <h5><i class="bi bi-card-text"></i> Recent Posts</h5>
+                                <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                                    <table class="table table-sm mb-0">
+                                        <thead><tr><th>Title</th><th>Author</th><th>Date</th><th>Likes</th><th>Comments</th><th></th></tr></thead>
+                                        <tbody>
+                                            {% for post in posts %}
+                                            <tr>
+                                                <td><a href="{{ url_for('view_post', post_id=post.id) }}" class="text-decoration-none">{{ post.title }}</a></td>
+                                                <td>{{ post.author.username }}</td>
+                                                <td class="text-muted">{{ post.created_at.strftime('%b %d %H:%M') }}</td>
+                                                <td>{{ post.liked_by.count() }}</td>
+                                                <td>{{ post.comments.count() }}</td>
+                                                <td>
+                                                    <form method="POST" action="{{ url_for('admin_delete_post', post_id=post.id) }}" class="d-inline">
+                                                        <button class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this post?')"><i class="bi bi-trash"></i></button>
+                                                    </form>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="card glass-card p-4 mb-4">
+                                <h5><i class="bi bi-trash3 text-danger"></i> Bot Cleanup</h5>
+                                {% set bot_count = users|selectattr('is_bot')|list|length %}
+                                <p class="text-muted small mb-3">
+                                    Currently <strong class="text-warning">{{ bot_count }}</strong> bot account{{ 's' if bot_count != 1 else '' }} on the platform.
+                                    Clearing bots removes their accounts, posts, comments, investments, and all associated data.
+                                </p>
+                                <form method="POST" action="{{ url_for('admin_clear_bots') }}">
+                                    <button class="btn btn-outline-danger w-100" onclick="return confirm('Remove ALL bot accounts and their data? This cannot be undone.')" {% if bot_count == 0 %}disabled{% endif %}>
+                                        <i class="bi bi-trash3"></i> Clear All Bots ({{ bot_count }})
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Events Tab -->
+                <div class="tab-pane fade" id="events" role="tabpanel">
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <div class="card glass-card p-4 mb-4">
+                                <h5><i class="bi bi-lightning-charge text-warning"></i> Grant XP Multiplier</h5>
+                                <form method="POST" action="{{ url_for('admin_grant_multiplier') }}">
+                                    <div class="mb-2">
+                                        <input type="text" name="name" class="form-control" placeholder="Event name" value="Bonus Event" required>
+                                    </div>
+                                    <div class="row g-2 mb-2">
+                                        <div class="col">
+                                            <input type="number" name="multiplier" class="form-control" value="2.0" step="0.1" min="1.1" max="10" required>
+                                            <small class="text-muted">Multiplier</small>
+                                        </div>
+                                        <div class="col">
+                                            <input type="number" name="hours" class="form-control" value="24" min="1" max="720" required>
+                                            <small class="text-muted">Duration (hours)</small>
+                                        </div>
+                                    </div>
+                                    <button class="btn btn-warning w-100">Activate Multiplier</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Simulation Tab -->
+                <div class="tab-pane fade" id="simulation" role="tabpanel">
+                    <div class="row g-4">
+                        <div class="col-md-8">
+                            <div class="card glass-card p-4 mb-4">
+                                <h5><i class="bi bi-robot text-info"></i> Bot Simulation Toolkit</h5>
+                                <p class="text-muted small mb-3">Generate bot accounts and simulate platform activity to stress-test or populate demo data.</p>
+                                <form method="POST" action="{{ url_for('admin_simulate') }}">
+                                    <div class="row g-2 mb-2">
+                                        <div class="col">
+                                            <input type="number" name="num_sissies" class="form-control" value="5" min="0" max="100" required>
+                                            <small class="text-muted">Bot Sissies</small>
+                                        </div>
+                                        <div class="col">
+                                            <input type="number" name="num_masters" class="form-control" value="2" min="0" max="50" required>
+                                            <small class="text-muted">Bot Masters</small>
+                                        </div>
+                                    </div>
+                                    <div class="row g-2 mb-3">
+                                        <div class="col">
+                                            <input type="number" name="actions_min" class="form-control" value="3" min="1" max="100" required>
+                                            <small class="text-muted">Min Actions</small>
+                                        </div>
+                                        <div class="col">
+                                            <input type="number" name="actions_max" class="form-control" value="10" min="1" max="200" required>
+                                            <small class="text-muted">Max Actions</small>
+                                        </div>
+                                    </div>
+                                    <div class="row g-2 mb-3">
+                                        <div class="col">
+                                            <input type="number" name="sim_minutes" class="form-control" value="0" min="0" max="1440">
+                                            <small class="text-muted">Simulation Time (minutes) &mdash; 0&nbsp;=&nbsp;instant</small>
+                                        </div>
+                                    </div>
+                                    <button class="btn btn-info w-100"><i class="bi bi-play-fill"></i> Run Simulation</button>
+                                </form>
+                                <div id="sim-progress-panel" class="mt-3 d-none">
+                                    <hr>
+                                    <div class="d-flex align-items-center mb-2">
+                                        <div class="spinner-border spinner-border-sm text-info me-2" role="status"></div>
+                                        <strong id="sim-phase" class="text-info">Starting&hellip;</strong>
+                                    </div>
+                                    <div class="progress mb-2" style="height: 8px;">
+                                        <div id="sim-bar" class="progress-bar bg-info" role="progressbar" style="width: 0%"></div>
+                                    </div>
+                                    <small class="text-muted"><span id="sim-detail">0 / 0</span></small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <script>
+            // Growth chart tab logic
+            document.getElementById("growth-tf-btns")?.addEventListener("click", function(e){
+                    const btn = e.target.closest("[data-tf]");
+                    if(!btn) return;
+                    this.querySelectorAll(".btn").forEach(b => b.classList.remove("active"));
+                    btn.classList.add("active");
+                    const img = document.getElementById("growthChart");
+                    img.src = "{{ url_for('admin_growth_chart') }}?tf=" + btn.dataset.tf + "&_=" + Date.now();
+            });
+            // Bot simulation progress polling
+            (function(){
+                    const panel = document.getElementById("sim-progress-panel");
+                    const bar   = document.getElementById("sim-bar");
+                    const phase = document.getElementById("sim-phase");
+                    const detail= document.getElementById("sim-detail");
+                    if(!panel) return;
+                    let polling = null;
+                    function poll(){
+                            fetch("{{ url_for('admin_sim_status') }}")
+                                    .then(r => r.json())
+                                    .then(d => {
+                                            if(d.running){
+                                                    panel.classList.remove("d-none");
+                                                    phase.textContent = d.phase || "Working…";
+                                                    const pct = d.total > 0 ? Math.round(d.progress / d.total * 100) : 0;
+                                                    bar.style.width = pct + "%";
+                                                    detail.textContent = d.progress + " / " + d.total;
+                                            } else if(d.phase === "Complete" && d.summary){
+                                                    panel.classList.remove("d-none");
+                                                    phase.textContent = "✓ Simulation complete!";
+                                                    phase.classList.replace("text-info","text-success");
+                                                    bar.style.width = "100%";
+                                                    bar.classList.replace("bg-info","bg-success");
+                                                    const s = d.summary;
+                                                    detail.textContent = s.posts+" posts, "+s.likes+" likes, "+s.comments+" comments, "+s.investments+" investments, "+s.follows+" follows";
+                                                    clearInterval(polling);
+                                                    polling = null;
+                                            } else if(d.error){
+                                                    panel.classList.remove("d-none");
+                                                    phase.textContent = "✗ Error: " + d.error;
+                                                    phase.classList.replace("text-info","text-danger");
+                                                    clearInterval(polling);
+                                                    polling = null;
+                                            } else {
+                                                    panel.classList.add("d-none");
+                                            }
+                                    })
+                                    .catch(() => {});
+                    }
+                    poll();
+                    polling = setInterval(poll, 2000);
+            })();
+            </script>
+            {% endblock %}

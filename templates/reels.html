@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reels – goodgurl.gg</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+</head>
+<body style="overflow:hidden; margin:0; padding:0; background:#0a0818;">
+<style>
+/* ── Reels container: full-viewport snap scroll ── */
+.reels-viewport {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    overflow-y: scroll;
+    scroll-snap-type: y mandatory;
+    -webkit-overflow-scrolling: touch;
+    z-index: 1050;
+    background: #0a0818;
+}
+
+.reel-slide {
+    scroll-snap-align: start;
+    height: 100vh;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+    background: #0a0818;
+}
+
+/* ── Media fill ── */
+.reel-slide video,
+.reel-slide img.reel-media {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    background: #000;
+}
+
+.reel-slide .reel-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #1a1033, #0f0c29);
+    color: rgba(255,255,255,.15);
+    font-size: 6rem;
+}
+
+/* ── Bottom overlay info ── */
+.reel-info {
+    position: absolute;
+    bottom: 0; left: 0; right: 80px;
+    padding: 24px 16px;
+    background: linear-gradient(transparent, rgba(0,0,0,.85));
+    color: #fff;
+    z-index: 2;
+}
+.reel-info .reel-author {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+.reel-info .reel-author img {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    border: 2px solid var(--pink);
+}
+.reel-info .reel-author a {
+    color: #fff;
+    font-weight: 600;
+    text-decoration: none;
+}
+.reel-info .reel-title {
+    font-weight: 700;
+    font-size: 1.05rem;
+    margin-bottom: 4px;
+}
+.reel-info .reel-body {
+    font-size: 0.85rem;
+    opacity: .85;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+.reel-info .reel-tags {
+    margin-top: 6px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+.reel-info .reel-tags a {
+    color: var(--pink);
+    font-size: 0.8rem;
+    text-decoration: none;
+}
+
+/* ── Right action sidebar ── */
+.reel-actions {
+    position: absolute;
+    right: 12px;
+    bottom: 120px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    z-index: 3;
+}
+.reel-actions .reel-action {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: #fff;
+    font-size: 0.75rem;
+    cursor: pointer;
+    text-decoration: none;
+}
+.reel-actions .reel-action i {
+    font-size: 1.6rem;
+    margin-bottom: 2px;
+    transition: transform .15s;
+}
+.reel-actions .reel-action:hover i {
+    transform: scale(1.2);
+}
+.reel-actions .reel-action.liked i { color: #ff4da6; }
+
+/* ── Top bar ── */
+.reels-top-bar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 54px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    z-index: 1060;
+    background: linear-gradient(rgba(0,0,0,.7), transparent);
+}
+.reels-top-bar a {
+    color: #fff;
+    font-size: 1.3rem;
+    text-decoration: none;
+}
+.reels-top-bar .reels-title {
+    color: #fff;
+    font-weight: 700;
+    font-size: 1.1rem;
+}
+
+/* ── Loader ── */
+.reel-loader {
+    scroll-snap-align: start;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #0a0818;
+}
+
+/* ── GIF badge ── */
+.reel-gif-badge {
+    position: absolute;
+    top: 60px; right: 12px;
+    z-index: 4;
+}
+
+/* ── Mute btn ── */
+.reel-mute-btn {
+    position: absolute;
+    top: 60px; left: 12px;
+    z-index: 4;
+    background: rgba(0,0,0,.5);
+    border: none;
+    color: #fff;
+    font-size: 1.2rem;
+    border-radius: 50%;
+    width: 36px; height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+</style>
+
+<!-- Top bar -->
+<div class="reels-top-bar">
+    <a href="{{ url_for('feed') }}" title="Back to feed"><i class="bi bi-arrow-left"></i></a>
+    <span class="reels-title"><i class="bi bi-play-circle"></i> Reels</span>
+    <span></span>
+</div>
+
+<!-- Scroll container -->
+<div class="reels-viewport" id="reelsViewport">
+    <!-- Slides injected by JS -->
+    <div id="reelsLoader" class="reel-loader">
+        <div class="spinner-border text-pink" role="status"><span class="visually-hidden">Loading…</span></div>
+    </div>
+</div>
+
+<script>
+(function() {
+    const viewport = document.getElementById('reelsViewport');
+    const loader   = document.getElementById('reelsLoader');
+    let page       = 1;
+    let loading    = false;
+    let hasMore    = true;
+    let globalMuted = true;
+    const csrfToken = document.querySelector('meta[name=csrf-token]')?.content || '';
+
+    function buildSlide(p) {
+        const slide = document.createElement('div');
+        slide.className = 'reel-slide';
+        slide.dataset.postId = p.id;
+
+        let mediaHTML = '';
+        if (p.media_type === 'video') {
+            mediaHTML = `
+                <video class="reel-media" loop playsinline ${globalMuted ? 'muted' : ''} preload="metadata">
+                    <source src="${p.media_url}">
+                </video>
+                <button class="reel-mute-btn" onclick="toggleMuteAll(this)">
+                    <i class="bi bi-volume-${globalMuted ? 'mute' : 'up'}-fill"></i>
+                </button>`;
+        } else if (p.media_type === 'gif') {
+            mediaHTML = `
+                <img class="reel-media" src="${p.media_url}" alt="">
+                <div class="reel-gif-badge"><span class="badge bg-dark" style="font-size:.7rem;opacity:.8;">GIF</span></div>`;
+        } else if (p.media_url) {
+            mediaHTML = `<img class="reel-media" src="${p.media_url}" alt="">`;
+        } else {
+            mediaHTML = `<div class="reel-placeholder"><i class="bi bi-image"></i></div>`;
+        }
+
+        const tagsHTML = p.tags.map(t =>
+            `<a href="/hashtag/${t}">#${t}</a>`
+        ).join('');
+
+        slide.innerHTML = `
+            ${mediaHTML}
+            <div class="reel-info">
+                <div class="reel-author">
+                    <img src="${p.author_avatar}" alt="">
+                    <a href="${p.author_url}">${p.author_is_bot ? '🤖 ' : ''}${p.author}</a>
+                    <span class="badge bg-pink" style="font-size:.6rem;">${p.author_rank}</span>
+                </div>
+                <div class="reel-title">${escapeHtml(p.title)}</div>
+                <div class="reel-body">${escapeHtml(p.body)}</div>
+                ${tagsHTML ? '<div class="reel-tags">' + tagsHTML + '</div>' : ''}
+            </div>
+            <div class="reel-actions">
+                <a class="reel-action" href="${p.like_url}" data-like="${p.id}">
+                    <i class="bi bi-heart"></i>
+                    <span>${p.likes}</span>
+                </a>
+                <a class="reel-action" href="${p.url}">
+                    <i class="bi bi-chat-dots"></i>
+                    <span>${p.comments}</span>
+                </a>
+                <a class="reel-action" href="${p.url}">
+                    <i class="bi bi-arrow-up-right-square"></i>
+                    <span>Open</span>
+                </a>
+            </div>`;
+
+        return slide;
+    }
+
+    function escapeHtml(s) {
+        const d = document.createElement('div');
+        d.textContent = s;
+        return d.innerHTML;
+    }
+
+    async function loadPage() {
+        if (loading || !hasMore) return;
+        loading = true;
+
+        try {
+            const resp = await fetch(`/api/reels?page=${page}`);
+            const data = await resp.json();
+            hasMore = data.has_more;
+
+            data.posts.forEach(p => {
+                const slide = buildSlide(p);
+                viewport.insertBefore(slide, loader);
+            });
+            page++;
+        } catch(e) {
+            console.error('Reels load error', e);
+        }
+
+        loading = false;
+        if (!hasMore) loader.style.display = 'none';
+    }
+
+    // Infinite scroll: load next page when near bottom
+    viewport.addEventListener('scroll', () => {
+        if (viewport.scrollTop + viewport.clientHeight >= viewport.scrollHeight - window.innerHeight) {
+            loadPage();
+        }
+        handleVisibility();
+    });
+
+    // Auto-play visible video, pause others
+    function handleVisibility() {
+        const slides = viewport.querySelectorAll('.reel-slide');
+        const vpMid  = viewport.scrollTop + viewport.clientHeight / 2;
+
+        slides.forEach(s => {
+            const vid = s.querySelector('video');
+            if (!vid) return;
+            const top = s.offsetTop;
+            const bot = top + s.offsetHeight;
+            if (top < vpMid && bot > vpMid) {
+                if (vid.paused) vid.play().catch(() => {});
+            } else {
+                if (!vid.paused) vid.pause();
+            }
+        });
+    }
+
+    // Like button (AJAX)
+    viewport.addEventListener('click', async (e) => {
+        const likeBtn = e.target.closest('[data-like]');
+        if (!likeBtn) return;
+        e.preventDefault();
+        try {
+            const resp = await fetch(likeBtn.href, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': csrfToken }
+            });
+            if (resp.ok || resp.redirected) {
+                const icon = likeBtn.querySelector('i');
+                icon.classList.toggle('bi-heart');
+                icon.classList.toggle('bi-heart-fill');
+                likeBtn.classList.toggle('liked');
+                const countEl = likeBtn.querySelector('span');
+                let c = parseInt(countEl.textContent);
+                countEl.textContent = likeBtn.classList.contains('liked') ? c + 1 : Math.max(0, c - 1);
+            }
+        } catch(err) { console.error(err); }
+    });
+
+    // Global mute toggle
+    window.toggleMuteAll = function(btn) {
+        globalMuted = !globalMuted;
+        document.querySelectorAll('.reel-slide video').forEach(v => v.muted = globalMuted);
+        document.querySelectorAll('.reel-mute-btn i').forEach(i => {
+            i.className = 'bi bi-volume-' + (globalMuted ? 'mute' : 'up') + '-fill';
+        });
+    };
+
+    // Keyboard nav
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowDown' || e.key === 'j') {
+            e.preventDefault();
+            viewport.scrollBy({ top: window.innerHeight, behavior: 'smooth' });
+        } else if (e.key === 'ArrowUp' || e.key === 'k') {
+            e.preventDefault();
+            viewport.scrollBy({ top: -window.innerHeight, behavior: 'smooth' });
+        } else if (e.key === 'm') {
+            const btn = document.querySelector('.reel-mute-btn');
+            if (btn) window.toggleMuteAll(btn);
+        }
+    });
+
+    // Initial load
+    loadPage();
+})();
+</script>
+</body>
+</html>

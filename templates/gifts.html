@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Gift Chest – goodgurl.gg{% endblock %}
+{% block content %}
+<div class="container py-4" style="max-width: 700px;">
+    <h2 class="mb-4"><img src="{{ url_for('static', filename='assets/checticon.png') }}" width="32" height="32" class="me-2" alt="Chest">Gift Chest</h2>
+
+    {% if pending %}
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <span class="text-warning fw-bold">{{ pending|length }} unclaimed gift{{ 's' if pending|length != 1 else '' }}</span>
+        <form method="POST" action="{{ url_for('claim_all_gifts') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-sm btn-outline-warning"><i class="bi bi-collection"></i> Claim All</button>
+        </form>
+    </div>
+    {% for g in pending %}
+    <div class="card bg-dark border-warning mb-2 animate__animated animate__fadeInUp">
+        <div class="card-body d-flex justify-content-between align-items-center py-2">
+            <div>
+                <a href="{{ url_for('profile', username=g.sender.username) }}">
+                    <img src="{{ g.sender.avatar_url or url_for('static', filename='default_avatar.png') }}" width="28" height="28" class="rounded-circle me-1">
+                    {{ g.sender.username }}
+                </a>
+                sent you <span class="text-warning fw-bold">{{ g.amount }} <i class="bi bi-coin"></i></span>
+                <small class="text-muted ms-2">{{ g.created_at.strftime('%b %d, %H:%M') }}</small>
+            </div>
+            <form method="POST" action="{{ url_for('claim_gift', gift_id=g.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn btn-sm btn-warning"><i class="bi bi-box-arrow-in-down"></i> Claim</button>
+            </form>
+        </div>
+    </div>
+    {% endfor %}
+    {% else %}
+    <div class="text-center text-muted py-5">
+        <i class="bi bi-box-seam" style="font-size: 3rem;"></i>
+        <p class="mt-2">No pending gifts. Check back later!</p>
+    </div>
+    {% endif %}
+
+    {% if claimed %}
+    <hr class="border-secondary my-4">
+    <h5 class="text-muted mb-3"><i class="bi bi-check2-circle"></i> Recently Claimed</h5>
+    {% for g in claimed %}
+    <div class="card bg-dark border-secondary mb-2" style="opacity: 0.7;">
+        <div class="card-body d-flex justify-content-between align-items-center py-2">
+            <div>
+                <a href="{{ url_for('profile', username=g.sender.username) }}">{{ g.sender.username }}</a>
+                sent <span class="text-warning">{{ g.amount }} <i class="bi bi-coin"></i></span>
+                <small class="text-muted ms-2">{{ g.created_at.strftime('%b %d, %H:%M') }}</small>
+            </div>
+            <span class="badge bg-success"><i class="bi bi-check"></i> Claimed {{ g.claimed_at.strftime('%b %d') }}</span>
+        </div>
+    </div>
+    {% endfor %}
+    {% endif %}
+</div>
+{% endblock %}

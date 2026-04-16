@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block title %}#{{ tag_name }} — goodgurl.gg{% endblock %}
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex align-items-center mb-4">
+        <h1 class="text-pink mb-0"><i class="bi bi-hash"></i>{{ tag_name }}</h1>
+        <span class="badge bg-secondary ms-3 fs-6">{{ posts|length + threads|length }} results</span>
+    </div>
+
+    <!-- Nav tabs -->
+    <ul class="nav nav-tabs mb-4" role="tablist">
+        <li class="nav-item">
+            <a class="nav-link active" data-bs-toggle="tab" href="#tab-posts" role="tab">
+                <i class="bi bi-sticky"></i> Posts <span class="badge bg-pink ms-1">{{ posts|length }}</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" data-bs-toggle="tab" href="#tab-threads" role="tab">
+                <i class="bi bi-chat-square-text"></i> Forum Threads <span class="badge bg-pink ms-1">{{ threads|length }}</span>
+            </a>
+        </li>
+    </ul>
+
+    <div class="tab-content">
+        <!-- Posts Tab -->
+        <div class="tab-pane fade show active" id="tab-posts" role="tabpanel">
+            {% if posts %}
+            <div class="row g-3">
+                {% for post in posts %}
+                <div class="col-md-6 col-lg-4">
+                    <div class="card glass-card h-100">
+                        {% if post.media_url %}
+                        {% if post.media_url.endswith(('.mp4', '.webm')) %}
+                        <video class="card-img-top hashtag-vid-thumb" muted playsinline onmouseenter="this.play()" onmouseleave="this.pause()">
+                            <source src="{{ post.media_url }}">
+                        </video>
+                        {% elif post.media_url.endswith('.gif') %}
+                        <div class="position-relative">
+                            <img src="{{ post.media_url }}" class="card-img-top" alt="" style="aspect-ratio: 1/1; object-fit: cover;">
+                            <span class="badge bg-dark position-absolute top-0 end-0 m-1" style="font-size: 0.6rem; opacity: 0.8;">GIF</span>
+                        </div>
+                        {% else %}
+                        <img src="{{ post.media_url }}" class="card-img-top" alt="" style="aspect-ratio: 1/1; object-fit: cover;">
+                        {% endif %}
+                        {% endif %}
+                        <div class="card-body">
+                            <div class="d-flex align-items-center mb-2">
+                                <img src="{{ post.author.avatar_url }}" class="rounded-circle me-2" width="28" height="28" alt="" style="object-fit:cover; background: rgba(255,255,255,0.05);">
+                                <a href="{{ url_for('profile', username=post.author.username) }}" class="text-decoration-none fw-bold small">
+                                    {% if post.author.is_bot %}🤖 {% endif %}{{ post.author.username }}
+                                </a>
+                                <small class="text-muted ms-auto">{{ post.created_at.strftime('%b %d') }}</small>
+                            </div>
+                            <h6 class="card-title mb-1">{{ post.title }}</h6>
+                            <p class="card-text text-muted small mb-2">{{ post.body[:100] }}{% if post.body|length > 100 %}…{% endif %}</p>
+                            <div class="d-flex flex-wrap gap-1 mb-2">
+                                {% for tag in post.tags %}
+                                <a href="{{ url_for('hashtag_page', tag_name=tag.name) }}" class="badge bg-secondary text-decoration-none">#{{ tag.name }}</a>
+                                {% endfor %}
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="text-muted small"><i class="bi bi-heart-fill text-danger"></i> {{ post.liked_by.count() }}</span>
+                                <a href="{{ url_for('view_post', post_id=post.id) }}" class="btn btn-sm btn-outline-light">View</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center text-muted py-5">
+                <i class="bi bi-search display-4"></i>
+                <p class="mt-2">No posts with <span class="text-pink">#{{ tag_name }}</span> yet.</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Forum Threads Tab -->
+        <div class="tab-pane fade" id="tab-threads" role="tabpanel">
+            {% if threads %}
+            <div class="list-group">
+                {% for thread in threads %}
+                <a href="{{ url_for('forum_thread', thread_id=thread.id) }}" class="list-group-item list-group-item-action glass-card mb-2 border-0" style="background: rgba(255,255,255,0.03);">
+                    <div class="d-flex align-items-start">
+                        <img src="{{ thread.author.avatar_url }}" class="rounded-circle me-3 mt-1" width="36" height="36" alt="" style="object-fit:cover; background: rgba(255,255,255,0.05);">
+                        <div class="flex-grow-1">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h6 class="mb-1 fw-bold">
+                                    {% if thread.is_pinned %}<i class="bi bi-pin-angle-fill text-warning me-1"></i>{% endif %}
+                                    {{ thread.title }}
+                                </h6>
+                                <small class="text-muted">{{ thread.created_at.strftime('%b %d') }}</small>
+                            </div>
+                            <p class="mb-1 text-muted small">{{ thread.body[:120] }}{% if thread.body|length > 120 %}…{% endif %}</p>
+                            <div class="d-flex gap-2 align-items-center">
+                                <small class="text-muted">
+                                    <i class="bi bi-person"></i> {% if thread.author.is_bot %}🤖 {% endif %}{{ thread.author.username }}
+                                </small>
+                                <small class="text-muted"><i class="bi bi-reply"></i> {{ thread.reply_count }} replies</small>
+                                <small class="text-muted"><i class="bi bi-eye"></i> {{ thread.view_count }} views</small>
+                                <span class="badge bg-secondary small">#{{ tag_name }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center text-muted py-5">
+                <i class="bi bi-search display-4"></i>
+                <p class="mt-2">No forum threads with <span class="text-pink">#{{ tag_name }}</span> yet.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

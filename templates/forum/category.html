@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}{{ category.name }} — Forum — goodgurl.gg{% endblock %}
+{% block content %}
+<div class="forum-wrap">
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb forum-breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('forum_index') }}">Forum</a></li>
+            <li class="breadcrumb-item active">{{ category.name }}</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="fw-bold forum-title"><i class="bi {{ category.icon }}"></i> {{ category.name }}</h3>
+            <p class="forum-muted mb-0">{{ category.description }}</p>
+        </div>
+        {% if current_user.is_authenticated %}
+        <a href="{{ url_for('forum_new_thread', category_id=category.id) }}" class="btn btn-forum-primary">
+            <i class="bi bi-plus-lg"></i> New Thread
+        </a>
+        {% endif %}
+    </div>
+
+    {% if threads.items %}
+    <div class="list-group forum-threads">
+        {% for thread in threads.items %}
+        <a href="{{ url_for('forum_thread', thread_id=thread.id) }}"
+           class="list-group-item list-group-item-action forum-thread-item {% if thread.is_pinned %}forum-pinned{% endif %}">
+            <div class="d-flex w-100 align-items-center">
+                <div class="forum-thread-avatar me-3">
+                    {% if thread.author.avatar_url %}
+                    <img src="{{ thread.author.avatar_url }}" alt="" width="36" height="36" class="rounded-circle">
+                    {% else %}
+                    <i class="bi bi-person-circle" style="font-size:1.8rem;"></i>
+                    {% endif %}
+                </div>
+                <div class="flex-grow-1">
+                    <div class="d-flex align-items-center">
+                        {% if thread.is_pinned %}<span class="badge forum-badge-pin me-1"><i class="bi bi-pin-angle-fill"></i></span>{% endif %}
+                        {% if thread.is_locked %}<span class="badge forum-badge-lock me-1"><i class="bi bi-lock-fill"></i></span>{% endif %}
+                        <h6 class="mb-0 forum-thread-title">{{ thread.title }}</h6>
+                    </div>
+                    <small class="forum-muted">
+                        by <strong>{{ thread.author.username }}</strong> · {{ thread.created_at.strftime('%b %d, %Y') }}
+                    </small>
+                </div>
+                <div class="text-end d-none d-md-block forum-thread-meta">
+                    <span class="me-2"><i class="bi bi-reply"></i> {{ thread.reply_count }}</span>
+                    <span><i class="bi bi-eye"></i> {{ thread.view_count }}</span>
+                </div>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    {% if threads.has_prev or threads.has_next %}
+    <nav class="mt-4">
+        <ul class="pagination justify-content-center forum-pagination">
+            <li class="page-item {% if not threads.has_prev %}disabled{% endif %}">
+                <a class="page-link" href="{{ url_for('forum_category', category_id=category.id, page=threads.prev_num) }}">‹</a>
+            </li>
+            {% for p in threads.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+            {% if p %}
+            <li class="page-item {% if p == threads.page %}active{% endif %}">
+                <a class="page-link" href="{{ url_for('forum_category', category_id=category.id, page=p) }}">{{ p }}</a>
+            </li>
+            {% else %}
+            <li class="page-item disabled"><span class="page-link">…</span></li>
+            {% endif %}
+            {% endfor %}
+            <li class="page-item {% if not threads.has_next %}disabled{% endif %}">
+                <a class="page-link" href="{{ url_for('forum_category', category_id=category.id, page=threads.next_num) }}">›</a>
+            </li>
+        </ul>
+    </nav>
+    {% endif %}
+
+    {% else %}
+    <div class="text-center py-5 forum-muted">
+        <i class="bi bi-chat-left-dots" style="font-size: 3rem;"></i>
+        <p class="mt-2">No threads yet. Be the first to start a discussion!</p>
+        {% if current_user.is_authenticated %}
+        <a href="{{ url_for('forum_new_thread', category_id=category.id) }}" class="btn btn-forum-primary mt-2">
+            <i class="bi bi-plus-lg"></i> New Thread
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

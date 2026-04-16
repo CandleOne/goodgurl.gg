@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Chat with {{ partner.username }} – goodgurl.gg{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="d-flex align-items-center mb-3">
+            <a href="{{ url_for('messages_inbox') }}" class="btn btn-sm btn-outline-light me-3"><i class="bi bi-arrow-left"></i></a>
+            <h4 class="mb-0">
+                <a href="{{ url_for('profile', username=partner.username) }}" class="text-decoration-none">{{ partner.username }}</a>
+                <span class="badge {% if partner.role == 'sissy' %}bg-pink{% else %}bg-warning text-dark{% endif %} ms-1">{{ partner.role }}</span>
+            </h4>
+        </div>
+
+        <div class="card glass-card p-3 mb-3" style="max-height: 500px; overflow-y: auto;" id="message-list">
+            {% if not messages %}
+            <p class="text-muted text-center">Start the conversation!</p>
+            {% endif %}
+            {% for msg in messages %}
+            <div class="mb-2 {% if msg.sender_id == current_user.id %}text-end{% endif %}">
+                <div class="d-inline-block px-3 py-2 rounded-3 {% if msg.sender_id == current_user.id %}bg-purple{% else %}bg-secondary{% endif %}"
+                     style="max-width: 75%;">
+                    <div style="white-space: pre-wrap;">{{ msg.body }}</div>
+                </div>
+                <div><small class="text-muted">{{ msg.created_at.strftime('%b %d %H:%M') }}</small></div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <form method="POST" class="d-flex gap-2">
+            <textarea name="body" class="form-control" rows="2" placeholder="Type a message..." required></textarea>
+            <button class="btn btn-pink align-self-end"><i class="bi bi-send"></i></button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Auto-scroll to bottom of message list
+    const ml = document.getElementById('message-list');
+    if (ml) ml.scrollTop = ml.scrollHeight;
+</script>
+{% endblock %}

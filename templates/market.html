@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% block title %}Sissy Market – goodgurl.gg{% endblock %}
+{% block content %}
+<h3 class="mb-2"><i class="bi bi-graph-up-arrow"></i> Sissy Market</h3>
+<p class="text-muted mb-4">Invest coins in top-performing sissies. 25% of your investment funds the sissy directly. You earn <span class="text-info">dividends</span> when they earn coins, and can sell for a profit if their value rises!</p>
+
+{% if current_user.role == 'master' and my_investments %}
+<div class="card glass-card p-3 mb-4">
+    <h5><i class="bi bi-briefcase"></i> My Portfolio</h5>
+    <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>Sissy</th>
+                    <th class="text-end">Invested</th>
+                    <th class="text-end">Bought Value</th>
+                    <th class="text-end">Current Value</th>
+                    <th class="text-end">P/L</th>
+                    <th class="text-end">Dividends</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for inv in my_investments %}
+                {% set current_val = inv.sissy.market_value %}
+                {% set growth = current_val / inv.bought_value if inv.bought_value > 0 else 1 %}
+                {% set payout = (inv.amount * growth)|int %}
+                {% set profit = payout - inv.amount %}
+                <tr>
+                    <td>
+                        <a href="{{ url_for('profile', username=inv.sissy.username) }}" class="text-decoration-none fw-bold">
+                            {{ inv.sissy.username }}
+                        </a>
+                        {% set top_inv = inv.sissy.id %}
+                    </td>
+                    <td class="text-end">{{ inv.amount }} <i class="bi bi-coin text-warning"></i></td>
+                    <td class="text-end">{{ inv.bought_value }}</td>
+                    <td class="text-end">{{ current_val }}</td>
+                    <td class="text-end {% if profit > 0 %}text-success{% elif profit < 0 %}text-danger{% endif %}">
+                        {% if profit >= 0 %}+{% endif %}{{ profit }} ({{ '%.0f' | format((growth - 1) * 100) }}%)
+                    </td>
+                    <td class="text-end text-info">{{ inv.total_dividends }} <i class="bi bi-coin text-info"></i></td>
+                    <td>
+                        <form method="POST" action="{{ url_for('sell_investment', investment_id=inv.id) }}" class="d-inline">
+                            <button class="btn btn-sm btn-outline-success">Sell ({{ payout }} <i class="bi bi-coin"></i>)</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<div class="card glass-card">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>Sissy</th>
+                    <th>Rank</th>
+                    <th class="text-end">
+                        Market Value
+                        <i class="bi bi-info-circle text-muted ms-1" data-bs-toggle="tooltip" data-bs-placement="top"
+                           title="Market Value = XP + (Posts × 5) + (Completed Tasks × 15). It reflects overall platform performance."></i>
+                    </th>
+                    <th class="text-end">
+                        Actual Growth
+                        <i class="bi bi-info-circle text-muted ms-1" data-bs-toggle="tooltip" data-bs-placement="top"
+                           title="% change in market value since first recorded snapshot."></i>
+                    </th>
+                    <th class="text-end">
+                        Expected Growth
+                        <i class="bi bi-info-circle text-muted ms-1" data-bs-toggle="tooltip" data-bs-placement="top"
+                           title="Projected 24h growth based on recent activity momentum."></i>
+                    </th>
+                    <th class="text-end">Total Invested</th>
+                    <th class="text-end">Investors</th>
+                    {% if current_user.role == 'master' %}
+                    <th></th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in market_data %}
+                <tr>
+                    <td>
+                        <a href="{{ url_for('market_metrics', sissy_id=item.user.id) }}" class="text-decoration-none fw-bold">
+                            {% if item.user.is_bot %}🤖 {% endif %}{{ item.user.username }}
+                        </a>
+                    </td>
+                    <td><span class="badge bg-purple">{{ item.user.rank }}</span></td>
+                    <td class="text-end">
+                        <a href="{{ url_for('market_metrics', sissy_id=item.user.id) }}" class="text-decoration-none text-success fw-bold">
+                            {{ item.value }} <i class="bi bi-bar-chart-line-fill ms-1"></i>
+                        </a>
+                    </td>
+                    <td class="text-end fw-bold {% if item.actual_growth > 0 %}text-success{% elif item.actual_growth < 0 %}text-danger{% else %}text-muted{% endif %}">
+                        {% if item.actual_growth > 0 %}+{% endif %}{{ item.actual_growth }}%
+                        {% if item.actual_growth > 0 %}<i class="bi bi-arrow-up-short"></i>{% elif item.actual_growth < 0 %}<i class="bi bi-arrow-down-short"></i>{% else %}—{% endif %}
+                    </td>
+                    <td class="text-end {% if item.expected_growth > 0 %}text-success{% elif item.expected_growth < 0 %}text-danger{% else %}text-muted{% endif %}">
+                        {% if item.expected_growth > 0 %}+{% endif %}{{ item.expected_growth }}%
+                        {% if item.expected_growth > 0 %}<i class="bi bi-graph-up-arrow"></i>{% elif item.expected_growth < 0 %}<i class="bi bi-graph-down-arrow"></i>{% else %}—{% endif %}
+                    </td>
+                    <td class="text-end">{{ item.total_invested }} <i class="bi bi-coin text-warning"></i></td>
+                    <td class="text-end">{{ item.investors }}</td>
+                    {% if current_user.role == 'master' %}
+                    <td>
+                        <form method="POST" action="{{ url_for('invest', sissy_id=item.user.id) }}" class="d-flex gap-1">
+                            <input type="number" name="amount" class="form-control form-control-sm" style="width:80px" min="1" placeholder="Coins" required>
+                            <button class="btn btn-sm btn-warning">Invest</button>
+                        </form>
+                    </td>
+                    {% endif %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => new bootstrap.Tooltip(el));
+</script>
+{% endblock %}

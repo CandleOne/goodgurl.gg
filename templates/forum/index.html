@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}Forum — goodgurl.gg{% endblock %}
+{% block content %}
+<div class="forum-page-wrap">
+<div class="row g-4">
+
+    <!-- Main column -->
+    <div class="col-lg-9">
+        <!-- Section header -->
+        <div class="forum-section-header d-flex align-items-center justify-content-between mb-0">
+            <div><i class="bi bi-chat-square-text me-2"></i> <span class="fw-semibold">Forum</span></div>
+            <div class="forum-col-labels d-none d-md-flex">
+                <span class="forum-col-label" style="width:70px;">Threads</span>
+                <span class="forum-col-label" style="width:70px;">Posts</span>
+                <span class="forum-col-label" style="width:180px;">Latest</span>
+            </div>
+        </div>
+
+        <!-- Category rows -->
+        <div class="forum-index-table">
+            {% for item in categories %}
+            {% set cat = item.category %}
+            <div class="forum-row d-flex align-items-center">
+                <!-- Icon -->
+                <div class="forum-row-icon">
+                    <i class="bi {{ cat.icon }}"></i>
+                </div>
+                <!-- Name + description -->
+                <a href="{{ url_for('forum_category', category_id=cat.id) }}" class="forum-row-info flex-grow-1 text-decoration-none">
+                    <h6 class="mb-0 forum-row-name">{{ cat.name }}</h6>
+                    <p class="mb-0 forum-row-desc">{{ cat.description }}</p>
+                </a>
+                <!-- Thread count -->
+                <div class="forum-row-stat text-center d-none d-md-block">
+                    <div class="forum-stat-number">{{ '{:,}'.format(item.threads) }}</div>
+                    <div class="forum-stat-label">Threads</div>
+                </div>
+                <!-- Post / reply count -->
+                <div class="forum-row-stat text-center d-none d-md-block">
+                    <div class="forum-stat-number">{{ '{:,}'.format(item.replies) }}</div>
+                    <div class="forum-stat-label">Posts</div>
+                </div>
+                <!-- Latest thread (XenForo-style) -->
+                <div class="forum-row-latest d-none d-md-flex align-items-center">
+                    {% if item.latest %}
+                    <img src="{{ item.latest.author.avatar_url }}" class="rounded-circle flex-shrink-0" width="34" height="34" alt="" style="object-fit:cover; background:rgba(255,255,255,0.05);">
+                    <div class="ms-2 overflow-hidden">
+                        <a href="{{ url_for('forum_thread', thread_id=item.latest.id) }}" class="forum-latest-title text-truncate d-block text-decoration-none">{{ item.latest.title }}</a>
+                        <small class="forum-latest-meta">
+                            {{ item.latest.last_reply_at.strftime('%b %d, %H:%M') }} · <a href="{{ url_for('profile', username=item.latest.author.username) }}" class="text-decoration-none forum-latest-user">{{ item.latest.author.username }}</a>
+                        </small>
+                    </div>
+                    {% else %}
+                    <small class="forum-muted">No threads yet</small>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Sidebar: New Threads -->
+    <div class="col-lg-3">
+        <div class="forum-sidebar">
+            <div class="forum-sidebar-header">
+                <i class="bi bi-lightning-charge me-1"></i> New Threads
+            </div>
+            <div class="forum-sidebar-body">
+                {% for t in new_threads %}
+                <div class="forum-sidebar-item {% if not loop.last %}mb-2 pb-2{% endif %}">
+                    <div class="d-flex align-items-start gap-2">
+                        <img src="{{ t.author.avatar_url }}" class="rounded-circle flex-shrink-0 mt-1" width="28" height="28" alt="" style="object-fit:cover; background:rgba(255,255,255,0.05);">
+                        <div class="overflow-hidden">
+                            <a href="{{ url_for('forum_thread', thread_id=t.id) }}" class="forum-sidebar-title text-decoration-none d-block">{{ t.title }}</a>
+                            <small class="forum-sidebar-meta">
+                                {{ t.author.username }} · {{ t.reply_count }} {% if t.reply_count == 1 %}reply{% else %}replies{% endif %}
+                            </small>
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <p class="text-muted small mb-0">No threads yet — be the first!</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+</div>
+</div>
+{% endblock %}

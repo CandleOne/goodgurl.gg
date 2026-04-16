@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}Investor Funding – goodgurl.gg{% endblock %}
+{% block content %}
+<div class="row g-4">
+    <!-- Left: Balance & Spending -->
+    <div class="col-md-5">
+        <div class="card glass-card p-4 text-center mb-3">
+            <h4><i class="bi bi-cash-coin text-pink"></i> Investor Funding</h4>
+            <div class="mt-3">
+                <div class="fs-1 fw-bold text-pink">{{ current_user.funded_coins }}</div>
+                <small class="text-muted">Funded Coins</small>
+            </div>
+        </div>
+
+        <!-- Sponsor -->
+        {% if sponsor %}
+        <div class="card glass-card p-3 mb-3 text-center" style="border-left: 3px solid #a855f7;">
+            <small class="text-muted">Your Sponsor</small>
+            <div class="mt-1">
+                <a href="{{ url_for('profile', username=sponsor.username) }}" class="fw-bold text-decoration-none" style="color: #a855f7; font-size: 1.1rem;">
+                    <i class="bi bi-crown-fill text-warning"></i> {{ sponsor.username }}
+                </a>
+            </div>
+            <small class="text-muted">Highest investor in you &mdash; earns +50% dividend bonus</small>
+        </div>
+        {% endif %}
+
+
+
+        <!-- Investors in Me -->
+        <div class="card glass-card p-3 mb-3">
+            <h6><i class="bi bi-people"></i> My Investors</h6>
+            {% if investments %}
+            <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0">
+                    <thead><tr><th>Investor</th><th class="text-end">Amount</th><th class="text-end">Dividends Paid</th></tr></thead>
+                    <tbody>
+                        {% for inv in investments %}
+                        <tr>
+                            <td>
+                                <a href="{{ url_for('profile', username=inv.investor.username) }}" class="text-decoration-none fw-bold">
+                                    <i class="bi bi-crown-fill text-warning"></i> {{ inv.investor.username }}
+                                </a>
+                            </td>
+                            <td class="text-end">{{ inv.amount }} <i class="bi bi-coin text-warning"></i></td>
+                            <td class="text-end text-info">{{ inv.total_dividends }} <i class="bi bi-coin"></i></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <p class="text-muted small mt-2 mb-0">Total invested in you: {{ total_funded }} <i class="bi bi-coin text-warning"></i></p>
+            {% else %}
+            <p class="text-muted small mb-0">No investors yet. Grow your market value to attract investors!</p>
+            {% endif %}
+        </div>
+
+        <!-- How it works -->
+        <div class="card glass-card p-4">
+            <h6><i class="bi bi-info-circle"></i> How Funding Works</h6>
+            <ul class="small text-muted mb-0">
+                <li>When a master invests in you, <strong class="text-pink">25%</strong> goes to your funded balance.</li>
+                <li>Use funded coins to <strong class="text-warning">boost posts</strong> ({{ boost_cost }} coins) or buy <strong class="text-info">username flair</strong> ({{ flair_cost }} coins).</li>
+                <li>Your investors earn <strong class="text-info">dividends</strong> (10% of your coin earnings) proportional to their investment.</li>
+                <li>Your <strong style="color:#a855f7;">sponsor</strong> (top investor) earns a 50% dividend bonus.</li>
+                <li>Grow your market value &rarr; attract more investors &rarr; get more funded coins!</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Right: Angel Shop -->
+    <div class="col-md-7">
+        <div class="card glass-card p-4">
+            <h5><i class="bi bi-stars text-warning"></i> Angel Shop <span class="badge bg-secondary"><i class="bi bi-cash-coin"></i> Investor Funds</span></h5>
+            <p class="text-muted small">Buy powerups using your funded coins. Powerups are single-use and can be applied to your posts.</p>
+            <div class="row g-3">
+                {% for item in powerups %}
+                <div class="col-md-6">
+                    <div class="card h-100">
+                        <div class="card-body text-center">
+                            <div class="mb-2"><i class="bi {{ item.icon }} fs-2 text-warning"></i></div>
+                            <h6 class="card-title">{{ item.name }}</h6>
+                            <p class="card-text small text-muted">{{ item.description }}</p>
+                            <div class="mb-2">
+                                <span class="badge bg-warning text-dark"><i class="bi bi-cash-coin"></i> {{ item.price }}</span>
+                                <span class="badge bg-secondary">Lv.{{ item.level_required }}+</span>
+                                {% set available = user_powerups | selectattr('item_id', 'equalto', item.id) | selectattr('used', 'equalto', False) | list | length %}
+                                {% if available > 0 %}
+                                    <span class="badge bg-info">{{ available }} owned</span>
+                                {% endif %}
+                            </div>
+                            {% if current_user.level < item.level_required %}
+                                <button class="btn btn-sm btn-secondary" disabled><i class="bi bi-lock"></i> Lv.{{ item.level_required }} required</button>
+                            {% elif current_user.funded_coins < item.price %}
+                                <button class="btn btn-sm btn-secondary" disabled><i class="bi bi-cash-coin"></i> Not enough funds</button>
+                            {% else %}
+                                <form method="POST" action="{{ url_for('wallet_buy_powerup', item_id=item.id) }}">
+                                    <button class="btn btn-sm btn-pink"><i class="bi bi-cart-plus"></i> Buy</button>
+                                </form>
+                            {% endif %}
+                            {% if available > 0 %}
+                                <span class="badge bg-success mt-2"><i class="bi bi-check-circle"></i> Owned</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+
+    </div>
+</div>
+{% endblock %}

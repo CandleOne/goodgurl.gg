@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}New Thread — {{ category.name }} — goodgurl.gg{% endblock %}
+{% block content %}
+<div class="forum-wrap">
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb forum-breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('forum_index') }}">Forum</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('forum_category', category_id=category.id) }}">{{ category.name }}</a></li>
+            <li class="breadcrumb-item active">New Thread</li>
+        </ol>
+    </nav>
+
+    <h3 class="fw-bold forum-title mb-4"><i class="bi bi-plus-lg"></i> New Thread in {{ category.name }}</h3>
+
+    <div class="forum-post p-4">
+        <form method="POST">
+            <div class="mb-3">
+                <label for="title" class="form-label">Thread Title</label>
+                <input type="text" name="title" id="title" class="form-control forum-input" maxlength="200" required placeholder="Give your thread a title...">
+            </div>
+            <div class="mb-3">
+                <label for="body" class="form-label">Body</label>
+                <textarea name="body" id="body" class="form-control forum-textarea" rows="8" required placeholder="Share your thoughts..."></textarea>
+            </div>
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-forum-primary"><i class="bi bi-send"></i> Create Thread</button>
+                <a href="{{ url_for('forum_category', category_id=category.id) }}" class="btn forum-btn-outline">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

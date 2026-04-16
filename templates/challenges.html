@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Daily Challenges — goodgurl.gg{% endblock %}
+{% block content %}
+<div class="container py-4">
+    <h2 class="mb-3"><i class="bi bi-lightning text-warning"></i> Daily Challenges <small class="text-muted fs-6">{{ today.strftime('%B %d, %Y') }}</small></h2>
+    <p class="text-muted">Complete challenges each day for bonus coins and XP. Challenges reset at midnight UTC.</p>
+
+    {% if not challenges %}
+    <div class="alert alert-info">No challenges available today. Check back soon!</div>
+    {% endif %}
+
+    <div class="row g-3">
+    {% for ch in challenges %}
+        {% set uc = user_progress.get(ch.id) %}
+        {% set pct = ((uc.progress / ch.goal_count * 100) | int) if uc else 0 %}
+        {% if pct > 100 %}{% set pct = 100 %}{% endif %}
+        <div class="col-md-4">
+            <div class="card h-100 {% if uc and uc.claimed %}border-success{% elif uc and uc.completed %}border-warning{% endif %}">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="bi bi-star-fill text-warning"></i> {{ ch.title }}</h5>
+                    <p class="card-text">{{ ch.description }}</p>
+                    <div class="mb-2">
+                        <span class="badge bg-warning text-dark"><i class="bi bi-coin"></i> {{ ch.reward_coins }}</span>
+                        <span class="badge bg-info"><i class="bi bi-lightning"></i> {{ ch.reward_xp }} XP</span>
+                    </div>
+                    <div class="progress mb-2" style="height: 20px;">
+                        <div class="progress-bar {% if uc and uc.completed %}bg-success{% else %}bg-pink{% endif %}"
+                             role="progressbar" style="width: {{ pct }}%;"
+                             aria-valuenow="{{ pct }}" aria-valuemin="0" aria-valuemax="100">
+                            {{ uc.progress if uc else 0 }}/{{ ch.goal_count }}
+                        </div>
+                    </div>
+                    {% if uc and uc.claimed %}
+                        <span class="badge bg-success"><i class="bi bi-check-circle"></i> Claimed</span>
+                    {% elif uc and uc.completed %}
+                        <form method="POST" action="{{ url_for('claim_challenge', challenge_id=ch.id) }}">
+                            <button class="btn btn-sm btn-warning"><i class="bi bi-gift"></i> Claim Reward</button>
+                        </form>
+                    {% else %}
+                        <span class="text-muted small">In progress…</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    {% endfor %}
+    </div>
+</div>
+{% endblock %}

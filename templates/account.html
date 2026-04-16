@@ -1,0 +1,438 @@
+{% extends "base.html" %}
+{% block title %}Account – goodgurl.gg{% endblock %}
+{% block content %}
+<div class="row g-4">
+    <!-- Profile card -->
+    <div class="col-md-5">
+        <div class="card glass-card p-4">
+            <div class="text-center mb-3">
+                <img src="{{ current_user.avatar_url }}" class="rounded-circle mb-2" width="100" height="100" alt="Avatar" style="object-fit:cover; background: rgba(255,255,255,0.05);">
+                <h4>{{ current_user.username }}
+                    {% if current_user.is_verified %}
+                    <i class="bi bi-patch-check-fill text-info" title="Email Verified"></i>
+                    {% else %}
+                    <small class="text-muted">(unverified)</small>
+                    {% endif %}
+                </h4>
+                <span class="badge {% if current_user.role == 'sissy' %}bg-pink{% else %}bg-warning text-dark{% endif %} fs-6">
+                    {% if current_user.role == 'sissy' %}
+                    <i class="bi bi-heart-fill"></i> Sissy
+                    {% else %}
+                    <i class="bi bi-crown-fill"></i> Master / Mistress
+                    {% endif %}
+                </span>
+            </div>
+
+            {% if current_user.role == 'sissy' %}
+            <!-- Level & Tier -->
+            <div class="mb-3 text-center">
+                <span class="fs-2 fw-bold text-info">Lv. {{ current_user.level }}</span>
+                <span class="badge fs-6 ms-2" style="background: {{ current_user.tier.color }}">
+                    <iconify-icon icon="{{ current_user.tier.icon }}" inline></iconify-icon> {{ current_user.rank }}
+                </span>
+            </div>
+            <!-- XP progress to next level -->
+            <div class="mb-3">
+                <div class="d-flex justify-content-between small">
+                    <span>Level {{ current_user.level }} → {{ current_user.level + 1 if current_user.level < 100 else 'MAX' }}</span>
+                    <span>{{ current_user.xp }} XP ({{ current_user.next_level_at() }} to go)</span>
+                </div>
+                <div class="progress mt-1" style="height: 10px">
+                    <div class="progress-bar bg-purple" style="width: {{ current_user.level_progress_pct }}%"></div>
+                </div>
+            </div>
+            <!-- Tier progress -->
+            {% set next_tier = current_user.get_next_tier() %}
+            {% if next_tier %}
+            <div class="mb-3">
+                <div class="d-flex justify-content-between small">
+                    <span>Tier: {{ current_user.rank }} → {{ next_tier.name }}</span>
+                    <span>{{ current_user.next_tier_at() }} levels to go</span>
+                </div>
+                <div class="progress mt-1" style="height: 6px">
+                    <div class="progress-bar" style="width: {{ current_user.tier_progress() }}%; background: {{ next_tier.color }}"></div>
+                </div>
+            </div>
+            {% endif %}
+            {% endif %}
+
+            <div class="d-flex justify-content-around text-center mb-3">
+                <div>
+                    <div class="fs-4 fw-bold text-warning">{{ current_user.coins }}</div>
+                    <small class="text-muted">Coins</small>
+                </div>
+                {% if current_user.role == 'sissy' %}
+                <div>
+                    <div class="fs-4 fw-bold text-info">{{ current_user.xp }}</div>
+                    <small class="text-muted">XP</small>
+                </div>
+                <div>
+                    <div class="fs-4 fw-bold text-success">{{ current_user.market_value }}</div>
+                    <small class="text-muted">Market Value</small>
+                </div>
+                {% endif %}
+            </div>
+
+            {% if current_user.role == 'sissy' %}
+            <!-- Streaks -->
+            <div class="d-flex justify-content-around text-center mb-3 border-top pt-3">
+                <div>
+                    <div class="fs-4 fw-bold text-danger"><i class="bi bi-fire"></i> {{ login_streak }}</div>
+                    <small class="text-muted">Login Streak</small>
+                </div>
+                <div>
+                    <div class="fs-4 fw-bold text-purple"><i class="bi bi-pencil-square"></i> {{ post_streak }}</div>
+                    <small class="text-muted">Post Streak</small>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if current_user.role == 'master' %}
+            <hr>
+            <h6>Buy Coins <small class="text-muted">(PoC – instant)</small></h6>
+            <form method="POST" action="{{ url_for('buy_coins') }}" class="d-flex gap-2">
+                <input type="number" name="amount" class="form-control" min="1" max="10000" placeholder="Amount" required>
+                <button class="btn btn-warning">Buy</button>
+            </form>
+            {% endif %}
+
+            <!-- Followers / Following -->
+            <hr>
+            <div class="d-flex justify-content-around text-center mb-2">
+                <div>
+                    <a class="text-decoration-none" data-bs-toggle="collapse" href="#followersList" role="button">
+                        <div class="fs-4 fw-bold text-pink">{{ current_user.followers.count() }}</div>
+                        <small class="text-muted">Followers <i class="bi bi-chevron-down small"></i></small>
+                    </a>
+                </div>
+                <div>
+                    <a class="text-decoration-none" data-bs-toggle="collapse" href="#followingList" role="button">
+                        <div class="fs-4 fw-bold text-info">{{ current_user.followed.count() }}</div>
+                        <small class="text-muted">Following <i class="bi bi-chevron-down small"></i></small>
+                    </a>
+                </div>
+            </div>
+            <!-- Followers collapse -->
+            <div class="collapse mb-2" id="followersList">
+                <div class="card card-body p-2" style="background: rgba(255,255,255,0.03); max-height: 200px; overflow-y: auto;">
+                    {% for u in current_user.followers %}
+                    <div class="d-flex align-items-center gap-2 py-1 {% if not loop.last %}border-bottom{% endif %}" style="border-color: rgba(255,255,255,0.06) !important;">
+                        <img src="{{ u.avatar_url }}" class="rounded-circle" width="28" height="28" alt="" style="object-fit:cover; background: rgba(255,255,255,0.05);">
+                        <a href="{{ url_for('profile', username=u.username) }}" class="text-decoration-none small fw-bold">
+                            {% if u.is_bot %}🤖 {% endif %}{{ u.username }}
+                        </a>
+                        <span class="badge {% if u.role == 'sissy' %}bg-pink{% else %}bg-warning text-dark{% endif %} ms-auto" style="font-size:0.6rem">{{ u.role }}</span>
+                    </div>
+                    {% else %}
+                    <p class="text-muted small mb-0 text-center">No followers yet.</p>
+                    {% endfor %}
+                </div>
+            </div>
+            <!-- Following collapse -->
+            <div class="collapse mb-2" id="followingList">
+                <div class="card card-body p-2" style="background: rgba(255,255,255,0.03); max-height: 200px; overflow-y: auto;">
+                    {% for u in current_user.followed %}
+                    <div class="d-flex align-items-center gap-2 py-1 {% if not loop.last %}border-bottom{% endif %}" style="border-color: rgba(255,255,255,0.06) !important;">
+                        <img src="{{ u.avatar_url }}" class="rounded-circle" width="28" height="28" alt="" style="object-fit:cover; background: rgba(255,255,255,0.05);">
+                        <a href="{{ url_for('profile', username=u.username) }}" class="text-decoration-none small fw-bold">
+                            {% if u.is_bot %}🤖 {% endif %}{{ u.username }}
+                        </a>
+                        <span class="badge {% if u.role == 'sissy' %}bg-pink{% else %}bg-warning text-dark{% endif %} ms-auto" style="font-size:0.6rem">{{ u.role }}</span>
+                    </div>
+                    {% else %}
+                    <p class="text-muted small mb-0 text-center">Not following anyone yet.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        {% if current_user.role == 'sissy' and active_multipliers %}
+        <!-- Active Multipliers -->
+        <div class="card glass-card p-3 mt-3">
+            <h6><i class="bi bi-lightning-charge text-warning"></i> Active XP Multipliers</h6>
+            {% for m in active_multipliers %}
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <span>{{ m.name }}</span>
+                <span class="badge bg-warning text-dark">{{ m.multiplier }}x</span>
+            </div>
+            {% if m.expires_at %}
+            <small class="text-muted">Expires: {{ m.expires_at.strftime('%b %d %H:%M') }}</small>
+            {% endif %}
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Quick Links -->
+        <div class="card glass-card p-3 mt-3">
+            <h6 class="mb-2"><i class="bi bi-grid text-pink"></i> Quick Links</h6>
+            <div class="d-grid gap-2">
+                <a href="{{ url_for('challenges') }}" class="btn btn-outline-light btn-sm text-start"><i class="bi bi-lightning text-warning"></i> Daily Challenges</a>
+                <a href="{{ url_for('shop') }}" class="btn btn-outline-light btn-sm text-start"><i class="bi bi-bag text-pink"></i> Cosmetic Shop</a>
+            </div>
+        </div>
+
+        <!-- Theme Selection -->
+        <div class="card glass-card p-3 mt-3">
+            <h6 class="mb-2"><i class="bi bi-palette text-pink"></i> Theme</h6>
+            <form id="themeForm">
+                <div class="mb-3">
+                    <label for="themeSelect" class="form-label">Choose a color theme:</label>
+                    <select class="form-select" id="themeSelect" name="theme">
+                        <option value="default">Default (Neon)</option>
+                        <option value="pastel">Pastel Pink & Blue</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-pink btn-sm">Save Theme</button>
+            </form>
+        </div>
+
+        <script>
+        // Theme palette CSS variables
+        const palettes = {
+            default: {
+                '--pink': '#ff4da6',
+                '--pink-dark': '#cc3d85',
+                '--purple': '#a855f7',
+                '--gold': '#fbbf24',
+            },
+            pastel: {
+                '--pink': '#FFCCDE',
+                '--pink-dark': '#FF8EB7',
+                '--purple': '#E04582',
+                '--gold': '#BADFFF',
+                '--blue': '#7FC3FF',
+            }
+        };
+
+        function setTheme(theme) {
+            const root = document.documentElement;
+            const palette = palettes[theme] || palettes.default;
+            for (const [key, value] of Object.entries(palette)) {
+                root.style.setProperty(key, value);
+            }
+            localStorage.setItem('theme', theme);
+        }
+
+        document.getElementById('themeForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const theme = document.getElementById('themeSelect').value;
+            setTheme(theme);
+        });
+
+        window.addEventListener('DOMContentLoaded', function() {
+            const saved = localStorage.getItem('theme') || 'default';
+            document.getElementById('themeSelect').value = saved;
+            setTheme(saved);
+        });
+        </script>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right column -->
+    <div class="col-md-7">
+        <div class="card glass-card p-4 mb-4">
+            <h5>Edit Profile</h5>
+            <div class="text-center mb-3">
+                <img src="{{ current_user.avatar_url }}" class="rounded-circle mb-2" width="120" height="120" alt="Avatar" style="object-fit:cover; background: rgba(255,255,255,0.05);">
+                <div>
+                    <form method="POST" action="{{ url_for('new_avatar') }}" class="d-inline">
+                        <button class="btn btn-sm btn-outline-light"><i class="bi bi-arrow-repeat"></i> Generate New Avatar</button>
+                    </form>
+                    <button class="btn btn-sm btn-outline-info ms-1" onclick="document.getElementById('avatarUpload').click()"><i class="bi bi-upload"></i> Upload Photo</button>
+                    <form id="avatarUploadForm" method="POST" action="{{ url_for('upload_avatar') }}" enctype="multipart/form-data" class="d-none">
+                        <input type="file" id="avatarUpload" name="avatar" accept="image/png,image/jpeg,image/webp,image/gif"
+                               onchange="document.getElementById('avatarUploadForm').submit()">
+                    </form>
+                </div>
+            </div>
+            <form method="POST" action="{{ url_for('edit_account') }}">
+                <div class="mb-3">
+                    <label class="form-label">Bio</label>
+                    <textarea name="bio" class="form-control" rows="3">{{ current_user.bio }}</textarea>
+                </div>
+                {% if current_user.role == 'master' %}
+                <div class="mb-3 form-check form-switch">
+                    <input class="form-check-input" type="checkbox" role="switch" name="show_wealth" id="showWealth" {% if current_user.show_wealth %}checked{% endif %}>
+                    <label class="form-check-label" for="showWealth">Show total wealth on leaderboard</label>
+                </div>
+                {% endif %}
+                {% if current_user.role == 'sissy' %}
+                <div class="mb-3 form-check form-switch">
+                    <input class="form-check-input" type="checkbox" role="switch" name="listed_on_market" id="listedOnMarket"
+                           {% if current_user.listed_on_market %}checked{% endif %}
+                           {% if current_user.level < 5 %}disabled{% endif %}>
+                    <label class="form-check-label" for="listedOnMarket">
+                        <i class="bi bi-graph-up-arrow"></i> List me on the Market
+                        {% if current_user.level < 5 %}
+                        <span class="badge bg-secondary ms-1"><i class="bi bi-lock-fill"></i> Requires Lv.5</span>
+                        {% endif %}
+                    </label>
+                </div>
+                {% endif %}
+                <button class="btn btn-pink">Save</button>
+            </form>
+        </div>
+
+        <!-- Change Password -->
+        <div class="card glass-card p-4 mb-4">
+            <h5><i class="bi bi-key"></i> Change Password</h5>
+            <form method="POST" action="{{ url_for('change_password') }}">
+                <div class="mb-3">
+                    <label class="form-label">Current Password</label>
+                    <input type="password" name="current_password" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">New Password</label>
+                    <input type="password" name="new_password" class="form-control" required minlength="8">
+                    <small class="text-muted">Min 8 chars, upper + lower + digit</small>
+                </div>
+                <button class="btn btn-warning">Change Password</button>
+            </form>
+        </div>
+
+        <!-- Delete Account -->
+        <div class="card glass-card p-4 mb-4 border border-danger" style="border-color:rgba(220,53,69,0.4)!important">
+            <h5 class="text-danger"><i class="bi bi-exclamation-triangle"></i> Delete Account</h5>
+            <p class="text-muted small mb-2">This action is permanent and cannot be undone. All your posts, comments, and data will be removed.</p>
+            <form method="POST" action="{{ url_for('delete_account') }}" onsubmit="return confirm('Are you sure you want to permanently delete your account? This cannot be undone.')">
+                <div class="mb-3">
+                    <label class="form-label">Enter your password to confirm</label>
+                    <input type="password" name="password" class="form-control" required>
+                </div>
+                <button class="btn btn-danger">Delete My Account</button>
+            </form>
+        </div>
+
+        {% if current_user.role == 'sissy' %}
+        <!-- Achievements -->
+        <div class="card glass-card p-4 mb-4">
+            <h5><i class="bi bi-trophy"></i> Achievements</h5>
+            {% if all_achievements %}
+            <div class="row g-2">
+                {% for ach in all_achievements %}
+                {% if not ach.is_secret or (ach.is_secret and current_user.has_achievement(ach)) %}
+                {% set ua = None %}
+                {% for u in user_achievements if u.achievement_id == ach.id %}{% set ua = u %}{% endfor %}
+                <div class="col-6 col-lg-4">
+                    <div class="p-2 rounded text-center {% if ua and ua.progress >= 100 %}border border-warning{% else %}opacity-50{% endif %}" style="background: rgba(255,255,255,0.03)">
+                        <i class="{{ ach.icon }} fs-4 {% if ua and ua.progress >= 100 %}text-warning{% else %}text-muted{% endif %}"></i>
+                        <div class="small fw-bold">{{ ach.name }}</div>
+                        <div class="text-muted" style="font-size:0.7rem">{{ ach.description }}</div>
+                        {% if ua %}
+                        <div class="progress mt-1" style="height:4px">
+                            <div class="progress-bar bg-warning" style="width:{{ ua.progress }}%"></div>
+                        </div>
+                        <small class="text-muted">{{ ua.progress }}%</small>
+                        {% else %}
+                        <small class="text-muted">Locked</small>
+                        {% endif %}
+                    </div>
+                </div>
+                {% elif ach.is_secret %}
+                <div class="col-6 col-lg-4">
+                    <div class="p-2 rounded text-center opacity-25" style="background: rgba(255,255,255,0.03)">
+                        <i class="bi bi-question-circle fs-4"></i>
+                        <div class="small fw-bold">???</div>
+                        <div class="text-muted" style="font-size:0.7rem">Secret achievement</div>
+                    </div>
+                </div>
+                {% endif %}
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-muted mb-0">No achievements defined yet.</p>
+            {% endif %}
+        </div>
+
+        <!-- XP Audit History -->
+        <div class="card glass-card p-4 mb-4">
+            <h5><i class="bi bi-clock-history"></i> XP History</h5>
+            {% if xp_history %}
+            <div class="table-responsive" style="max-height: 250px; overflow-y: auto;">
+                <table class="table table-sm mb-0">
+                    <thead><tr><th>Date</th><th>Reason</th><th class="text-end">XP</th><th class="text-end">Mult</th></tr></thead>
+                    <tbody>
+                        {% for h in xp_history %}
+                        <tr>
+                            <td class="text-muted">{{ h.created_at.strftime('%b %d %H:%M') }}</td>
+                            <td>{{ h.reason }}</td>
+                            <td class="text-end {% if h.amount >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                {% if h.amount >= 0 %}+{% endif %}{{ h.amount }}
+                            </td>
+                            <td class="text-end">{% if h.multiplier_applied != 1.0 %}<span class="text-warning">{{ h.multiplier_applied }}x</span>{% else %}-{% endif %}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-muted mb-0">No XP history yet.</p>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- Activity Feed -->
+        <div class="card glass-card p-4">
+            <h5><i class="bi bi-activity"></i> Activity</h5>
+            {% if activities %}
+            <div style="max-height: 500px; overflow-y: auto;">
+                {% for a in activities %}
+                <div class="d-flex align-items-start gap-3 py-2 {% if not loop.last %}border-bottom{% endif %}" style="border-color: rgba(255,255,255,0.06) !important;">
+                    <div class="mt-1">
+                        <i class="bi {{ a.icon }}" style="font-size: 1.2rem;"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <div class="small">{{ a.description|safe }}</div>
+                        <small class="text-muted">{{ a.created_at.strftime('%b %d, %Y at %H:%M') }}</small>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-muted mb-0">No activity yet. Start exploring the platform!</p>
+            {% endif %}
+        </div>
+
+        <!-- Transaction History -->
+        {% if transactions %}
+        <div class="card glass-card p-4 mt-4">
+            <h5><i class="bi bi-coin text-warning"></i> Transaction History</h5>
+            <div class="table-responsive">
+                <table class="table table-sm">
+                    <thead>
+                        <tr><th>Date</th><th>Description</th><th class="text-end">Amount</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for tx in transactions %}
+                        <tr>
+                            <td class="text-muted">{{ tx.created_at.strftime('%b %d %H:%M') }}</td>
+                            <td>{{ tx.description }}</td>
+                            <td class="text-end {% if tx.amount > 0 %}text-success{% else %}text-danger{% endif %}">
+                                {% if tx.amount >= 0 %}+{% endif %}{{ tx.amount }} <i class="bi bi-coin text-warning"></i>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Tier Roadmap -->
+        {% if current_user.role == 'sissy' %}
+        <div class="card glass-card p-4 mt-4">
+            <h5>Tier Roadmap</h5>
+            <div class="d-flex flex-wrap gap-2">
+                {% for t in tiers %}
+                <span class="badge fs-6 {% if current_user.level >= t.level %}{% else %}opacity-50{% endif %}"
+                      style="background: {{ t.color }}">
+                    <iconify-icon icon="{{ t.icon }}" inline></iconify-icon> {{ t.name }} <small>(Lv.{{ t.level }}+)</small>
+                </span>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

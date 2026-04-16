@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+{% block title %}Leaderboard – goodgurl.gg{% endblock %}
+{% block content %}
+<h3 class="mb-4"><i class="bi bi-trophy"></i> Leaderboard</h3>
+
+<!-- Tab navigation -->
+<ul class="nav nav-tabs mb-4" role="tablist">
+    <li class="nav-item" role="presentation">
+        <a class="nav-link {% if tab == 'sissies' %}active{% endif %}" href="{{ url_for('leaderboard', tab='sissies') }}">
+            <i class="bi bi-stars"></i> Sissies
+        </a>
+    </li>
+    <li class="nav-item" role="presentation">
+        <a class="nav-link {% if tab == 'whales' %}active{% endif %}" href="{{ url_for('leaderboard', tab='whales') }}">
+            <i class="bi bi-cash-stack"></i> Whales
+        </a>
+    </li>
+</ul>
+
+<!-- Sissies Tab -->
+{% if tab == 'sissies' %}
+<div class="card glass-card">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0 align-middle">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Sissy</th>
+                    <th>Level</th>
+                    <th>Tier</th>
+                    <th class="text-end">XP</th>
+                    <th class="text-end">Posts</th>
+                    <th class="text-end">Market Value</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr class="{% if loop.index == 1 %}glow-gold{% elif loop.index == 2 %}glow-silver{% elif loop.index == 3 %}glow-bronze{% endif %}">
+                    <td>
+                        {% if loop.index == 1 %}
+                        <span class="fs-4">🥇</span>
+                        {% elif loop.index == 2 %}
+                        <span class="fs-4">🥈</span>
+                        {% elif loop.index == 3 %}
+                        <span class="fs-4">🥉</span>
+                        {% else %}
+                        <span class="text-muted">{{ loop.index }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="d-flex align-items-center gap-2">
+                            <img src="{{ user.avatar_url or '/avatar/' ~ user.username ~ '.svg' }}" class="rounded-circle" width="32" height="32" alt="" style="object-fit:cover; background: rgba(255,255,255,0.05);">
+                            <a href="{{ url_for('profile', username=user.username) }}" class="text-decoration-none fw-bold">
+                                {% if user.is_bot %}🤖 {% endif %}{{ user.username }}
+                            </a>
+                        </div>
+                    </td>
+                    <td class="fw-bold text-info">Lv.{{ user.level }}</td>
+                    <td><span class="badge" style="background:{{ user.tier.color }}"><iconify-icon icon="{{ user.tier.icon }}" inline></iconify-icon> {{ user.rank }}</span></td>
+                    <td class="text-end"><i class="bi bi-lightning text-info"></i> {{ user.xp }}</td>
+                    <td class="text-end">{{ user.posts.count() }}</td>
+                    <td class="text-end"><i class="bi bi-graph-up text-success"></i> {{ user.market_value }}</td>
+                    <td>
+                        {% if current_user.role == 'master' %}
+                            {% if user.level < 5 %}
+                            <span class="d-inline-block" tabindex="0" data-bs-toggle="tooltip" data-bs-placement="left" title="This sissy must reach Lv.5 before they can be listed on the market.">
+                                <button class="btn btn-sm btn-outline-secondary" disabled style="pointer-events: none; opacity: 0.45;"><i class="bi bi-x-lg me-1"></i>Invest</button>
+                            </span>
+                            {% elif not user.listed_on_market %}
+                            <span class="d-inline-block" tabindex="0" data-bs-toggle="tooltip" data-bs-placement="left" title="This sissy has not opted in to the public market.">
+                                <button class="btn btn-sm btn-outline-secondary" disabled style="pointer-events: none; opacity: 0.45;"><i class="bi bi-x-lg me-1"></i>Invest</button>
+                            </span>
+                            {% else %}
+                            <a href="{{ url_for('market') }}" class="btn btn-sm btn-outline-warning">Invest</a>
+                            {% endif %}
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="mt-4 card glass-card p-3">
+    <h6>Tier Roadmap <small class="text-muted">(Level Cap: {{ level_cap }})</small></h6>
+    <div class="d-flex flex-wrap gap-3">
+        {% for t in tiers %}
+        <span class="badge fs-6" style="background:{{ t.color }}"><iconify-icon icon="{{ t.icon }}" inline></iconify-icon> {{ t.name }} <small>(Lv.{{ t.level }}+)</small></span>
+        {% endfor %}
+    </div>
+    <small class="text-muted mt-2 d-block">Top performers are rewarded with bonus coins every week!</small>
+</div>
+{% endif %}
+
+<!-- Whales Tab -->
+{% if tab == 'whales' %}
+<div class="card glass-card">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0 align-middle">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Master / Mistress</th>
+                    <th class="text-end">Portfolio Value</th>
+                    <th class="text-end">Coins</th>
+                    <th class="text-end">Total Wealth</th>
+                    <th class="text-end">Investments</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for w in whales %}
+                <tr class="{% if loop.index == 1 %}glow-gold{% elif loop.index == 2 %}glow-silver{% elif loop.index == 3 %}glow-bronze{% endif %}">
+                    <td>
+                        {% if loop.index == 1 %}
+                        <span class="fs-4">🥇</span>
+                        {% elif loop.index == 2 %}
+                        <span class="fs-4">🥈</span>
+                        {% elif loop.index == 3 %}
+                        <span class="fs-4">🥉</span>
+                        {% else %}
+                        <span class="text-muted">{{ loop.index }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="d-flex align-items-center gap-2">
+                            <img src="{{ w.user.avatar_url or '/avatar/' ~ w.user.username ~ '.svg' }}" class="rounded-circle" width="32" height="32" alt="" style="object-fit:cover; background: rgba(255,255,255,0.05);">
+                            <a href="{{ url_for('profile', username=w.user.username) }}" class="text-decoration-none fw-bold">
+                                {% if w.user.is_bot %}🤖 {% endif %}{{ w.user.username }}
+                            </a>
+                        </div>
+                    </td>
+                    <td class="text-end"><i class="bi bi-briefcase text-info"></i> {{ "{:,}".format(w.portfolio_value) }}</td>
+                    <td class="text-end"><i class="bi bi-coin text-warning"></i> {{ "{:,}".format(w.coins) }}</td>
+                    <td class="text-end fw-bold"><i class="bi bi-gem text-success"></i> {% if w.user.show_wealth %}{{ "{:,}".format(w.total_wealth) }}{% else %}???{% endif %}</td>
+                    <td class="text-end">{{ w.num_investments }}</td>
+                </tr>
+                {% endfor %}
+                {% if not whales %}
+                <tr><td colspan="6" class="text-center text-muted py-4">No whales yet — masters, start investing!</td></tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="mt-4 card glass-card p-3">
+    <h6><i class="bi bi-info-circle"></i> How Wealth is Calculated</h6>
+    <small class="text-muted d-block"><strong>Portfolio Value</strong> = current market value of all active investments (grows as sissies gain XP &amp; engagement).</small>
+    <small class="text-muted d-block"><strong>Total Wealth</strong> = coins on hand + portfolio value.</small>
+</div>
+{% endif %}
+{% endblock %}
+{% block scripts %}
+<script>
+document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => new bootstrap.Tooltip(el));
+</script>
+{% endblock %}

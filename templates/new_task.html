@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Create Task – goodgurl.gg{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card glass-card p-4">
+            <h3 class="mb-3"><i class="bi bi-clipboard-plus"></i> Create Task</h3>
+            <p class="text-muted">Your coin balance: <strong>{{ current_user.coins }}</strong> <i class="bi bi-coin text-warning"></i></p>
+            <form method="POST">
+                <div class="mb-3">
+                    <label class="form-label">Task Title</label>
+                    <input type="text" name="title" class="form-control" required maxlength="200">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Description</label>
+                    <textarea name="description" class="form-control" rows="4" required></textarea>
+                </div>
+                <div class="row mb-3">
+                    <div class="col">
+                        <label class="form-label">Reward (Coins)</label>
+                        <input type="number" name="reward_coins" class="form-control" value="10" min="1" max="{{ current_user.coins }}">
+                    </div>
+                    <div class="col">
+                        <label class="form-label">Reward (XP)</label>
+                        <input type="number" name="reward_xp" class="form-control" value="25" min="1">
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Assign to <small class="text-muted">(optional – leave empty for open task)</small></label>
+                    <select name="assignee" class="form-select">
+                        <option value="">Open to all</option>
+                        {% for s in sissies %}
+                        <option value="{{ s.username }}">{{ s.username }} ({{ s.rank }}, {{ s.xp }} XP)</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-warning w-100">Create Task</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

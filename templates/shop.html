@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}Shop — goodgurl.gg{% endblock %}
+{% block content %}
+<div class="container py-4">
+    <h2 class="mb-1"><i class="bi bi-bag-heart text-pink"></i> Cosmetic Shop</h2>
+    <p class="text-muted mb-4">Spend your coins on profile frames, titles, and flair colours.</p>
+
+    <div class="d-flex align-items-center mb-4 gap-3">
+        <span class="badge bg-warning text-dark fs-6"><i class="bi bi-coin"></i> {{ current_user.coins }} coins</span>
+        {% if current_user.role == 'sissy' %}
+        <span class="badge bg-purple fs-6">Lv.{{ current_user.level }}</span>
+        {% endif %}
+    </div>
+
+
+    {% set categories = ['frame', 'title', 'flair', 'powerup'] %}
+    {% set cat_labels = {'frame': 'Profile Frames', 'title': 'Titles', 'flair': 'Username Flair', 'powerup': 'Powerups'} %}
+    {% set cat_icons = {'frame': 'bi-circle', 'title': 'bi-stars', 'flair': 'bi-palette', 'powerup': 'bi-lightning'} %}
+
+
+    {% for cat in categories %}
+    <h4 class="mt-4 mb-3"><i class="bi {{ cat_icons[cat] }} text-pink"></i> {{ cat_labels[cat] }}</h4>
+    <div class="row g-3 mb-3">
+        {% for item in items if item.category == cat %}
+        <div class="col-md-4 col-lg-3">
+            <div class="card h-100 {% if item.id in owned_ids %}border-success{% endif %}">
+                <div class="card-body text-center">
+                    {% if item.category == 'frame' %}
+                    <div class="mx-auto mb-2 {{ item.css_class }}" style="width:64px;height:64px;display:flex;align-items:center;justify-content:center;">
+                        <i class="bi bi-person-circle" style="font-size:2.5rem;"></i>
+                    </div>
+                    {% elif item.category == 'flair' %}
+                    <div class="mb-2" style="font-size:1.3rem;font-weight:bold;color:{{ item.css_class }};">Username</div>
+                    {% elif item.category == 'powerup' %}
+                    <div class="mb-2"><i class="bi {{ item.icon }} fs-2 text-warning"></i></div>
+                    {% else %}
+                    <div class="mb-2"><span class="badge bg-purple fs-6">{{ item.css_class }}</span></div>
+                    {% endif %}
+                    <h6 class="card-title">{{ item.name }}</h6>
+                    <p class="card-text small text-muted">{{ item.description }}</p>
+                    <div class="mb-2">
+                        <span class="badge bg-warning text-dark"><i class="bi bi-coin"></i> {{ item.price }}</span>
+                        <span class="badge bg-secondary">Lv.{{ item.level_required }}+</span>
+                        {% if item.category == 'powerup' %}
+                            {% set available = powerups | selectattr('item_id', 'equalto', item.id) | selectattr('used', 'equalto', False) | list | length %}
+                            {% if available > 0 %}
+                                <span class="badge bg-info">{{ available }} owned</span>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+
+                    {% if item.category == 'powerup' %}
+                        {% set available = powerups | selectattr('item_id', 'equalto', item.id) | selectattr('used', 'equalto', False) | list | length %}
+                        {% if current_user.level < item.level_required %}
+                            <button class="btn btn-sm btn-secondary" disabled><i class="bi bi-lock"></i> Lv.{{ item.level_required }} required</button>
+                        {% elif current_user.coins < item.price %}
+                            <button class="btn btn-sm btn-secondary" disabled><i class="bi bi-coin"></i> Not enough coins</button>
+                        {% else %}
+                            <form method="POST" action="{{ url_for('buy_shop_item', item_id=item.id) }}">
+                                <button class="btn btn-sm btn-pink"><i class="bi bi-cart-plus"></i> Buy</button>
+                            </form>
+                        {% endif %}
+                        {% if available > 0 %}
+                            <span class="badge bg-success mt-2"><i class="bi bi-check-circle"></i> Owned</span>
+                        {% endif %}
+                    {% else %}
+                        {% if item.id in owned_ids %}
+                            {% set is_equipped = (item.category == 'frame' and current_user.profile_frame == item.css_class) or
+                                                 (item.category == 'title' and current_user.profile_title == item.css_class) or
+                                                 (item.category == 'flair' and current_user.flair_color == item.css_class) %}
+                            {% if is_equipped %}
+                                <span class="badge bg-success"><i class="bi bi-check-circle"></i> Equipped</span>
+                            {% else %}
+                                <form method="POST" action="{{ url_for('equip_shop_item', item_id=item.id) }}">
+                                    <button class="btn btn-sm btn-outline-success"><i class="bi bi-check2-square"></i> Equip</button>
+                                </form>
+                            {% endif %}
+                        {% elif current_user.level < item.level_required %}
+                            <button class="btn btn-sm btn-secondary" disabled><i class="bi bi-lock"></i> Lv.{{ item.level_required }} required</button>
+                        {% elif current_user.coins < item.price %}
+                            <button class="btn btn-sm btn-secondary" disabled><i class="bi bi-coin"></i> Not enough coins</button>
+                        {% else %}
+                            <form method="POST" action="{{ url_for('buy_shop_item', item_id=item.id) }}">
+                                <button class="btn btn-sm btn-pink"><i class="bi bi-cart-plus"></i> Buy</button>
+                            </form>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

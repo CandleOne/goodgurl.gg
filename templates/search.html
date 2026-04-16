@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Search – goodgurl.gg{% endblock %}
+{% block content %}
+<h3 class="mb-4"><i class="bi bi-search"></i> Search</h3>
+
+<form method="GET" class="mb-4">
+    <div class="input-group input-group-lg">
+        <input type="text" name="q" class="form-control" placeholder="Search users, posts…" value="{{ q }}" autofocus>
+        <button class="btn btn-pink" type="submit"><i class="bi bi-search"></i></button>
+    </div>
+</form>
+
+{% if q %}
+<h5>Users</h5>
+{% if users %}
+<div class="row g-3 mb-4">
+    {% for user in users %}
+    <div class="col-md-4">
+        <div class="card glass-card p-3">
+            <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-person-circle fs-3"></i>
+                <div>
+                    <a href="{{ url_for('profile', username=user.username) }}" class="fw-bold text-decoration-none">{{ user.username }}</a>
+                    <br>
+                    <span class="badge {% if user.role == 'sissy' %}bg-pink{% else %}bg-warning text-dark{% endif %}">{{ user.role }}</span>
+                    {% if user.role == 'sissy' %}
+                    <span class="badge bg-purple">{{ user.rank }}</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<p class="text-muted mb-4">No users found.</p>
+{% endif %}
+
+<h5>Posts</h5>
+{% if posts %}
+<div class="row g-3">
+    {% for post in posts %}
+    <div class="col-md-6">
+        <div class="card glass-card p-3">
+            <h6><a href="{{ url_for('view_post', post_id=post.id) }}" class="text-decoration-none">{{ post.title }}</a></h6>
+            <p class="text-muted small mb-1">{{ post.body[:100] }}{% if post.body|length > 100 %}…{% endif %}</p>
+            <small class="text-muted">by {{ post.author.username }} &middot; {{ post.created_at.strftime('%b %d') }}</small>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<p class="text-muted">No posts found.</p>
+{% endif %}
+{% endif %}
+{% endblock %}

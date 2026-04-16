@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}New Post – goodgurl.gg{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card glass-card p-4">
+            <h3 class="mb-3"><i class="bi bi-pencil-square"></i> New Post</h3>
+            <form method="POST" enctype="multipart/form-data">
+                <div class="mb-3">
+                    <label class="form-label">Title</label>
+                    <input type="text" name="title" class="form-control" required maxlength="200">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Body</label>
+                    <textarea name="body" class="form-control" rows="5" required></textarea>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Upload Media <span class="text-danger">*</span> <small class="text-muted">(png, jpg, gif, webp, mp4, webm — max 16 MB)</small></label>
+                    <input type="file" name="media_file" class="form-control" accept="image/*,video/mp4,video/webm" id="mediaFileInput">
+                    <div id="mediaPreview" class="mt-2"></div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Or paste a URL <small class="text-muted">(used if no file uploaded)</small></label>
+                    <small class="form-text text-muted d-block mb-1">Media is required for feed posts. Use the <a href="{{ url_for('forum_index') }}">Forum</a> for text-only content.</small>
+                    <input type="url" name="media_url" class="form-control" placeholder="https://...">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Tags <small class="text-muted">(comma separated)</small></label>
+                    <input type="text" name="tags" class="form-control" placeholder="selfie, outfit, challenge">
+                </div>
+
+                {% if available_powerups %}
+                <div class="mb-3">
+                    <label class="form-label">Apply Powerup <i class="bi bi-lightning text-warning"></i></label>
+                    <select name="powerup_id" class="form-select">
+                        <option value="">-- No Powerup --</option>
+                        {% for pu in available_powerups %}
+                        <option value="{{ pu.id }}">{{ pu.item.name }}{% if pu.item.description %} — {{ pu.item.description }}{% endif %}</option>
+                        {% endfor %}
+                    </select>
+                    <small class="form-text text-muted">Powerups are single-use. Only one can be applied per post.</small>
+                </div>
+                {% endif %}
+
+                <button type="submit" class="btn btn-pink w-100">Post (+10 XP)</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+document.getElementById('mediaFileInput').addEventListener('change', function(e) {
+    const preview = document.getElementById('mediaPreview');
+    preview.innerHTML = '';
+    const file = e.target.files[0];
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    if (file.type.startsWith('video/')) {
+        const vid = document.createElement('video');
+        vid.src = url;
+        vid.controls = true;
+        vid.className = 'img-fluid rounded';
+        vid.style.maxHeight = '250px';
+        preview.appendChild(vid);
+    } else {
+        const img = document.createElement('img');
+        img.src = url;
+        img.className = 'img-fluid rounded';
+        img.style.maxHeight = '250px';
+        preview.appendChild(img);
+    }
+});
+</script>
+{% endblock %}

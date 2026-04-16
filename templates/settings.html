@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Settings – goodgurl.gg{% endblock %}
+{% block content %}
+<div class="container py-4">
+    <h2 class="mb-4">Theme Settings</h2>
+    <form id="themeForm">
+        <div class="mb-3">
+            <label for="themeSelect" class="form-label">Choose a color theme:</label>
+            <select class="form-select" id="themeSelect" name="theme">
+                <option value="default">Default (Neon)</option>
+                <option value="pastel">Pastel Pink & Blue</option>
+            </select>
+        </div>
+        <button type="submit" class="btn btn-pink">Save Theme</button>
+    </form>
+</div>
+<script>
+// Theme palette CSS variables
+const palettes = {
+    default: {
+        '--pink': '#ff4da6',
+        '--pink-dark': '#cc3d85',
+        '--purple': '#a855f7',
+        '--gold': '#fbbf24',
+    },
+    pastel: {
+        '--pink': '#FFCCDE',
+        '--pink-dark': '#FF8EB7',
+        '--purple': '#E04582',
+        '--gold': '#BADFFF',
+        '--blue': '#7FC3FF',
+    }
+};
+
+function setTheme(theme) {
+    const root = document.documentElement;
+    const palette = palettes[theme] || palettes.default;
+    for (const [key, value] of Object.entries(palette)) {
+        root.style.setProperty(key, value);
+    }
+    localStorage.setItem('theme', theme);
+}
+
+document.getElementById('themeForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const theme = document.getElementById('themeSelect').value;
+    setTheme(theme);
+});
+
+window.addEventListener('DOMContentLoaded', function() {
+    const saved = localStorage.getItem('theme') || 'default';
+    document.getElementById('themeSelect').value = saved;
+    setTheme(saved);
+});
+</script>
+{% endblock %}
