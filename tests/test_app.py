@@ -98,7 +98,7 @@ class TestLogin:
 
     def test_login_banned_user(self, client, app):
         register(client)
-        # Ban the user via direct SQL to avoid SQLAlchemy session issues
+        client.get("/logout")  # clear session from register's auto-login
         with app.app_context():
             from extensions import db
             db.session.execute(db.text("UPDATE user SET is_banned = 1 WHERE username = 'testuser'"))

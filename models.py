@@ -8,7 +8,11 @@ from constants import (
     TIERS, MULTIPLIER_STACK_STRATEGY, utcnow,
 )
 
+
+# ---------------------------------------------------------------------------
 # Single-use powerup inventory for users
+# ---------------------------------------------------------------------------
+
 class UserPowerup(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False, index=True)
@@ -18,15 +22,6 @@ class UserPowerup(db.Model):
     acquired_at = db.Column(db.DateTime, default=utcnow)
     user = db.relationship("User", backref="powerups")
     item = db.relationship("ShopItem")
-import math
-from datetime import timedelta
-
-from extensions import db
-from flask_login import UserMixin
-from constants import (
-    STARTING_LEVEL, LEVEL_CAP, LEVEL_CAP_POINTS_CONTINUE, LEVEL_XP_TABLE,
-    TIERS, MULTIPLIER_STACK_STRATEGY, utcnow,
-)
 
 
 # ---------------------------------------------------------------------------

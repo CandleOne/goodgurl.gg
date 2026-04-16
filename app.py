@@ -56,7 +56,16 @@ from simulation import run_simulation, start_timed_simulation, get_timed_sim_sta
 # App configuration
 # ---------------------------------------------------------------------------
 app = Flask(__name__)
-app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "goodgurl-dev-key-change-in-production")
+_secret = os.environ.get("SECRET_KEY")
+if not _secret and not os.environ.get("FLASK_DEBUG"):
+    import warnings
+    warnings.warn(
+        "SECRET_KEY not set! Using insecure default. "
+        "Set the SECRET_KEY environment variable for production.",
+        stacklevel=1,
+    )
+    _secret = "goodgurl-dev-key-change-in-production"
+app.config["SECRET_KEY"] = _secret
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///goodgurl.db"
 # Expose daily reward roadmap to templates
 from constants import DAILY_REWARD_ROADMAP
@@ -71,8 +80,13 @@ os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 db.init_app(app)
 csrf.init_app(app)
 limiter.init_app(app)
-limiter.enabled = not app.config.get("TESTING", False)
 login_manager.init_app(app)
+
+
+@app.before_request
+def _disable_limiter_in_tests():
+    """Ensure the rate limiter is off when TESTING is True."""
+    limiter.enabled = not app.config.get("TESTING", False)
 
 # Ensure avatar directory exists
 AVATAR_DIR = os.path.join(app.static_folder, "avatars")
@@ -181,10 +195,9 @@ def register():
             return redirect(url_for("register"))
 
         # FIX: password strength validation
-        pw_errors = validate_password(password)
-        if pw_errors:
-            for err in pw_errors:
-                flash(err, "danger")
+        pw_error = validate_password(password)
+        if pw_error:
+            flash(pw_error, "danger")
             return redirect(url_for("register"))
 
         if User.query.filter((User.username == username) | (User.email == email)).first():
@@ -2390,6 +2403,11 @@ def claim_quest(quest_id):
 @app.route("/help")
 def help_page():
     return render_template("help.html")
+
+@app.route("/settings")
+@login_required
+def settings_page():
+    return render_template("settings.html")
 
 @app.route("/legal")
 def legal_page():
