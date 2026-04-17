@@ -4,14 +4,25 @@
 <div class="container py-4">
     <div class="d-flex align-items-center justify-content-between mb-4">
         <h2 class="mb-0"><i class="bi bi-broadcast"></i> GG TV</h2>
+        {% if current_user.is_authenticated %}
         <button class="btn btn-pink" id="goLiveBtn"><i class="bi bi-camera-video"></i> Go Live</button>
+        {% endif %}
     </div>
 
     <!-- Live Now section -->
     <section class="mb-5">
         <h5 class="text-pink mb-3"><i class="bi bi-circle-fill text-danger blink"></i> Live Now</h5>
-        <div id="liveStreams" class="row g-3">
-            <div class="col-12 text-center text-muted py-5">
+        <div id="liveStreams" class="row g-3 position-relative">
+            {% if not current_user.is_authenticated %}
+            <div class="ggtv-login-wall">
+                <div class="ggtv-login-wall-inner">
+                    <i class="bi bi-lock-fill" style="font-size:2rem"></i>
+                    <p class="mt-2 mb-3 fw-bold">You must login to view livestreams</p>
+                    <a href="{{ url_for('login') }}" class="btn btn-pink">Login</a>
+                </div>
+            </div>
+            {% endif %}
+            <div class="col-12 text-center text-muted py-5 {% if not current_user.is_authenticated %}ggtv-blurred{% endif %}">
                 <i class="bi bi-broadcast" style="font-size:3rem;opacity:.3"></i>
                 <p class="mt-2">No one is live right now. Be the first to go live!</p>
             </div>
@@ -52,11 +63,15 @@
 <style>
 .blink { animation: blink 1.2s infinite; }
 @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+.ggtv-blurred { filter: blur(8px); pointer-events: none; user-select: none; }
+.ggtv-login-wall { position: absolute; inset: 0; z-index: 10; display: flex; align-items: center; justify-content: center; }
+.ggtv-login-wall-inner { text-align: center; color: #fff; }
 </style>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const goLiveBtn = document.getElementById('goLiveBtn');
+    if (!goLiveBtn) return;
     const goLiveModal = new bootstrap.Modal(document.getElementById('goLiveModal'));
     const localPreview = document.getElementById('localPreview');
     const startStreamBtn = document.getElementById('startStreamBtn');

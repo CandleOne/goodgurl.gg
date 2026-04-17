@@ -475,7 +475,6 @@ def feed():
 # GG TV
 # ---------------------------------------------------------------------------
 @app.route("/ggtv")
-@login_required
 def ggtv():
     return render_template("ggtv.html")
 
