@@ -45,9 +45,14 @@
                     <button class="btn btn-sm btn-success w-100">Accept Task</button>
                 </form>
                 {% elif task.status == 'accepted' and task.assignee_id == current_user.id %}
-                <form method="POST" action="{{ url_for('complete_task', task_id=task.id) }}">
-                    <button class="btn btn-sm btn-pink w-100">Mark Complete</button>
-                </form>
+                <div class="d-flex gap-2">
+                    <form method="POST" action="{{ url_for('complete_task', task_id=task.id) }}" class="flex-grow-1">
+                        <button class="btn btn-sm btn-pink w-100">Mark Complete</button>
+                    </form>
+                    <form method="POST" action="{{ url_for('reset_task', task_id=task.id) }}" onsubmit="return confirm('Reset progress on this task? It will become open for anyone again.')">
+                        <button class="btn btn-sm btn-outline-secondary" title="Reset progress"><i class="bi bi-arrow-counterclockwise"></i></button>
+                    </form>
+                </div>
                 {% endif %}
             </div>
             {% endif %}
