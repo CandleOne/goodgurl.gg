@@ -1,0 +1,64 @@
+# MediaMTX configuration for GG TV bot livestream system
+# https://github.com/bluenviron/mediamtx
+#
+# Quick start:
+#   1. Download the release binary for your OS from:
+#      https://github.com/bluenviron/mediamtx/releases/latest
+#   2. Place the binary next to this file and run:
+#      ./mediamtx mediamtx.yml
+#   3. Set the Flask env vars if you change any ports:
+#      MEDIAMTX_RTMP=rtmp://localhost:1935/live
+#      MEDIAMTX_HLS=http://localhost:8888
+
+###############################################################################
+# Logging
+###############################################################################
+logLevel: info
+logDestinations: [stdout]
+
+###############################################################################
+# API (optional — lets you query active streams)
+###############################################################################
+api: yes
+apiAddress: 127.0.0.1:9997
+
+###############################################################################
+# RTMP (ingest from ffmpeg bots)
+###############################################################################
+rtmp: yes
+rtmpAddress: :1935
+# Encrypt: set rtmpEncryption to 'yes' and provide a TLS cert for production
+
+###############################################################################
+# HLS (served to browser <video> tags via hls.js)
+###############################################################################
+hls: yes
+hlsAddress: :8888
+hlsAllowOrigin: "*"   # Allow the Flask frontend to fetch .m3u8 playlists
+hlsAlwaysRemux: no
+hlsSegmentCount: 3
+hlsSegmentDuration: 2s
+hlsPartDuration: 200ms
+
+###############################################################################
+# WebRTC (optional — lower latency than HLS)
+###############################################################################
+webrtc: yes
+webrtcAddress: :8889
+webrtcICEServers2: []
+
+###############################################################################
+# Path defaults — all RTMP publishers are allowed without auth
+# For production add publishUser / publishPass
+###############################################################################
+pathDefaults:
+  # Uncomment to require a stream key password:
+  # publishUser: admin
+  # publishPass: changeme
+  readUser: ""
+  readPass: ""
+
+paths:
+  live:
+    # Wildcard — any sub-path under /live/<stream_key> is accepted
+    {}

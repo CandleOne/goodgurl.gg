@@ -3071,5 +3071,179 @@ with app.app_context():
     seed_shop_items()
     seed_academy_lessons()
 
+
+# ---------------------------------------------------------------------------
+# GG TV — Bot Livestream System
+# ---------------------------------------------------------------------------
+# Requires:
+#   • yt-dlp  (pip install yt-dlp)
+#   • ffmpeg  (apt install ffmpeg  /  brew install ffmpeg)
+#   • MediaMTX running on localhost:1935 (RTMP) + :8888 (HLS)
+#     https://github.com/bluenviron/mediamtx
+#     Quick start:  ./mediamtx mediamtx.yml
+# ---------------------------------------------------------------------------
+
+import uuid
+import subprocess
+import re as _re
+import threading
+
+# In-memory registry of active bot streams: stream_key → metadata dict
+_bot_streams: dict = {}
+_bot_streams_lock = threading.Lock()
+
+_MEDIAMTX_RTMP = os.environ.get("MEDIAMTX_RTMP", "rtmp://localhost:1935/live")
+_MEDIAMTX_HLS  = os.environ.get("MEDIAMTX_HLS",  "http://localhost:8888")
+
+_YT_URL_RE = _re.compile(
+    r"^https?://(www\.)?(youtube\.com/(watch\?.*v=|shorts/|live/|embed/)|youtu\.be/)[\w\-]{11}",
+    _re.IGNORECASE,
+)
+
+
+def _reap_dead_streams():
+    """Remove stopped ffmpeg processes from the registry."""
+    with _bot_streams_lock:
+        dead = [k for k, v in _bot_streams.items() if v["proc"].poll() is not None]
+        for k in dead:
+            del _bot_streams[k]
+
+
+@app.route("/api/ggtv/streams")
+@login_required
+def api_ggtv_streams():
+    """Return the list of currently active bot streams."""
+    _reap_dead_streams()
+    with _bot_streams_lock:
+        streams = [
+            {
+                "stream_key": k,
+                "title":      v["title"],
+                "username":   v["username"],
+                "category":   v["category"],
+                "viewers":    v.get("viewers", 0),
+                "hls_url":    f"{_MEDIAMTX_HLS}/{k}/index.m3u8",
+                "thumbnail":  v.get("thumbnail", ""),
+            }
+            for k, v in _bot_streams.items()
+        ]
+    return jsonify(streams)
+
+
+@app.route("/api/ggtv/bot_stream/start", methods=["POST"])
+@login_required
+@admin_required
+@csrf.exempt          # Called from JS fetch with custom header; add X-CSRFToken if preferred
+def api_ggtv_bot_stream_start():
+    """Start an ffmpeg process that pulls a YouTube URL and pushes to MediaMTX."""
+    data = request.get_json(silent=True) or {}
+
+    youtube_url = (data.get("youtube_url") or "").strip()
+    bot_name    = (data.get("bot_name")    or "GG Bot").strip()[:32]
+    title       = (data.get("title")       or "Bot Stream").strip()[:100]
+    category    = (data.get("category")    or "Bot Stream").strip()[:60]
+
+    # ── Input validation ──────────────────────────────────────────────────
+    if not youtube_url:
+        return jsonify({"error": "youtube_url is required"}), 400
+    if not _YT_URL_RE.match(youtube_url):
+        return jsonify({"error": "Only standard YouTube URLs are supported"}), 400
+    if len(bot_name) == 0:
+        return jsonify({"error": "bot_name is required"}), 400
+
+    # ── Extract the direct stream URL via yt-dlp Python API ───────────────
+    try:
+        import yt_dlp  # noqa: PLC0415
+        ydl_opts = {
+            "format": "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
+            "quiet": True,
+            "no_warnings": True,
+        }
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(youtube_url, download=False)
+            # For merged formats info["url"] may not exist; prefer the direct url
+            stream_url = info.get("url") or info.get("webpage_url")
+            thumbnail  = info.get("thumbnail", "")
+    except Exception as exc:
+        app.logger.error("yt-dlp extraction failed: %s", exc)
+        return jsonify({"error": "Could not extract stream URL from YouTube"}), 502
+
+    if not stream_url:
+        return jsonify({"error": "yt-dlp returned no usable stream URL"}), 502
+
+    # ── Spawn ffmpeg subprocess ───────────────────────────────────────────
+    stream_key = uuid.uuid4().hex[:12]
+    rtmp_target = f"{_MEDIAMTX_RTMP}/{stream_key}"
+
+    cmd = [
+        "ffmpeg",
+        "-re",                    # read at native frame-rate (simulates live)
+        "-i", stream_url,
+        "-c:v", "libx264",
+        "-preset", "ultrafast",
+        "-tune", "zerolatency",
+        "-b:v", "1500k",
+        "-maxrate", "1500k",
+        "-bufsize", "3000k",
+        "-vf", "scale=1280:-2",
+        "-c:a", "aac",
+        "-ar", "44100",
+        "-b:a", "128k",
+        "-f", "flv",
+        rtmp_target,
+    ]
+
+    try:
+        proc = subprocess.Popen(
+            cmd,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
+            # Do NOT use shell=True — arguments are passed as a list
+        )
+    except FileNotFoundError:
+        return jsonify({"error": "ffmpeg is not installed on this server"}), 503
+
+    with _bot_streams_lock:
+        _bot_streams[stream_key] = {
+            "proc":        proc,
+            "title":       title,
+            "username":    bot_name,
+            "category":    category,
+            "youtube_url": youtube_url,
+            "thumbnail":   thumbnail,
+        }
+
+    app.logger.info("Bot stream started: key=%s title=%r pid=%d", stream_key, title, proc.pid)
+    return jsonify({
+        "stream_key": stream_key,
+        "hls_url":    f"{_MEDIAMTX_HLS}/{stream_key}/index.m3u8",
+        "rtmp_url":   rtmp_target,
+    }), 201
+
+
+@app.route("/api/ggtv/bot_stream/stop", methods=["POST"])
+@login_required
+@admin_required
+@csrf.exempt
+def api_ggtv_bot_stream_stop():
+    """Terminate a running bot stream by its stream_key."""
+    data = request.get_json(silent=True) or {}
+    stream_key = (data.get("stream_key") or "").strip()
+
+    if not stream_key or not _re.fullmatch(r"[0-9a-f]{12}", stream_key):
+        return jsonify({"error": "Invalid stream_key"}), 400
+
+    with _bot_streams_lock:
+        entry = _bot_streams.pop(stream_key, None)
+
+    if entry is None:
+        return jsonify({"error": "Stream not found"}), 404
+
+    entry["proc"].terminate()
+    app.logger.info("Bot stream stopped: key=%s", stream_key)
+    return jsonify({"stopped": stream_key})
+
+
 if __name__ == "__main__":
     app.run(debug=os.environ.get("FLASK_DEBUG", "1") == "1", port=5000)
+

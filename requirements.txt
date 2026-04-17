@@ -9,3 +9,4 @@ multiavatar>=1.0.7
 matplotlib>=3.9.0
 pandas>=2.2.0
 MarkupSafe>=3.0.0
+yt-dlp>=2024.11.4

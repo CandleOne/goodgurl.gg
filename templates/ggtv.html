@@ -1,5 +1,9 @@
 {% extends "base.html" %}
 {% block title %}GG TV – goodgurl.gg{% endblock %}
+{% block head_extra %}
+<!-- hls.js — HLS playback in browsers that don't natively support it -->
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js"></script>
+{% endblock %}
 {% block content %}
 
 <!-- GG TV full-width layout (sidebar + main + info panel) -->
@@ -19,13 +23,55 @@
             </div>
         </div>
         {% if current_user.is_authenticated %}
-        <div class="px-3 pb-3 mt-2">
+        <div class="px-3 pb-3 mt-2 d-flex flex-column gap-2">
             <button class="btn btn-pink btn-sm w-100" id="goLiveBtn">
                 <i class="bi bi-camera-video-fill me-1"></i> Go Live
             </button>
+            {% if current_user.role == 'admin' %}
+            <button class="btn btn-sm w-100" style="background:rgba(255,77,166,.15);border:1px solid rgba(255,77,166,.4);color:#ff4da6" data-bs-toggle="collapse" data-bs-target="#botStreamPanel">
+                <i class="bi bi-robot me-1"></i> Bot Stream
+            </button>
+            {% endif %}
         </div>
         {% endif %}
     </aside>
+
+    <!-- ── Admin Bot Stream Panel ─────────────────────────────── -->
+    {% if current_user.is_authenticated and current_user.role == 'admin' %}
+    <div class="collapse" id="botStreamPanel">
+        <div class="glass-card p-3 mx-2 mb-3" style="border-left:3px solid var(--pink) !important">
+            <div class="fw-semibold mb-2" style="font-size:.82rem;color:var(--pink)">
+                <i class="bi bi-robot me-1"></i> Start Bot Stream
+            </div>
+            <div class="mb-2">
+                <input type="url" class="form-control form-control-sm" id="botYtUrl"
+                    placeholder="https://youtube.com/watch?v=…" autocomplete="off">
+            </div>
+            <div class="mb-2">
+                <input type="text" class="form-control form-control-sm" id="botName"
+                    placeholder="Bot name (e.g. GG Bot)" maxlength="32">
+            </div>
+            <div class="mb-2">
+                <input type="text" class="form-control form-control-sm" id="botTitle"
+                    placeholder="Stream title" maxlength="100">
+            </div>
+            <div class="mb-3">
+                <input type="text" class="form-control form-control-sm" id="botCategory"
+                    placeholder="Category (e.g. Music)" maxlength="60">
+            </div>
+            <button class="btn btn-pink btn-sm w-100" id="startBotStreamBtn">
+                <i class="bi bi-broadcast me-1"></i> Start Bot Stream
+            </button>
+            <div id="botStreamError" class="text-danger mt-2" style="font-size:.78rem;display:none"></div>
+
+            <!-- Active bot streams list -->
+            <div id="activeBotList" class="mt-3" style="display:none">
+                <div class="text-uppercase fw-bold mb-1" style="font-size:.68rem;color:rgba(255,255,255,.4);letter-spacing:.06em">Active Bot Streams</div>
+                <div id="activeBotItems"></div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 
     <!-- ── Main + Info Panel ───────────────────────────────────── -->
     <div class="ggtv-main-wrap">
@@ -372,7 +418,208 @@ document.addEventListener('DOMContentLoaded', function () {
             // Placeholder — streaming backend integration goes here
             alert('Streaming infrastructure coming soon! Your camera is working though 🎬');
         });
+    /* ── HLS playback helper ── */
+    let _hlsInstance = null;
+    function playHls(videoEl, hlsUrl) {
+        if (_hlsInstance) { _hlsInstance.destroy(); _hlsInstance = null; }
+        videoEl.style.display = 'block';
+        if (Hls.isSupported()) {
+            _hlsInstance = new Hls({ lowLatencyMode: true });
+            _hlsInstance.loadSource(hlsUrl);
+            _hlsInstance.attachMedia(videoEl);
+            _hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => videoEl.play());
+        } else if (videoEl.canPlayType('application/vnd.apple.mpegurl')) {
+            // Safari native HLS
+            videoEl.src = hlsUrl;
+            videoEl.play();
+        }
     }
+
+    /* ── Stream polling ── */
+    function renderSidebarItem(s) {
+        return `<a class="ggtv-channel-item" data-uid="${s.stream_key}" data-stream='${JSON.stringify(s)}'>
+            <div class="ggtv-channel-avatar">${s.username.charAt(0).toUpperCase()}</div>
+            <div class="ggtv-channel-meta">
+                <div class="ggtv-channel-name">${escHtml(s.username)}</div>
+                <div class="ggtv-channel-cat">${escHtml(s.category)}</div>
+            </div>
+            <span class="ggtv-viewer-dot"></span>
+            <span class="ggtv-viewer-count">${s.viewers.toLocaleString()}</span>
+        </a>`;
+    }
+
+    function renderGridCard(s) {
+        const thumb = s.thumbnail
+            ? `<img src="${escHtml(s.thumbnail)}" alt="" loading="lazy">`
+            : `<div class="ggtv-card-thumb-placeholder"><i class="bi bi-broadcast"></i></div>`;
+        return `<div class="col-sm-6 col-md-4 col-xl-3">
+            <div class="ggtv-card" data-uid="${s.stream_key}" data-stream='${JSON.stringify(s)}'>
+                <div class="ggtv-card-thumb">${thumb}
+                    <span class="ggtv-live-badge">LIVE</span>
+                    <span class="ggtv-viewer-badge"><i class="bi bi-eye-fill me-1"></i>${s.viewers.toLocaleString()}</span>
+                </div>
+                <div class="ggtv-card-body">
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                        <div class="ggtv-channel-avatar" style="width:24px;height:24px;font-size:.7rem">${s.username.charAt(0).toUpperCase()}</div>
+                        <div class="ggtv-card-title flex-1" style="flex:1">${escHtml(s.title)}</div>
+                    </div>
+                    <div class="ggtv-card-sub">${escHtml(s.username)}</div>
+                    <div class="ggtv-card-tags"><span class="badge">${escHtml(s.category)}</span></div>
+                </div>
+            </div>
+        </div>`;
+    }
+
+    function escHtml(str) {
+        return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    let _currentStreamKey = null;
+
+    function pollStreams() {
+        fetch('/api/ggtv/streams', { credentials: 'same-origin' })
+            .then(r => r.json())
+            .then(streams => {
+                /* Sidebar */
+                const sidebarList = document.getElementById('sidebarChannelList');
+                const emptyEl     = sidebarList ? sidebarList.querySelector('.ggtv-sidebar-empty') : null;
+                if (sidebarList) {
+                    const existingItems = sidebarList.querySelectorAll('.ggtv-channel-item');
+                    existingItems.forEach(el => el.remove());
+                    if (streams.length) {
+                        if (emptyEl) emptyEl.style.display = 'none';
+                        streams.forEach(s => sidebarList.insertAdjacentHTML('afterbegin', renderSidebarItem(s)));
+                    } else {
+                        if (emptyEl) emptyEl.style.display = '';
+                    }
+                }
+
+                /* Grid */
+                const grid      = document.getElementById('liveStreamsGrid');
+                const gridEmpty = document.getElementById('gridEmpty');
+                const label     = document.getElementById('gridCountLabel');
+                if (grid) {
+                    grid.querySelectorAll('.ggtv-card').forEach(el => el.closest('.col-sm-6, .col-12')?.remove());
+                    if (streams.length) {
+                        if (gridEmpty) gridEmpty.style.display = 'none';
+                        if (label) label.textContent = `${streams.length} channel${streams.length !== 1 ? 's' : ''} live`;
+                        streams.forEach(s => grid.insertAdjacentHTML('beforeend', renderGridCard(s)));
+                    } else {
+                        if (gridEmpty) gridEmpty.style.display = '';
+                        if (label) label.textContent = '0 channels live';
+                    }
+                }
+
+                /* If current spotlight stream is gone, reset player */
+                if (_currentStreamKey && !streams.find(s => s.stream_key === _currentStreamKey)) {
+                    _currentStreamKey = null;
+                    if (_hlsInstance) { _hlsInstance.destroy(); _hlsInstance = null; }
+                    const vid = document.getElementById('spotlightVideo');
+                    const ph  = document.getElementById('spotlightPlaceholder');
+                    if (vid) { vid.pause(); vid.style.display = 'none'; }
+                    if (ph) ph.style.display = '';
+                }
+
+                /* Admin bot list */
+                renderAdminBotList(streams);
+            })
+            .catch(() => {});
+    }
+
+    pollStreams();
+    setInterval(pollStreams, 6000);
+
+    /* Click on grid card or sidebar item → select stream */
+    document.addEventListener('click', function (e) {
+        const target = e.target.closest('[data-stream]');
+        if (!target) return;
+        let stream;
+        try { stream = JSON.parse(target.dataset.stream); } catch { return; }
+        _currentStreamKey = stream.stream_key;
+
+        /* Update info panel */
+        selectStream(stream);
+
+        /* Play HLS */
+        const videoEl = document.getElementById('spotlightVideo');
+        if (videoEl && stream.hls_url) playHls(videoEl, stream.hls_url);
+
+        /* Sidebar active state */
+        document.querySelectorAll('.ggtv-channel-item').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll(`[data-uid="${stream.stream_key}"]`).forEach(el => el.classList.add('active'));
+    });
+
+    /* ── Admin: start bot stream ── */
+    const startBotBtn = document.getElementById('startBotStreamBtn');
+    if (startBotBtn) {
+        startBotBtn.addEventListener('click', function () {
+            const youtube_url = document.getElementById('botYtUrl').value.trim();
+            const bot_name    = document.getElementById('botName').value.trim() || 'GG Bot';
+            const title       = document.getElementById('botTitle').value.trim() || 'Bot Stream';
+            const category    = document.getElementById('botCategory').value.trim() || 'Live';
+            const errEl       = document.getElementById('botStreamError');
+
+            if (!youtube_url) { showBotErr('Please enter a YouTube URL'); return; }
+
+            startBotBtn.disabled = true;
+            startBotBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Starting…';
+
+            fetch('/api/ggtv/bot_stream/start', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ youtube_url, bot_name, title, category }),
+            })
+            .then(r => r.json().then(d => ({ ok: r.ok, data: d })))
+            .then(({ ok, data }) => {
+                if (!ok) { showBotErr(data.error || 'Failed to start bot stream'); return; }
+                errEl.style.display = 'none';
+                /* Clear inputs */
+                ['botYtUrl','botName','botTitle','botCategory'].forEach(id => document.getElementById(id).value = '');
+                pollStreams();
+            })
+            .catch(() => showBotErr('Network error — is the server running?'))
+            .finally(() => {
+                startBotBtn.disabled = false;
+                startBotBtn.innerHTML = '<i class="bi bi-broadcast me-1"></i> Start Bot Stream';
+            });
+
+            function showBotErr(msg) {
+                errEl.textContent = msg;
+                errEl.style.display = '';
+            }
+        });
+    }
+
+    function renderAdminBotList(streams) {
+        const listEl  = document.getElementById('activeBotList');
+        const itemsEl = document.getElementById('activeBotItems');
+        if (!listEl || !itemsEl) return;
+        if (streams.length === 0) { listEl.style.display = 'none'; return; }
+        listEl.style.display = '';
+        itemsEl.innerHTML = streams.map(s =>
+            `<div class="d-flex align-items-center justify-content-between py-1" style="border-bottom:1px solid rgba(255,255,255,.06)">
+                <div style="font-size:.77rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px" title="${escHtml(s.title)}">
+                    <span class="ggtv-live-badge d-inline-block me-1" style="position:relative;top:unset;left:unset">LIVE</span>
+                    ${escHtml(s.username)}
+                </div>
+                <button class="btn btn-sm btn-danger" style="font-size:.68rem;padding:2px 7px" data-stop-key="${s.stream_key}">Stop</button>
+            </div>`
+        ).join('');
+    }
+
+    document.addEventListener('click', function (e) {
+        const btn = e.target.closest('[data-stop-key]');
+        if (!btn) return;
+        const key = btn.dataset.stopKey;
+        btn.disabled = true;
+        fetch('/api/ggtv/bot_stream/stop', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ stream_key: key }),
+        }).then(() => pollStreams()).catch(() => { btn.disabled = false; });
+    });    }
 
     /* ── Stream card click → update spotlight info ── */
     document.addEventListener('click', function (e) {
