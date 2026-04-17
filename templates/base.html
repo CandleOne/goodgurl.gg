@@ -27,7 +27,7 @@
 </head>
 <body>
     <!-- 18+ Age Gate Overlay -->
-    {% if session.get('show_onboarding') %}
+    {% if session.get('show_onboarding') and request.endpoint != 'academy' %}
     <div id="onboardingModal" style="position:fixed; inset:0; z-index:100000; background:rgba(0,0,0,0.85); display:flex; align-items:center; justify-content:center;">
         <div style="background:#fff; color:#222; border-radius:16px; max-width:420px; width:90%; padding:36px 28px; box-shadow:0 0 40px #ff4da655; text-align:center;">
             <h2 style="color:#ff4da6; font-weight:700;">Welcome to goodgurl.gg!</h2>
