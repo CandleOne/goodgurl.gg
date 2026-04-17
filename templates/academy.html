@@ -1,6 +1,66 @@
 {% extends "base.html" %}
 {% block title %}GoodGurl Labs – goodgurl.gg{% endblock %}
 {% block content %}
+
+<!-- ===== WELCOME MODAL (Step 1) ===== -->
+{% if show_welcome and current_user.is_authenticated %}
+<div class="modal fade" id="welcomeModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-pink" style="background: rgba(26,20,50,0.97);">
+            <div class="modal-body text-center p-5">
+                <img src="{{ url_for('static', filename='assets/laboratory.png') }}" width="80" height="80" alt="GoodGurl Labs" class="mb-3">
+                <h3 class="text-pink mb-3">Welcome to GoodGurl Labs</h3>
+                <p class="text-light fs-5">Our premier feminization and bimbofication institution, designed and personalized to fit your journey.</p>
+                <p class="text-muted mt-3">Every day you'll receive fresh audio lessons and hands-on tasks across two transformative tracks. Complete them to earn XP, coins, and specialized power.</p>
+                <button class="btn btn-pink btn-lg mt-3" id="welcomeNext">
+                    <i class="bi bi-arrow-right-circle"></i> Continue
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- ===== ACCEPTANCE MODAL (Step 2) ===== -->
+{% if show_acceptance and current_user.is_authenticated %}
+<div class="modal fade" id="acceptanceModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-purple" style="background: rgba(26,20,50,0.97);">
+            <div class="modal-body text-center p-5">
+                <div style="font-size: 3rem;" class="mb-3">🔐</div>
+                <h3 class="mb-3">Identity Acknowledgment</h3>
+                <p class="text-light">Before proceeding, you must acknowledge and accept your position and calling to be a sissy.</p>
+                <p class="text-muted small">This is the first step of your transformation. By accepting, you commit to your feminization and bimbofication journey through GoodGurl Labs.</p>
+
+                <form method="POST" action="{{ url_for('academy_accept') }}" id="acceptForm" class="mt-4">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="form-check text-start mb-3">
+                        <input class="form-check-input" type="checkbox" id="acceptCheck1" required>
+                        <label class="form-check-label text-light" for="acceptCheck1">
+                            I acknowledge my position and calling as a sissy
+                        </label>
+                    </div>
+                    <div class="form-check text-start mb-4">
+                        <input class="form-check-input" type="checkbox" id="acceptCheck2" required>
+                        <label class="form-check-label text-light" for="acceptCheck2">
+                            I accept and submit fully to my feminization journey
+                        </label>
+                    </div>
+                    <div class="d-flex gap-3 justify-content-center">
+                        <button type="submit" class="btn btn-pink btn-lg" id="acceptBtn" disabled>
+                            <i class="bi bi-heart-fill"></i> Accept & Begin
+                        </button>
+                        <a href="{{ url_for('feed') }}" class="btn btn-outline-secondary btn-lg">
+                            <i class="bi bi-x-circle"></i> Decline
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
 <div class="container py-4">
 
     <!-- Header -->
@@ -8,6 +68,7 @@
         <img src="{{ url_for('static', filename='assets/laboratory.png') }}" width="64" height="64" alt="GoodGurl Labs" class="mb-2">
         <h2 class="mb-1">GoodGurl Labs</h2>
         <p class="text-muted">Our premier feminization and bimbofication institution, designed and personalized to fit your journey.</p>
+        <p class="text-muted small"><i class="bi bi-calendar3"></i> Today's Lessons — {{ today }}</p>
         {% if current_user.is_authenticated %}
         <div class="d-flex justify-content-center gap-3 mt-2">
             <span class="badge bg-pink fs-6"><i class="bi bi-hearts"></i> {{ current_user.fp }} FP</span>
@@ -15,6 +76,13 @@
         </div>
         {% endif %}
     </div>
+
+    {% if not labs_accepted and current_user.is_authenticated %}
+    <div class="alert alert-warning text-center">
+        <i class="bi bi-lock-fill"></i> You must accept your calling before accessing lessons.
+        <a href="#" onclick="new bootstrap.Modal(document.getElementById('acceptanceModal')).show(); return false;" class="alert-link">Accept now</a>
+    </div>
+    {% else %}
 
     <!-- Track Tabs -->
     <ul class="nav nav-pills justify-content-center mb-4" role="tablist">
@@ -40,7 +108,7 @@
             {% set fem_completed = fem_lessons | selectattr('id', 'in', completed_ids) | list | length %}
             <div class="mb-3">
                 <div class="d-flex justify-content-between align-items-center mb-1">
-                    <span class="fw-bold text-pink">Track Progress</span>
+                    <span class="fw-bold text-pink">Today's Progress</span>
                     <span class="text-muted">{{ fem_completed }}/{{ fem_lessons | length }}</span>
                 </div>
                 <div class="progress" style="height: 10px;">
@@ -53,7 +121,19 @@
                 {% set is_completed = lesson.id in completed_ids %}
                 {% set is_locked = not is_completed and (loop.index0 > 0 and fem_lessons[loop.index0 - 1].id not in completed_ids) %}
                 {% set is_current = not is_completed and not is_locked %}
-                <div class="card mb-3 {{ 'border-success' if is_completed else ('border-pink glow-pink' if is_current else 'opacity-50') }}">
+                {% set is_audio = lesson.lesson_type == 'audio' %}
+                {% set is_task = lesson.lesson_type == 'objective' %}
+                {% set pair_num = ((loop.index0 // 2) + 1) %}
+
+                {# Show pair header for each audio (odd index) #}
+                {% if is_audio %}
+                <div class="pair-header d-flex align-items-center gap-2 mb-2 mt-4">
+                    <span class="badge bg-pink px-3 py-2 fs-6">Session {{ pair_num }}</span>
+                    <hr class="flex-grow-1 border-pink" style="opacity:0.3;">
+                </div>
+                {% endif %}
+
+                <div class="card mb-2 {{ 'border-success' if is_completed else ('border-pink glow-pink' if is_current else 'opacity-50') }}">
                     <div class="card-body d-flex align-items-center gap-3">
                         <!-- Step indicator -->
                         <div class="text-center" style="min-width: 50px;">
@@ -63,26 +143,26 @@
                             </div>
                             {% elif is_current %}
                             <div class="rounded-circle border border-pink d-flex align-items-center justify-content-center mx-auto" style="width:42px; height:42px; border-width:2px!important;">
-                                <i class="bi bi-play-fill text-pink fs-5"></i>
+                                {% if is_audio %}<i class="bi bi-headphones text-pink fs-5"></i>{% else %}<i class="bi bi-journal-check text-pink fs-5"></i>{% endif %}
                             </div>
                             {% else %}
                             <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center mx-auto" style="width:42px; height:42px;">
                                 <i class="bi bi-lock-fill text-white-50 fs-6"></i>
                             </div>
                             {% endif %}
-                            <small class="text-muted d-block mt-1">{{ loop.index }}</small>
+                            <small class="text-muted d-block mt-1">{{ 'Audio' if is_audio else 'Task' }}</small>
                         </div>
 
                         <!-- Lesson info -->
                         <div class="flex-grow-1">
                             <h6 class="mb-1">
-                                {% if lesson.lesson_type == 'audio' %}
+                                {% if is_audio %}
                                 <i class="bi bi-headphones text-info"></i>
                                 {% else %}
                                 <i class="bi bi-journal-check text-warning"></i>
                                 {% endif %}
                                 {{ lesson.title }}
-                                <span class="badge bg-secondary ms-1">{{ lesson.lesson_type | capitalize }}</span>
+                                <span class="badge bg-secondary ms-1">{{ 'Audio' if is_audio else 'Task' }}</span>
                             </h6>
                             <p class="mb-1 text-muted small">{{ lesson.description }}</p>
                             <div class="d-flex gap-2 flex-wrap">
@@ -102,10 +182,10 @@
                             <form method="POST" action="{{ url_for('academy_complete_lesson', lesson_id=lesson.id) }}">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <button type="submit" class="btn btn-pink btn-sm">
-                                    {% if lesson.lesson_type == 'audio' %}
+                                    {% if is_audio %}
                                     <i class="bi bi-headphones"></i> Listen & Complete
                                     {% else %}
-                                    <i class="bi bi-check2-square"></i> Complete
+                                    <i class="bi bi-check2-square"></i> Complete Task
                                     {% endif %}
                                 </button>
                             </form>
@@ -115,7 +195,7 @@
                         </div>
                     </div>
 
-                    {% if is_current and lesson.lesson_type == 'audio' and lesson.audio_url %}
+                    {% if is_current and is_audio and lesson.audio_url %}
                     <div class="card-footer bg-transparent">
                         <audio controls class="w-100" style="height:36px;">
                             <source src="{{ lesson.audio_url }}" type="audio/mpeg">
@@ -123,9 +203,9 @@
                     </div>
                     {% endif %}
 
-                    {% if is_current and lesson.lesson_type == 'objective' and lesson.objective_text %}
+                    {% if is_current and is_task and lesson.objective_text %}
                     <div class="card-footer bg-transparent">
-                        <p class="mb-0 small"><i class="bi bi-info-circle"></i> <strong>Objective:</strong> {{ lesson.objective_text }}</p>
+                        <p class="mb-0 small"><i class="bi bi-clipboard-check"></i> <strong>Objective:</strong> {{ lesson.objective_text }}</p>
                     </div>
                     {% endif %}
                 </div>
@@ -142,7 +222,7 @@
             {% set bimbo_completed = bimbo_lessons | selectattr('id', 'in', completed_ids) | list | length %}
             <div class="mb-3">
                 <div class="d-flex justify-content-between align-items-center mb-1">
-                    <span class="fw-bold text-purple">Track Progress</span>
+                    <span class="fw-bold text-purple">Today's Progress</span>
                     <span class="text-muted">{{ bimbo_completed }}/{{ bimbo_lessons | length }}</span>
                 </div>
                 <div class="progress" style="height: 10px;">
@@ -155,7 +235,19 @@
                 {% set is_completed = lesson.id in completed_ids %}
                 {% set is_locked = not is_completed and (loop.index0 > 0 and bimbo_lessons[loop.index0 - 1].id not in completed_ids) %}
                 {% set is_current = not is_completed and not is_locked %}
-                <div class="card mb-3 {{ 'border-success' if is_completed else ('border-purple glow-purple' if is_current else 'opacity-50') }}">
+                {% set is_audio = lesson.lesson_type == 'audio' %}
+                {% set is_task = lesson.lesson_type == 'objective' %}
+                {% set pair_num = ((loop.index0 // 2) + 1) %}
+
+                {# Show pair header for each audio (odd index) #}
+                {% if is_audio %}
+                <div class="pair-header d-flex align-items-center gap-2 mb-2 mt-4">
+                    <span class="badge bg-purple px-3 py-2 fs-6">Session {{ pair_num }}</span>
+                    <hr class="flex-grow-1 border-purple" style="opacity:0.3;">
+                </div>
+                {% endif %}
+
+                <div class="card mb-2 {{ 'border-success' if is_completed else ('border-purple glow-purple' if is_current else 'opacity-50') }}">
                     <div class="card-body d-flex align-items-center gap-3">
                         <!-- Step indicator -->
                         <div class="text-center" style="min-width: 50px;">
@@ -165,26 +257,26 @@
                             </div>
                             {% elif is_current %}
                             <div class="rounded-circle border border-purple d-flex align-items-center justify-content-center mx-auto" style="width:42px; height:42px; border-width:2px!important;">
-                                <i class="bi bi-play-fill text-purple fs-5"></i>
+                                {% if is_audio %}<i class="bi bi-headphones text-purple fs-5"></i>{% else %}<i class="bi bi-journal-check text-purple fs-5"></i>{% endif %}
                             </div>
                             {% else %}
                             <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center mx-auto" style="width:42px; height:42px;">
                                 <i class="bi bi-lock-fill text-white-50 fs-6"></i>
                             </div>
                             {% endif %}
-                            <small class="text-muted d-block mt-1">{{ loop.index }}</small>
+                            <small class="text-muted d-block mt-1">{{ 'Audio' if is_audio else 'Task' }}</small>
                         </div>
 
                         <!-- Lesson info -->
                         <div class="flex-grow-1">
                             <h6 class="mb-1">
-                                {% if lesson.lesson_type == 'audio' %}
+                                {% if is_audio %}
                                 <i class="bi bi-headphones text-info"></i>
                                 {% else %}
                                 <i class="bi bi-journal-check text-warning"></i>
                                 {% endif %}
                                 {{ lesson.title }}
-                                <span class="badge bg-secondary ms-1">{{ lesson.lesson_type | capitalize }}</span>
+                                <span class="badge bg-secondary ms-1">{{ 'Audio' if is_audio else 'Task' }}</span>
                             </h6>
                             <p class="mb-1 text-muted small">{{ lesson.description }}</p>
                             <div class="d-flex gap-2 flex-wrap">
@@ -204,10 +296,10 @@
                             <form method="POST" action="{{ url_for('academy_complete_lesson', lesson_id=lesson.id) }}">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <button type="submit" class="btn btn-purple btn-sm">
-                                    {% if lesson.lesson_type == 'audio' %}
+                                    {% if is_audio %}
                                     <i class="bi bi-headphones"></i> Listen & Complete
                                     {% else %}
-                                    <i class="bi bi-check2-square"></i> Complete
+                                    <i class="bi bi-check2-square"></i> Complete Task
                                     {% endif %}
                                 </button>
                             </form>
@@ -217,7 +309,7 @@
                         </div>
                     </div>
 
-                    {% if is_current and lesson.lesson_type == 'audio' and lesson.audio_url %}
+                    {% if is_current and is_audio and lesson.audio_url %}
                     <div class="card-footer bg-transparent">
                         <audio controls class="w-100" style="height:36px;">
                             <source src="{{ lesson.audio_url }}" type="audio/mpeg">
@@ -225,9 +317,9 @@
                     </div>
                     {% endif %}
 
-                    {% if is_current and lesson.lesson_type == 'objective' and lesson.objective_text %}
+                    {% if is_current and is_task and lesson.objective_text %}
                     <div class="card-footer bg-transparent">
-                        <p class="mb-0 small"><i class="bi bi-info-circle"></i> <strong>Objective:</strong> {{ lesson.objective_text }}</p>
+                        <p class="mb-0 small"><i class="bi bi-clipboard-check"></i> <strong>Objective:</strong> {{ lesson.objective_text }}</p>
                     </div>
                     {% endif %}
                 </div>
@@ -237,6 +329,7 @@
         </div>
 
     </div><!-- /tab-content -->
+    {% endif %}
 </div>
 
 <style>
@@ -256,5 +349,54 @@
 
     .lesson-track .card { transition: box-shadow 0.2s, opacity 0.2s; }
     .lesson-track .card:hover:not(.opacity-50) { box-shadow: 0 0 20px rgba(255,255,255,0.05); }
+
+    .pair-header hr { margin: 0; }
+
+    #acceptanceModal .form-check-input:checked { background-color: #ff4da6; border-color: #ff4da6; }
 </style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Step 1: Welcome modal
+    var welcomeEl = document.getElementById('welcomeModal');
+    if (welcomeEl) {
+        var welcomeModal = new bootstrap.Modal(welcomeEl);
+        welcomeModal.show();
+
+        document.getElementById('welcomeNext').addEventListener('click', function() {
+            welcomeModal.hide();
+            // Dismiss welcome via AJAX
+            fetch('{{ url_for("academy_dismiss_welcome") }}', {
+                method: 'POST',
+                headers: {'X-CSRFToken': '{{ csrf_token() }}'}
+            });
+            // Show acceptance modal if needed
+            var acceptEl = document.getElementById('acceptanceModal');
+            if (acceptEl) {
+                setTimeout(function() {
+                    new bootstrap.Modal(acceptEl).show();
+                }, 400);
+            }
+        });
+    } else {
+        // No welcome needed, but maybe acceptance is
+        var acceptEl = document.getElementById('acceptanceModal');
+        if (acceptEl) {
+            new bootstrap.Modal(acceptEl).show();
+        }
+    }
+
+    // Enable accept button only when both checkboxes are checked
+    var check1 = document.getElementById('acceptCheck1');
+    var check2 = document.getElementById('acceptCheck2');
+    var acceptBtn = document.getElementById('acceptBtn');
+    if (check1 && check2 && acceptBtn) {
+        function updateBtn() {
+            acceptBtn.disabled = !(check1.checked && check2.checked);
+        }
+        check1.addEventListener('change', updateBtn);
+        check2.addEventListener('change', updateBtn);
+    }
+});
+</script>
 {% endblock %}

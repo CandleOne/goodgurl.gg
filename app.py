@@ -794,77 +794,137 @@ def seed_shop_items():
 
 
 def seed_academy_lessons():
-    if Lesson.query.count() > 0:
+    """No longer seeds static lessons — daily generation handles it."""
+    pass
+
+
+# ---------------------------------------------------------------------------
+# Daily Lesson Template Pools
+# ---------------------------------------------------------------------------
+FEMINIZATION_LESSON_POOL = [
+    {"audio_title": "Voice Feminization Practice", "audio_desc": "Gentle exercises to soften your vocal tone and develop a feminine speaking voice.",
+     "task_title": "Voice Recording Challenge", "task_desc": "Record yourself reading a passage using your feminized voice. Listen back and note improvements.",
+     "objective": "Record a 1-minute voice clip practicing your feminine voice."},
+    {"audio_title": "Feminine Posture & Movement", "audio_desc": "Guided session on graceful posture, sitting, and walking with feminine elegance.",
+     "task_title": "Posture Practice Session", "task_desc": "Practice feminine posture for 20 minutes — sit, stand, and walk with intention.",
+     "objective": "Spend 20 minutes practicing graceful posture and movement."},
+    {"audio_title": "Skincare & Self-Care Ritual", "audio_desc": "Learn the fundamentals of a nurturing skincare routine to feel pampered and feminine.",
+     "task_title": "Create Your Skincare Routine", "task_desc": "Design and follow your personal morning or evening skincare ritual.",
+     "objective": "Complete a full skincare routine (cleanse, tone, moisturize) and document it."},
+    {"audio_title": "Makeup Basics: Foundation & Eyes", "audio_desc": "Step-by-step audio guide for foundation application and eye makeup essentials.",
+     "task_title": "Everyday Makeup Look", "task_desc": "Apply a natural everyday makeup look following the techniques from the audio session.",
+     "objective": "Create a subtle everyday makeup look and share a selfie or describe the result."},
+    {"audio_title": "Wardrobe & Style Exploration", "audio_desc": "Discover how to build a feminine wardrobe that expresses your true self.",
+     "task_title": "Outfit of the Day", "task_desc": "Put together a feminine outfit — focus on colors, fit, and how it makes you feel.",
+     "objective": "Assemble and wear a complete feminine outfit today."},
+    {"audio_title": "Feminine Mannerisms & Gestures", "audio_desc": "Learn subtle hand gestures, expressions, and social mannerisms that radiate femininity.",
+     "task_title": "Mannerism Mirror Practice", "task_desc": "Practice feminine gestures and expressions in front of a mirror for 15 minutes.",
+     "objective": "Spend 15 minutes rehearsing feminine mannerisms in front of a mirror."},
+    {"audio_title": "Confidence & Self-Love Meditation", "audio_desc": "A calming meditation to embrace your feminine identity with confidence and self-love.",
+     "task_title": "Affirmation Journal Entry", "task_desc": "Write 5 positive affirmations about your femininity and read them aloud.",
+     "objective": "Write and recite 5 positive feminization affirmations."},
+    {"audio_title": "Hair Styling Essentials", "audio_desc": "Tips and techniques for feminine hair care, styling, and wig maintenance.",
+     "task_title": "Style Session", "task_desc": "Style your hair or wig in a new feminine look and document the result.",
+     "objective": "Try a new feminine hairstyle or wig style today."},
+    {"audio_title": "Walking in Heels Training", "audio_desc": "Master the art of walking confidently and gracefully in heels.",
+     "task_title": "Heel Walk Practice", "task_desc": "Practice walking in heels for at least 15 minutes. Focus on balance and posture.",
+     "objective": "Walk in heels for 15 minutes, practicing turns and stopping."},
+    {"audio_title": "Social Feminization Skills", "audio_desc": "Navigate social situations with feminine grace — conversation, body language, and presence.",
+     "task_title": "Social Interaction Practice", "task_desc": "Use feminine social cues in a real or practice conversation today.",
+     "objective": "Have a conversation (in person or online) using feminine social cues."},
+    {"audio_title": "Feminine Writing & Expression", "audio_desc": "Develop a softer, more expressive writing and communication style.",
+     "task_title": "Feminine Letter Writing", "task_desc": "Write a short letter or message using a warm, feminine tone.",
+     "objective": "Write a heartfelt message or journal entry in a feminine voice."},
+    {"audio_title": "Body Language Mastery", "audio_desc": "Advanced body language techniques that communicate elegance and femininity.",
+     "task_title": "Body Language Challenge", "task_desc": "Consciously use feminine body language throughout your day.",
+     "objective": "Practice feminine body language for at least 1 hour during daily activities."},
+]
+
+BIMBOFICATION_LESSON_POOL = [
+    {"audio_title": "Bimbo Mindset Activation", "audio_desc": "Embrace the bubbly, carefree, and joyful bimbo state of mind.",
+     "task_title": "Positivity Burst", "task_desc": "Write down 10 things that make you happy and bubbly — embrace the energy!",
+     "objective": "List 10 things that fill you with bubbly joy and read them aloud."},
+    {"audio_title": "Bimbo Affirmation Session", "audio_desc": "Powerful affirmations to reinforce your bimbo transformation and self-love.",
+     "task_title": "Affirmation Repetition", "task_desc": "Repeat your bimbo affirmations 10 times each with enthusiasm and belief.",
+     "objective": "Recite each affirmation from the audio at least 10 times."},
+    {"audio_title": "Glam Makeup Masterclass", "audio_desc": "Bold lips, dramatic lashes, and full glam — the bimbo beauty standard.",
+     "task_title": "Full Glam Look", "task_desc": "Create a full glam bimbo makeup look — go bold with lips and lashes!",
+     "objective": "Apply full glam makeup with bold lip color and dramatic lashes."},
+    {"audio_title": "Body Confidence Meditation", "audio_desc": "Love every inch of yourself — a guided meditation for total body confidence.",
+     "task_title": "Body Positivity Selfie", "task_desc": "Take a confidence selfie and write 3 things you love about your body.",
+     "objective": "Take a selfie and list 3 things you love about your appearance."},
+    {"audio_title": "Bimbo Fashion Guide", "audio_desc": "Pink, platform heels, mini skirts, and crop tops — dress like the bimbo you are.",
+     "task_title": "Bimbo Outfit Assembly", "task_desc": "Put together the most bimbo outfit you can — think pink, tight, and fun!",
+     "objective": "Assemble and wear (or plan) a full bimbo outfit."},
+    {"audio_title": "Bubbly Personality Training", "audio_desc": "Learn to be the life of the party — giggly, charming, and irresistibly fun.",
+     "task_title": "Social Butterfly Challenge", "task_desc": "Be extra bubbly and cheerful in all your interactions today.",
+     "objective": "Practice bubbly, enthusiastic energy in at least 3 interactions."},
+    {"audio_title": "Bimbo Fitness & Curves", "audio_desc": "Exercises and routines to enhance your curves and bimbo physique.",
+     "task_title": "Bimbo Workout", "task_desc": "Complete a 20-minute workout focused on glutes, waist, and overall tone.",
+     "objective": "Do a 20-minute bimbo fitness routine (squats, hip thrusts, stretches)."},
+    {"audio_title": "Pink Aesthetic Immersion", "audio_desc": "Surround yourself with the bimbo aesthetic — pink everything, glitter, and glamour.",
+     "task_title": "Aesthetic Mood Board", "task_desc": "Create a bimbo aesthetic mood board with your dream looks, decor, and vibes.",
+     "objective": "Create a mood board (digital or physical) of your ideal bimbo aesthetic."},
+    {"audio_title": "Bimbo Speech Patterns", "audio_desc": "Learn the playful, valley-girl-inspired speech patterns that define bimbo culture.",
+     "task_title": "Bimbo Talk Practice", "task_desc": "Practice bimbo speech patterns for 15 minutes — breathy, playful, and fun!",
+     "objective": "Record or practice bimbo speech patterns for 15 minutes."},
+    {"audio_title": "Self-Care & Pampering", "audio_desc": "Treat yourself like the princess you are — nails, bath, face masks, and more.",
+     "task_title": "Pamper Session", "task_desc": "Have a full pamper session — bath, face mask, nails, the works!",
+     "objective": "Complete a full pampering session (bath/shower, face mask, nail care)."},
+    {"audio_title": "Bimbo Dance & Movement", "audio_desc": "Move your body with confidence — bimbo dance moves and sultry poses.",
+     "task_title": "Dance It Out", "task_desc": "Put on your favorite song and dance freely for 10 minutes — let loose!",
+     "objective": "Dance freely and confidently to music for at least 10 minutes."},
+    {"audio_title": "Total Bimbo Energy", "audio_desc": "Channel maximum bimbo energy — combine everything for your ultimate transformation.",
+     "task_title": "Bimbo Day Challenge", "task_desc": "Live your entire day in full bimbo mode — outfit, attitude, energy, everything!",
+     "objective": "Commit to full bimbo energy for the rest of the day."},
+]
+
+
+def generate_daily_lessons_for_date(date_str):
+    """Generate 6 lessons per track for a given date (3 audio + 3 paired tasks)."""
+    import hashlib
+    existing = Lesson.query.filter_by(date_key=date_str).first()
+    if existing:
         return
-    lessons = [
-        # --- Feminization Track ---
-        Lesson(track="feminization", order=1, title="Introduction to Femininity",
-               description="Explore the foundations of feminine expression and identity.",
-               lesson_type="objective", objective_text="Read through the introduction and reflect on what femininity means to you.",
-               reward_xp=15, reward_coins=10, reward_fp=5),
-        Lesson(track="feminization", order=2, title="Voice & Mannerisms",
-               description="Learn to soften your voice and adopt graceful mannerisms.",
-               lesson_type="audio", objective_text="Practice the vocal exercises in this lesson.",
-               reward_xp=20, reward_coins=10, reward_fp=10),
-        Lesson(track="feminization", order=3, title="Skincare & Self-Care Basics",
-               description="Build a daily skincare routine and embrace self-care rituals.",
-               lesson_type="objective", objective_text="Create your own skincare routine and follow it for a day.",
-               reward_xp=20, reward_coins=15, reward_fp=10),
-        Lesson(track="feminization", order=4, title="Wardrobe Essentials",
-               description="Discover key wardrobe pieces that enhance your feminine silhouette.",
-               lesson_type="objective", objective_text="Pick out 3 wardrobe essentials you'd like to try.",
-               reward_xp=25, reward_coins=15, reward_fp=15),
-        Lesson(track="feminization", order=5, title="Makeup Foundations",
-               description="Master the basics of foundation, concealer, and everyday makeup.",
-               lesson_type="audio", objective_text="Follow along with the makeup tutorial.",
-               reward_xp=25, reward_coins=20, reward_fp=15),
-        Lesson(track="feminization", order=6, title="Walking in Heels",
-               description="Posture, balance, and confidence — own your walk.",
-               lesson_type="objective", objective_text="Practice walking in heels for 15 minutes.",
-               reward_xp=30, reward_coins=20, reward_fp=20),
-        Lesson(track="feminization", order=7, title="Social Feminization",
-               description="Present yourself confidently in social situations.",
-               lesson_type="objective", objective_text="Practice feminine social cues in a conversation today.",
-               reward_xp=30, reward_coins=25, reward_fp=20),
-        Lesson(track="feminization", order=8, title="Advanced Feminine Expression",
-               description="Integrate everything you've learned into your daily life.",
-               lesson_type="audio", objective_text="Complete the final reflection exercise.",
-               reward_xp=40, reward_coins=30, reward_fp=30),
-        # --- Bimbofication Track ---
-        Lesson(track="bimbofication", order=1, title="Bimbo Mindset 101",
-               description="Embrace positivity, playfulness, and carefree energy.",
-               lesson_type="objective", objective_text="Write down 5 things that make you feel bubbly and happy.",
-               reward_xp=15, reward_coins=10, reward_bp=5),
-        Lesson(track="bimbofication", order=2, title="Aesthetic Basics",
-               description="Discover the core bimbo aesthetic — pink, glam, and glitter.",
-               lesson_type="objective", objective_text="Put together a mood board of your ideal bimbo look.",
-               reward_xp=20, reward_coins=10, reward_bp=10),
-        Lesson(track="bimbofication", order=3, title="Bimbo Affirmations",
-               description="Reprogram your thoughts with positive bimbo affirmations.",
-               lesson_type="audio", objective_text="Listen to the affirmation track and repeat along.",
-               reward_xp=20, reward_coins=15, reward_bp=10),
-        Lesson(track="bimbofication", order=4, title="Glam Makeup & Lashes",
-               description="Level up with bold lips, dramatic lashes, and full glam.",
-               lesson_type="objective", objective_text="Try a full glam makeup look and take a selfie.",
-               reward_xp=25, reward_coins=15, reward_bp=15),
-        Lesson(track="bimbofication", order=5, title="Body Confidence",
-               description="Love your body and learn to show it off with confidence.",
-               lesson_type="audio", objective_text="Complete the body positivity meditation.",
-               reward_xp=25, reward_coins=20, reward_bp=15),
-        Lesson(track="bimbofication", order=6, title="Bimbo Fashion",
-               description="Mini skirts, platform heels, and crop tops — dress the part.",
-               lesson_type="objective", objective_text="Put together a full bimbo outfit.",
-               reward_xp=30, reward_coins=20, reward_bp=20),
-        Lesson(track="bimbofication", order=7, title="Social Butterfly",
-               description="Be the life of the party with charm and bubbly energy.",
-               lesson_type="objective", objective_text="Practice your bubbly persona in a social setting.",
-               reward_xp=30, reward_coins=25, reward_bp=20),
-        Lesson(track="bimbofication", order=8, title="Total Bimbo Transformation",
-               description="Bring it all together for your complete bimbo glow-up.",
-               lesson_type="audio", objective_text="Complete the final transformation reflection.",
-               reward_xp=40, reward_coins=30, reward_bp=30),
-    ]
-    db.session.add_all(lessons)
+
+    for track, pool, fp_reward, bp_reward in [
+        ("feminization", FEMINIZATION_LESSON_POOL, True, False),
+        ("bimbofication", BIMBOFICATION_LESSON_POOL, False, True),
+    ]:
+        # Deterministic selection based on date + track for consistency
+        seed_val = int(hashlib.md5(f"{date_str}-{track}".encode()).hexdigest(), 16)
+        import random
+        rng = random.Random(seed_val)
+        selected = rng.sample(pool, min(3, len(pool)))
+
+        order = 1
+        for item in selected:
+            # Create audio lesson
+            audio = Lesson(
+                track=track, order=order, title=item["audio_title"],
+                description=item["audio_desc"], lesson_type="audio",
+                reward_xp=15, reward_coins=10,
+                reward_fp=10 if fp_reward else 0,
+                reward_bp=10 if bp_reward else 0,
+                is_active=True, date_key=date_str,
+            )
+            db.session.add(audio)
+            db.session.flush()  # get audio.id
+
+            # Create paired task lesson
+            task = Lesson(
+                track=track, order=order + 1, title=item["task_title"],
+                description=item["task_desc"], lesson_type="objective",
+                objective_text=item["objective"],
+                reward_xp=20, reward_coins=15,
+                reward_fp=15 if fp_reward else 0,
+                reward_bp=15 if bp_reward else 0,
+                is_active=True, date_key=date_str,
+                paired_with=audio.id,
+            )
+            db.session.add(task)
+            order += 2
+
     db.session.commit()
 
 
@@ -2477,8 +2537,25 @@ def claim_quest(quest_id):
 # ---------------------------------------------------------------------------
 @app.route("/academy")
 def academy():
-    fem_lessons = Lesson.query.filter_by(track="feminization", is_active=True).order_by(Lesson.order).all()
-    bimbo_lessons = Lesson.query.filter_by(track="bimbofication", is_active=True).order_by(Lesson.order).all()
+    from constants import utcnow
+    today = utcnow().strftime("%Y-%m-%d")
+
+    # Generate today's lessons if not yet created
+    generate_daily_lessons_for_date(today)
+
+    show_welcome = False
+    show_acceptance = False
+    labs_accepted = True
+
+    if current_user.is_authenticated:
+        labs_accepted = current_user.labs_accepted
+        if not session.get("labs_welcome_seen"):
+            show_welcome = True
+        if not labs_accepted:
+            show_acceptance = True
+
+    fem_lessons = Lesson.query.filter_by(track="feminization", is_active=True, date_key=today).order_by(Lesson.order).all()
+    bimbo_lessons = Lesson.query.filter_by(track="bimbofication", is_active=True, date_key=today).order_by(Lesson.order).all()
 
     completed_ids = set()
     if current_user.is_authenticated:
@@ -2493,7 +2570,28 @@ def academy():
         fem_lessons=fem_lessons,
         bimbo_lessons=bimbo_lessons,
         completed_ids=completed_ids,
+        show_welcome=show_welcome,
+        show_acceptance=show_acceptance,
+        labs_accepted=labs_accepted,
+        today=today,
     )
+
+
+@app.route("/academy/accept", methods=["POST"])
+@login_required
+def academy_accept():
+    current_user.labs_accepted = True
+    session["labs_welcome_seen"] = True
+    db.session.commit()
+    flash("Welcome to GoodGurl Labs! Your journey begins now.", "success")
+    return redirect(url_for("academy"))
+
+
+@app.route("/academy/dismiss-welcome", methods=["POST"])
+@login_required
+def academy_dismiss_welcome():
+    session["labs_welcome_seen"] = True
+    return "", 204
 
 
 @app.route("/academy/complete/<int:lesson_id>", methods=["POST"])
@@ -2502,14 +2600,21 @@ def academy_complete_lesson(lesson_id):
     from constants import utcnow
     lesson = Lesson.query.get_or_404(lesson_id)
 
+    if not current_user.labs_accepted:
+        flash("You must accept your calling before starting lessons.", "warning")
+        return redirect(url_for("academy"))
+
     existing = LessonProgress.query.filter_by(user_id=current_user.id, lesson_id=lesson.id).first()
     if existing and existing.completed:
         flash("You already completed this lesson.", "info")
         return redirect(url_for("academy"))
 
-    # Check prerequisite: previous lesson in track must be completed
+    # Check prerequisite: previous lesson in same track + date must be completed
     if lesson.order > 1:
-        prev = Lesson.query.filter_by(track=lesson.track, order=lesson.order - 1, is_active=True).first()
+        prev = Lesson.query.filter_by(
+            track=lesson.track, order=lesson.order - 1,
+            is_active=True, date_key=lesson.date_key
+        ).first()
         if prev:
             prev_prog = LessonProgress.query.filter_by(user_id=current_user.id, lesson_id=prev.id, completed=True).first()
             if not prev_prog:
@@ -2596,6 +2701,19 @@ with app.app_context():
         for col in ["fp", "bp"]:
             try:
                 conn.execute(db.text(f"ALTER TABLE user ADD COLUMN {col} INTEGER DEFAULT 0"))
+                conn.commit()
+            except Exception:
+                conn.rollback()
+        # Add labs_accepted column if missing
+        try:
+            conn.execute(db.text("ALTER TABLE user ADD COLUMN labs_accepted BOOLEAN DEFAULT 0"))
+            conn.commit()
+        except Exception:
+            conn.rollback()
+        # Add daily lesson columns if missing
+        for col, coltype, default in [("date_key", "VARCHAR(10)", "NULL"), ("paired_with", "INTEGER", "NULL")]:
+            try:
+                conn.execute(db.text(f"ALTER TABLE lessons ADD COLUMN {col} {coltype} DEFAULT {default}"))
                 conn.commit()
             except Exception:
                 conn.rollback()
