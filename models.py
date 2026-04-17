@@ -82,6 +82,8 @@ class User(UserMixin, db.Model):
     show_wealth = db.Column(db.Boolean, default=False)
     listed_on_market = db.Column(db.Boolean, default=False)
     market_value_boost = db.Column(db.Integer, default=0)
+    fp = db.Column(db.Integer, default=0)   # Feminization Power
+    bp = db.Column(db.Integer, default=0)   # Bimbofication Power
     profile_frame = db.Column(db.String(60), default="")
     profile_title = db.Column(db.String(60), default="")
     created_at = db.Column(db.DateTime, default=utcnow)
@@ -685,3 +687,40 @@ User.blocked = db.relationship(
     secondaryjoin=(blocked_users.c.blocked_id == User.id),
     backref=db.backref("blocked_by", lazy="dynamic"), lazy="dynamic"
 )
+
+
+# ---------------------------------------------------------------------------
+# Academy — Lesson Tracks
+# ---------------------------------------------------------------------------
+
+class Lesson(db.Model):
+    __tablename__ = "lessons"
+    id = db.Column(db.Integer, primary_key=True)
+    track = db.Column(db.String(20), nullable=False, index=True)  # 'feminization' or 'bimbofication'
+    order = db.Column(db.Integer, nullable=False, default=0)
+    title = db.Column(db.String(120), nullable=False)
+    description = db.Column(db.Text, default="")
+    lesson_type = db.Column(db.String(16), nullable=False, default="objective")  # 'audio' or 'objective'
+    audio_url = db.Column(db.String(256), default="")
+    objective_text = db.Column(db.Text, default="")
+    reward_xp = db.Column(db.Integer, default=10)
+    reward_coins = db.Column(db.Integer, default=5)
+    reward_fp = db.Column(db.Integer, default=0)
+    reward_bp = db.Column(db.Integer, default=0)
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=utcnow)
+
+    progress = db.relationship("LessonProgress", backref="lesson", lazy="dynamic", cascade="all, delete-orphan")
+
+
+class LessonProgress(db.Model):
+    __tablename__ = "lesson_progress"
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False, index=True)
+    lesson_id = db.Column(db.Integer, db.ForeignKey("lessons.id"), nullable=False, index=True)
+    completed = db.Column(db.Boolean, default=False)
+    completed_at = db.Column(db.DateTime, nullable=True)
+
+    __table_args__ = (db.UniqueConstraint("user_id", "lesson_id", name="uq_user_lesson"),)
+
+    user = db.relationship("User", backref=db.backref("lesson_progress", lazy="dynamic"))

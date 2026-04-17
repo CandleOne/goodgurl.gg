@@ -40,6 +40,7 @@ from models import (
     XPAudit, MarketSnapshot, Notification, Comment, Message, DailyReward,
     ForumCategory, ForumThread, ForumReply, Report,
     DailyChallenge, UserDailyChallenge, ShopItem, UserPurchase, UserPowerup,
+    Lesson, LessonProgress,
     likes_table, post_tags, followers_table, blocked_users,
 )
 from helpers import (
@@ -791,6 +792,80 @@ def seed_shop_items():
     db.session.add_all(items)
     db.session.commit()
 
+
+def seed_academy_lessons():
+    if Lesson.query.count() > 0:
+        return
+    lessons = [
+        # --- Feminization Track ---
+        Lesson(track="feminization", order=1, title="Introduction to Femininity",
+               description="Explore the foundations of feminine expression and identity.",
+               lesson_type="objective", objective_text="Read through the introduction and reflect on what femininity means to you.",
+               reward_xp=15, reward_coins=10, reward_fp=5),
+        Lesson(track="feminization", order=2, title="Voice & Mannerisms",
+               description="Learn to soften your voice and adopt graceful mannerisms.",
+               lesson_type="audio", objective_text="Practice the vocal exercises in this lesson.",
+               reward_xp=20, reward_coins=10, reward_fp=10),
+        Lesson(track="feminization", order=3, title="Skincare & Self-Care Basics",
+               description="Build a daily skincare routine and embrace self-care rituals.",
+               lesson_type="objective", objective_text="Create your own skincare routine and follow it for a day.",
+               reward_xp=20, reward_coins=15, reward_fp=10),
+        Lesson(track="feminization", order=4, title="Wardrobe Essentials",
+               description="Discover key wardrobe pieces that enhance your feminine silhouette.",
+               lesson_type="objective", objective_text="Pick out 3 wardrobe essentials you'd like to try.",
+               reward_xp=25, reward_coins=15, reward_fp=15),
+        Lesson(track="feminization", order=5, title="Makeup Foundations",
+               description="Master the basics of foundation, concealer, and everyday makeup.",
+               lesson_type="audio", objective_text="Follow along with the makeup tutorial.",
+               reward_xp=25, reward_coins=20, reward_fp=15),
+        Lesson(track="feminization", order=6, title="Walking in Heels",
+               description="Posture, balance, and confidence — own your walk.",
+               lesson_type="objective", objective_text="Practice walking in heels for 15 minutes.",
+               reward_xp=30, reward_coins=20, reward_fp=20),
+        Lesson(track="feminization", order=7, title="Social Feminization",
+               description="Present yourself confidently in social situations.",
+               lesson_type="objective", objective_text="Practice feminine social cues in a conversation today.",
+               reward_xp=30, reward_coins=25, reward_fp=20),
+        Lesson(track="feminization", order=8, title="Advanced Feminine Expression",
+               description="Integrate everything you've learned into your daily life.",
+               lesson_type="audio", objective_text="Complete the final reflection exercise.",
+               reward_xp=40, reward_coins=30, reward_fp=30),
+        # --- Bimbofication Track ---
+        Lesson(track="bimbofication", order=1, title="Bimbo Mindset 101",
+               description="Embrace positivity, playfulness, and carefree energy.",
+               lesson_type="objective", objective_text="Write down 5 things that make you feel bubbly and happy.",
+               reward_xp=15, reward_coins=10, reward_bp=5),
+        Lesson(track="bimbofication", order=2, title="Aesthetic Basics",
+               description="Discover the core bimbo aesthetic — pink, glam, and glitter.",
+               lesson_type="objective", objective_text="Put together a mood board of your ideal bimbo look.",
+               reward_xp=20, reward_coins=10, reward_bp=10),
+        Lesson(track="bimbofication", order=3, title="Bimbo Affirmations",
+               description="Reprogram your thoughts with positive bimbo affirmations.",
+               lesson_type="audio", objective_text="Listen to the affirmation track and repeat along.",
+               reward_xp=20, reward_coins=15, reward_bp=10),
+        Lesson(track="bimbofication", order=4, title="Glam Makeup & Lashes",
+               description="Level up with bold lips, dramatic lashes, and full glam.",
+               lesson_type="objective", objective_text="Try a full glam makeup look and take a selfie.",
+               reward_xp=25, reward_coins=15, reward_bp=15),
+        Lesson(track="bimbofication", order=5, title="Body Confidence",
+               description="Love your body and learn to show it off with confidence.",
+               lesson_type="audio", objective_text="Complete the body positivity meditation.",
+               reward_xp=25, reward_coins=20, reward_bp=15),
+        Lesson(track="bimbofication", order=6, title="Bimbo Fashion",
+               description="Mini skirts, platform heels, and crop tops — dress the part.",
+               lesson_type="objective", objective_text="Put together a full bimbo outfit.",
+               reward_xp=30, reward_coins=20, reward_bp=20),
+        Lesson(track="bimbofication", order=7, title="Social Butterfly",
+               description="Be the life of the party with charm and bubbly energy.",
+               lesson_type="objective", objective_text="Practice your bubbly persona in a social setting.",
+               reward_xp=30, reward_coins=25, reward_bp=20),
+        Lesson(track="bimbofication", order=8, title="Total Bimbo Transformation",
+               description="Bring it all together for your complete bimbo glow-up.",
+               lesson_type="audio", objective_text="Complete the final transformation reflection.",
+               reward_xp=40, reward_coins=30, reward_bp=30),
+    ]
+    db.session.add_all(lessons)
+    db.session.commit()
 
 
 @app.route("/shop")
@@ -2398,12 +2473,75 @@ def claim_quest(quest_id):
     return redirect(url_for("feed"))
 
 # ---------------------------------------------------------------------------
-# New: Help/FAQ and Legal Pages
+# GoodGurl Labs — Academy
 # ---------------------------------------------------------------------------
 @app.route("/academy")
 def academy():
-    return render_template("academy.html")
+    fem_lessons = Lesson.query.filter_by(track="feminization", is_active=True).order_by(Lesson.order).all()
+    bimbo_lessons = Lesson.query.filter_by(track="bimbofication", is_active=True).order_by(Lesson.order).all()
 
+    completed_ids = set()
+    if current_user.is_authenticated:
+        completed_ids = {
+            lp.lesson_id for lp in LessonProgress.query.filter_by(
+                user_id=current_user.id, completed=True
+            ).all()
+        }
+
+    return render_template(
+        "academy.html",
+        fem_lessons=fem_lessons,
+        bimbo_lessons=bimbo_lessons,
+        completed_ids=completed_ids,
+    )
+
+
+@app.route("/academy/complete/<int:lesson_id>", methods=["POST"])
+@login_required
+def academy_complete_lesson(lesson_id):
+    from constants import utcnow
+    lesson = Lesson.query.get_or_404(lesson_id)
+
+    existing = LessonProgress.query.filter_by(user_id=current_user.id, lesson_id=lesson.id).first()
+    if existing and existing.completed:
+        flash("You already completed this lesson.", "info")
+        return redirect(url_for("academy"))
+
+    # Check prerequisite: previous lesson in track must be completed
+    if lesson.order > 1:
+        prev = Lesson.query.filter_by(track=lesson.track, order=lesson.order - 1, is_active=True).first()
+        if prev:
+            prev_prog = LessonProgress.query.filter_by(user_id=current_user.id, lesson_id=prev.id, completed=True).first()
+            if not prev_prog:
+                flash("Complete the previous lesson first!", "warning")
+                return redirect(url_for("academy"))
+
+    if not existing:
+        existing = LessonProgress(user_id=current_user.id, lesson_id=lesson.id)
+        db.session.add(existing)
+
+    existing.completed = True
+    existing.completed_at = utcnow()
+
+    # Award rewards
+    current_user.xp += lesson.reward_xp
+    current_user.coins += lesson.reward_coins
+    if lesson.reward_fp:
+        current_user.fp += lesson.reward_fp
+    if lesson.reward_bp:
+        current_user.bp += lesson.reward_bp
+
+    db.session.commit()
+    flash(f"✅ Lesson complete! +{lesson.reward_xp} XP, +{lesson.reward_coins} coins"
+          + (f", +{lesson.reward_fp} FP" if lesson.reward_fp else "")
+          + (f", +{lesson.reward_bp} BP" if lesson.reward_bp else ""),
+          "success")
+    return redirect(url_for("academy"))
+
+
+# ---------------------------------------------------------------------------
+# New: Help/FAQ and Legal Pages
+# ---------------------------------------------------------------------------
 @app.route("/help")
 def help_page():
     return render_template("help.html")
@@ -2454,8 +2592,16 @@ with app.app_context():
             conn.commit()
         except Exception:
             conn.rollback()
+        # Add fp/bp columns if missing
+        for col in ["fp", "bp"]:
+            try:
+                conn.execute(db.text(f"ALTER TABLE user ADD COLUMN {col} INTEGER DEFAULT 0"))
+                conn.commit()
+            except Exception:
+                conn.rollback()
     seed_data()
     seed_shop_items()
+    seed_academy_lessons()
 
 if __name__ == "__main__":
     app.run(debug=os.environ.get("FLASK_DEBUG", "1") == "1", port=5000)

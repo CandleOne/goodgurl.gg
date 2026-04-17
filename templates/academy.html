@@ -1,6 +1,260 @@
 {% extends "base.html" %}
 {% block title %}GoodGurl Labs – goodgurl.gg{% endblock %}
 {% block content %}
-<h2 class="mb-3"><img src="{{ url_for('static', filename='assets/laboratory.png') }}" width="32" height="32" alt="GoodGurl Labs" style="vertical-align: -4px;"> GoodGurl Labs</h2>
-<p>GoodGurl Labs is our premier feminization and bimbofication institution, designed and personalized to fit your journey.</p>
+<div class="container py-4">
+
+    <!-- Header -->
+    <div class="text-center mb-4">
+        <img src="{{ url_for('static', filename='assets/laboratory.png') }}" width="64" height="64" alt="GoodGurl Labs" class="mb-2">
+        <h2 class="mb-1">GoodGurl Labs</h2>
+        <p class="text-muted">Our premier feminization and bimbofication institution, designed and personalized to fit your journey.</p>
+        {% if current_user.is_authenticated %}
+        <div class="d-flex justify-content-center gap-3 mt-2">
+            <span class="badge bg-pink fs-6"><i class="bi bi-hearts"></i> {{ current_user.fp }} FP</span>
+            <span class="badge bg-purple fs-6"><i class="bi bi-stars"></i> {{ current_user.bp }} BP</span>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Track Tabs -->
+    <ul class="nav nav-pills justify-content-center mb-4" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="fem-tab" data-bs-toggle="pill" data-bs-target="#feminization" type="button" role="tab">
+                <i class="bi bi-hearts"></i> Feminization Track
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="bimbo-tab" data-bs-toggle="pill" data-bs-target="#bimbofication" type="button" role="tab">
+                <i class="bi bi-stars"></i> Bimbofication Track
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content">
+
+        <!-- ===== FEMINIZATION TRACK ===== -->
+        <div class="tab-pane fade show active" id="feminization" role="tabpanel">
+            {% if not fem_lessons %}
+            <div class="alert alert-info text-center">Feminization lessons coming soon!</div>
+            {% else %}
+            {% set fem_completed = fem_lessons | selectattr('id', 'in', completed_ids) | list | length %}
+            <div class="mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="fw-bold text-pink">Track Progress</span>
+                    <span class="text-muted">{{ fem_completed }}/{{ fem_lessons | length }}</span>
+                </div>
+                <div class="progress" style="height: 10px;">
+                    <div class="progress-bar bg-pink" style="width: {{ (fem_completed / fem_lessons | length * 100) | int if fem_lessons | length else 0 }}%;"></div>
+                </div>
+            </div>
+
+            <div class="lesson-track">
+                {% for lesson in fem_lessons %}
+                {% set is_completed = lesson.id in completed_ids %}
+                {% set is_locked = not is_completed and (loop.index0 > 0 and fem_lessons[loop.index0 - 1].id not in completed_ids) %}
+                {% set is_current = not is_completed and not is_locked %}
+                <div class="card mb-3 {{ 'border-success' if is_completed else ('border-pink glow-pink' if is_current else 'opacity-50') }}">
+                    <div class="card-body d-flex align-items-center gap-3">
+                        <!-- Step indicator -->
+                        <div class="text-center" style="min-width: 50px;">
+                            {% if is_completed %}
+                            <div class="rounded-circle bg-success d-flex align-items-center justify-content-center mx-auto" style="width:42px; height:42px;">
+                                <i class="bi bi-check-lg text-white fs-5"></i>
+                            </div>
+                            {% elif is_current %}
+                            <div class="rounded-circle border border-pink d-flex align-items-center justify-content-center mx-auto" style="width:42px; height:42px; border-width:2px!important;">
+                                <i class="bi bi-play-fill text-pink fs-5"></i>
+                            </div>
+                            {% else %}
+                            <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center mx-auto" style="width:42px; height:42px;">
+                                <i class="bi bi-lock-fill text-white-50 fs-6"></i>
+                            </div>
+                            {% endif %}
+                            <small class="text-muted d-block mt-1">{{ loop.index }}</small>
+                        </div>
+
+                        <!-- Lesson info -->
+                        <div class="flex-grow-1">
+                            <h6 class="mb-1">
+                                {% if lesson.lesson_type == 'audio' %}
+                                <i class="bi bi-headphones text-info"></i>
+                                {% else %}
+                                <i class="bi bi-journal-check text-warning"></i>
+                                {% endif %}
+                                {{ lesson.title }}
+                                <span class="badge bg-secondary ms-1">{{ lesson.lesson_type | capitalize }}</span>
+                            </h6>
+                            <p class="mb-1 text-muted small">{{ lesson.description }}</p>
+                            <div class="d-flex gap-2 flex-wrap">
+                                <span class="badge bg-info"><i class="bi bi-lightning"></i> {{ lesson.reward_xp }} XP</span>
+                                <span class="badge bg-warning text-dark"><i class="bi bi-coin"></i> {{ lesson.reward_coins }}</span>
+                                {% if lesson.reward_fp %}
+                                <span class="badge bg-pink"><i class="bi bi-hearts"></i> {{ lesson.reward_fp }} FP</span>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Action -->
+                        <div>
+                            {% if is_completed %}
+                            <span class="badge bg-success p-2"><i class="bi bi-check-circle"></i> Done</span>
+                            {% elif is_current and current_user.is_authenticated %}
+                            <form method="POST" action="{{ url_for('academy_complete_lesson', lesson_id=lesson.id) }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-pink btn-sm">
+                                    {% if lesson.lesson_type == 'audio' %}
+                                    <i class="bi bi-headphones"></i> Listen & Complete
+                                    {% else %}
+                                    <i class="bi bi-check2-square"></i> Complete
+                                    {% endif %}
+                                </button>
+                            </form>
+                            {% elif is_locked %}
+                            <span class="badge bg-secondary p-2"><i class="bi bi-lock"></i> Locked</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    {% if is_current and lesson.lesson_type == 'audio' and lesson.audio_url %}
+                    <div class="card-footer bg-transparent">
+                        <audio controls class="w-100" style="height:36px;">
+                            <source src="{{ lesson.audio_url }}" type="audio/mpeg">
+                        </audio>
+                    </div>
+                    {% endif %}
+
+                    {% if is_current and lesson.lesson_type == 'objective' and lesson.objective_text %}
+                    <div class="card-footer bg-transparent">
+                        <p class="mb-0 small"><i class="bi bi-info-circle"></i> <strong>Objective:</strong> {{ lesson.objective_text }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- ===== BIMBOFICATION TRACK ===== -->
+        <div class="tab-pane fade" id="bimbofication" role="tabpanel">
+            {% if not bimbo_lessons %}
+            <div class="alert alert-info text-center">Bimbofication lessons coming soon!</div>
+            {% else %}
+            {% set bimbo_completed = bimbo_lessons | selectattr('id', 'in', completed_ids) | list | length %}
+            <div class="mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="fw-bold text-purple">Track Progress</span>
+                    <span class="text-muted">{{ bimbo_completed }}/{{ bimbo_lessons | length }}</span>
+                </div>
+                <div class="progress" style="height: 10px;">
+                    <div class="progress-bar bg-purple" style="width: {{ (bimbo_completed / bimbo_lessons | length * 100) | int if bimbo_lessons | length else 0 }}%;"></div>
+                </div>
+            </div>
+
+            <div class="lesson-track">
+                {% for lesson in bimbo_lessons %}
+                {% set is_completed = lesson.id in completed_ids %}
+                {% set is_locked = not is_completed and (loop.index0 > 0 and bimbo_lessons[loop.index0 - 1].id not in completed_ids) %}
+                {% set is_current = not is_completed and not is_locked %}
+                <div class="card mb-3 {{ 'border-success' if is_completed else ('border-purple glow-purple' if is_current else 'opacity-50') }}">
+                    <div class="card-body d-flex align-items-center gap-3">
+                        <!-- Step indicator -->
+                        <div class="text-center" style="min-width: 50px;">
+                            {% if is_completed %}
+                            <div class="rounded-circle bg-success d-flex align-items-center justify-content-center mx-auto" style="width:42px; height:42px;">
+                                <i class="bi bi-check-lg text-white fs-5"></i>
+                            </div>
+                            {% elif is_current %}
+                            <div class="rounded-circle border border-purple d-flex align-items-center justify-content-center mx-auto" style="width:42px; height:42px; border-width:2px!important;">
+                                <i class="bi bi-play-fill text-purple fs-5"></i>
+                            </div>
+                            {% else %}
+                            <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center mx-auto" style="width:42px; height:42px;">
+                                <i class="bi bi-lock-fill text-white-50 fs-6"></i>
+                            </div>
+                            {% endif %}
+                            <small class="text-muted d-block mt-1">{{ loop.index }}</small>
+                        </div>
+
+                        <!-- Lesson info -->
+                        <div class="flex-grow-1">
+                            <h6 class="mb-1">
+                                {% if lesson.lesson_type == 'audio' %}
+                                <i class="bi bi-headphones text-info"></i>
+                                {% else %}
+                                <i class="bi bi-journal-check text-warning"></i>
+                                {% endif %}
+                                {{ lesson.title }}
+                                <span class="badge bg-secondary ms-1">{{ lesson.lesson_type | capitalize }}</span>
+                            </h6>
+                            <p class="mb-1 text-muted small">{{ lesson.description }}</p>
+                            <div class="d-flex gap-2 flex-wrap">
+                                <span class="badge bg-info"><i class="bi bi-lightning"></i> {{ lesson.reward_xp }} XP</span>
+                                <span class="badge bg-warning text-dark"><i class="bi bi-coin"></i> {{ lesson.reward_coins }}</span>
+                                {% if lesson.reward_bp %}
+                                <span class="badge bg-purple"><i class="bi bi-stars"></i> {{ lesson.reward_bp }} BP</span>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Action -->
+                        <div>
+                            {% if is_completed %}
+                            <span class="badge bg-success p-2"><i class="bi bi-check-circle"></i> Done</span>
+                            {% elif is_current and current_user.is_authenticated %}
+                            <form method="POST" action="{{ url_for('academy_complete_lesson', lesson_id=lesson.id) }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-purple btn-sm">
+                                    {% if lesson.lesson_type == 'audio' %}
+                                    <i class="bi bi-headphones"></i> Listen & Complete
+                                    {% else %}
+                                    <i class="bi bi-check2-square"></i> Complete
+                                    {% endif %}
+                                </button>
+                            </form>
+                            {% elif is_locked %}
+                            <span class="badge bg-secondary p-2"><i class="bi bi-lock"></i> Locked</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    {% if is_current and lesson.lesson_type == 'audio' and lesson.audio_url %}
+                    <div class="card-footer bg-transparent">
+                        <audio controls class="w-100" style="height:36px;">
+                            <source src="{{ lesson.audio_url }}" type="audio/mpeg">
+                        </audio>
+                    </div>
+                    {% endif %}
+
+                    {% if is_current and lesson.lesson_type == 'objective' and lesson.objective_text %}
+                    <div class="card-footer bg-transparent">
+                        <p class="mb-0 small"><i class="bi bi-info-circle"></i> <strong>Objective:</strong> {{ lesson.objective_text }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+
+    </div><!-- /tab-content -->
+</div>
+
+<style>
+    .text-pink { color: #ff4da6; }
+    .bg-pink { background-color: #ff4da6 !important; }
+    .btn-pink { background-color: #ff4da6; border-color: #ff4da6; color: #fff; }
+    .btn-pink:hover { background-color: #e0448f; border-color: #e0448f; color: #fff; }
+    .border-pink { border-color: #ff4da6 !important; }
+    .glow-pink { box-shadow: 0 0 12px rgba(255,77,166,0.3); }
+
+    .text-purple { color: #a78bfa; }
+    .bg-purple { background-color: #a78bfa !important; }
+    .btn-purple { background-color: #a78bfa; border-color: #a78bfa; color: #fff; }
+    .btn-purple:hover { background-color: #8b6fe0; border-color: #8b6fe0; color: #fff; }
+    .border-purple { border-color: #a78bfa !important; }
+    .glow-purple { box-shadow: 0 0 12px rgba(167,139,250,0.3); }
+
+    .lesson-track .card { transition: box-shadow 0.2s, opacity 0.2s; }
+    .lesson-track .card:hover:not(.opacity-50) { box-shadow: 0 0 20px rgba(255,255,255,0.05); }
+</style>
 {% endblock %}
