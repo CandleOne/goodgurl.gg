@@ -118,6 +118,12 @@
                                                 <input type="number" name="amount" value="100" min="1" max="1000000" style="width:70px;" class="form-control form-control-sm d-inline-block" title="Amount">
                                                 <button class="btn btn-sm btn-outline-warning" title="Give Coins"><i class="bi bi-coin"></i></button>
                                             </form>
+                                            <form method="POST" action="{{ url_for('admin_toggle_market') }}" class="d-inline ms-1">
+                                                <input type="hidden" name="username" value="{{ user.username }}">
+                                                <button class="btn btn-sm btn-outline-primary" title="Toggle Market Listing">
+                                                    <i class="bi bi-shop"></i>{% if user.listed_on_market %} Remove from Market{% else %} Add to Market{% endif %}
+                                                </button>
+                                            </form>
                                         </td>
                                     </tr>
                                     {% endfor %}

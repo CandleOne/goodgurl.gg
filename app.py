@@ -477,6 +477,7 @@ def feed():
             "username": s.username,
             "value": mv,
             "change_pct": change_pct,
+            "avatar_url": s.avatar_url or url_for('static', filename='avatars/default.png'),
         })
 
     return render_template(
@@ -1304,7 +1305,9 @@ def market():
         investors = Investment.query.filter_by(sissy_id=s.id).count()
         current_mv = s.market_value
 
-        first_snap = MarketSnapshot.query.filter_by(sissy_id=s.id).order_by(MarketSnapshot.timestamp.asc()).first()
+        first_snap = MarketSnapshot.query.filter_by(sissy_id=s.id).order_by(
+            MarketSnapshot.timestamp.asc()
+        ).first()
         if first_snap and first_snap.market_value > 0:
             actual_growth = round((current_mv - first_snap.market_value) / first_snap.market_value * 100, 1)
         else:
@@ -2349,7 +2352,7 @@ def market_chart(sissy_id):
     } for s in snapshots])
     df["date"] = pd.to_datetime(df["date"])
 
-    if tf in ("5m", "30m", "1h"):
+    if tf in ("5m", "30m", "1h", "6h", "1d"):
         date_fmt = "%H:%M"
         locator = mdates.MinuteLocator(interval=1 if tf == "5m" else 5 if tf == "30m" else 10)
     elif tf in ("6h", "1d"):
