@@ -17,6 +17,7 @@
 .ticker-viewport{overflow:hidden}
 .ticker-container{display:flex;gap:0;will-change:transform}
 .ticker-slide{flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;padding:0 18px;font-size:.82rem;font-family:monospace;color:#ccc}
+.ticker-avatar{width:20px;height:20px;border-radius:50%;object-fit:cover;border:1px solid rgba(255,255,255,.2)}
 .ticker-sym{font-weight:700;color:#fff}
 .ticker-val{color:#e0e0e0}
 .ticker-up{color:#00e676}
@@ -32,6 +33,7 @@
         <div class="ticker-container" id="tickerContainer">
             {% for t in ticker_data %}
             <div class="ticker-slide">
+                <img src="{{ t.avatar_url }}" class="ticker-avatar" alt="">
                 <span class="ticker-sym">${{ t.username[:10] }}</span>
                 <span class="ticker-val">{{ t.value }}</span>
                 {% if t.change_pct > 0 %}
@@ -46,6 +48,7 @@
             {# duplicate slides for seamless loop #}
             {% for t in ticker_data %}
             <div class="ticker-slide">
+                <img src="{{ t.avatar_url }}" class="ticker-avatar" alt="">
                 <span class="ticker-sym">${{ t.username[:10] }}</span>
                 <span class="ticker-val">{{ t.value }}</span>
                 {% if t.change_pct > 0 %}
