@@ -178,7 +178,15 @@
                         <!-- Action -->
                         <div>
                             {% if is_completed %}
-                            <span class="badge bg-success p-2"><i class="bi bi-check-circle"></i> Done</span>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge bg-success p-2"><i class="bi bi-check-circle"></i> Done</span>
+                                {% if not day_journaled %}
+                                <form method="POST" action="{{ url_for('academy_reset_lesson', lesson_id=lesson.id) }}" onsubmit="return confirm('Reset this lesson? Rewards will be reversed.')">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-secondary" title="Reset progress"><i class="bi bi-arrow-counterclockwise"></i></button>
+                                </form>
+                                {% endif %}
+                            </div>
                             {% elif is_current and is_audio and current_user.is_authenticated %}
                             <form method="POST" action="{{ url_for('academy_complete_lesson', lesson_id=lesson.id) }}">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -300,7 +308,15 @@
                         <!-- Action -->
                         <div>
                             {% if is_completed %}
-                            <span class="badge bg-success p-2"><i class="bi bi-check-circle"></i> Done</span>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge bg-success p-2"><i class="bi bi-check-circle"></i> Done</span>
+                                {% if not day_journaled %}
+                                <form method="POST" action="{{ url_for('academy_reset_lesson', lesson_id=lesson.id) }}" onsubmit="return confirm('Reset this lesson? Rewards will be reversed.')">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-secondary" title="Reset progress"><i class="bi bi-arrow-counterclockwise"></i></button>
+                                </form>
+                                {% endif %}
+                            </div>
                             {% elif is_current and is_audio and current_user.is_authenticated %}
                             <form method="POST" action="{{ url_for('academy_complete_lesson', lesson_id=lesson.id) }}">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

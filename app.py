@@ -2734,6 +2734,53 @@ def academy_complete_lesson(lesson_id):
     return redirect(url_for("academy"))
 
 
+@app.route("/academy/reset/<int:lesson_id>", methods=["POST"])
+@login_required
+def academy_reset_lesson(lesson_id):
+    from constants import utcnow
+    lesson = Lesson.query.get_or_404(lesson_id)
+
+    progress = LessonProgress.query.filter_by(
+        user_id=current_user.id, lesson_id=lesson.id, completed=True
+    ).first()
+    if not progress:
+        flash("This lesson hasn't been completed yet.", "warning")
+        return redirect(url_for("academy"))
+
+    # Don't allow reset if a later lesson in the same track/day depends on this one
+    next_lesson = Lesson.query.filter_by(
+        track=lesson.track, order=lesson.order + 1,
+        is_active=True, date_key=lesson.date_key
+    ).first()
+    if next_lesson:
+        next_prog = LessonProgress.query.filter_by(
+            user_id=current_user.id, lesson_id=next_lesson.id, completed=True
+        ).first()
+        if next_prog:
+            flash("Reset the later lessons first before resetting this one.", "warning")
+            return redirect(url_for("academy"))
+
+    # Don't allow reset if the day is already journaled
+    today = lesson.date_key
+    journal = JournalEntry.query.filter_by(user_id=current_user.id, date_key=today).first()
+    if journal:
+        flash("Can't reset — today's journal has already been saved.", "warning")
+        return redirect(url_for("academy"))
+
+    # Reverse rewards
+    current_user.xp = max(0, current_user.xp - lesson.reward_xp)
+    current_user.coins = max(0, current_user.coins - lesson.reward_coins)
+    if lesson.reward_fp:
+        current_user.fp = max(0, current_user.fp - lesson.reward_fp)
+    if lesson.reward_bp:
+        current_user.bp = max(0, current_user.bp - lesson.reward_bp)
+
+    db.session.delete(progress)
+    db.session.commit()
+    flash(f"🔄 Reset \"{lesson.title}\" — rewards reversed.", "info")
+    return redirect(url_for("academy"))
+
+
 @app.route("/academy/complete-day", methods=["POST"])
 @login_required
 def academy_complete_day():
