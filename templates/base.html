@@ -195,7 +195,7 @@
     </a>
 
     <!-- Flash messages -->
-    <div class="container mt-3">
+    <div class="container-fluid mt-3">
         {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
         {% for category, message in messages %}
@@ -209,7 +209,7 @@
     </div>
 
     <!-- Main content -->
-    <main class="container my-4">
+    <main class="container-fluid my-4 px-4">
         {% block content %}{% endblock %}
     </main>
 
