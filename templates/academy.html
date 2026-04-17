@@ -232,6 +232,9 @@
             <!-- Feminization Track Completion Button -->
             {% if current_user.is_authenticated %}
             {% set all_fem_done = (fem_lessons | selectattr('id', 'in', completed_ids) | list | length) == (fem_lessons | length) %}
+            {% set fem_bonus_xp = fem_lessons | sum(attribute='reward_xp') %}
+            {% set fem_bonus_coins = fem_lessons | sum(attribute='reward_coins') %}
+            {% set fem_bonus_fp = fem_lessons | sum(attribute='reward_fp') %}
             <div class="text-center mt-4 mb-2">
                 {% if fem_journaled %}
                 <button class="btn btn-lg px-5 py-3 fw-bold btn-success" disabled>
@@ -245,6 +248,12 @@
                     <button type="submit" class="btn btn-lg px-5 py-3 fw-bold btn-pink">
                         <i class="bi bi-journal-richtext me-2"></i> Complete Feminization Track
                     </button>
+                    <div class="mt-2">
+                        <span class="badge bg-info"><i class="bi bi-lightning"></i> +{{ fem_bonus_xp }} XP</span>
+                        <span class="badge bg-warning text-dark"><i class="bi bi-coin"></i> +{{ fem_bonus_coins }}</span>
+                        {% if fem_bonus_fp %}<span class="badge bg-pink"><i class="bi bi-hearts"></i> +{{ fem_bonus_fp }} FP</span>{% endif %}
+                        <span class="badge bg-success"><i class="bi bi-gift"></i> Completion Bonus</span>
+                    </div>
                     <div class="mt-3">
                         <div class="form-check form-check-inline">
                             <input class="form-check-input" type="checkbox" name="share_album" value="1" id="shareAlbumFem">
@@ -258,7 +267,13 @@
                 <button class="btn btn-lg px-5 py-3 fw-bold btn-secondary" disabled>
                     <i class="bi bi-lock-fill me-2"></i> Complete Feminization Track
                 </button>
-                <p class="text-muted small mt-2"><i class="bi bi-info-circle"></i> Finish all feminization lessons to unlock</p>
+                <div class="mt-2">
+                    <span class="text-muted small"><i class="bi bi-gift"></i> Completion bonus:</span>
+                    <span class="badge bg-info"><i class="bi bi-lightning"></i> +{{ fem_bonus_xp }} XP</span>
+                    <span class="badge bg-warning text-dark"><i class="bi bi-coin"></i> +{{ fem_bonus_coins }}</span>
+                    {% if fem_bonus_fp %}<span class="badge bg-pink"><i class="bi bi-hearts"></i> +{{ fem_bonus_fp }} FP</span>{% endif %}
+                </div>
+                <p class="text-muted small mt-1"><i class="bi bi-info-circle"></i> Finish all feminization lessons to unlock</p>
                 {% endif %}
             </div>
             {% endif %}
@@ -397,6 +412,9 @@
             <!-- Bimbofication Track Completion Button -->
             {% if current_user.is_authenticated %}
             {% set all_bimbo_done = (bimbo_lessons | selectattr('id', 'in', completed_ids) | list | length) == (bimbo_lessons | length) %}
+            {% set bimbo_bonus_xp = bimbo_lessons | sum(attribute='reward_xp') %}
+            {% set bimbo_bonus_coins = bimbo_lessons | sum(attribute='reward_coins') %}
+            {% set bimbo_bonus_bp = bimbo_lessons | sum(attribute='reward_bp') %}
             <div class="text-center mt-4 mb-2">
                 {% if bimbo_journaled %}
                 <button class="btn btn-lg px-5 py-3 fw-bold btn-success" disabled>
@@ -410,6 +428,12 @@
                     <button type="submit" class="btn btn-lg px-5 py-3 fw-bold btn-purple">
                         <i class="bi bi-journal-richtext me-2"></i> Complete Bimbofication Track
                     </button>
+                    <div class="mt-2">
+                        <span class="badge bg-info"><i class="bi bi-lightning"></i> +{{ bimbo_bonus_xp }} XP</span>
+                        <span class="badge bg-warning text-dark"><i class="bi bi-coin"></i> +{{ bimbo_bonus_coins }}</span>
+                        {% if bimbo_bonus_bp %}<span class="badge bg-purple"><i class="bi bi-stars"></i> +{{ bimbo_bonus_bp }} BP</span>{% endif %}
+                        <span class="badge bg-success"><i class="bi bi-gift"></i> Completion Bonus</span>
+                    </div>
                     <div class="mt-3">
                         <div class="form-check form-check-inline">
                             <input class="form-check-input" type="checkbox" name="share_album" value="1" id="shareAlbumBimbo">
@@ -423,7 +447,13 @@
                 <button class="btn btn-lg px-5 py-3 fw-bold btn-secondary" disabled>
                     <i class="bi bi-lock-fill me-2"></i> Complete Bimbofication Track
                 </button>
-                <p class="text-muted small mt-2"><i class="bi bi-info-circle"></i> Finish all bimbofication lessons to unlock</p>
+                <div class="mt-2">
+                    <span class="text-muted small"><i class="bi bi-gift"></i> Completion bonus:</span>
+                    <span class="badge bg-info"><i class="bi bi-lightning"></i> +{{ bimbo_bonus_xp }} XP</span>
+                    <span class="badge bg-warning text-dark"><i class="bi bi-coin"></i> +{{ bimbo_bonus_coins }}</span>
+                    {% if bimbo_bonus_bp %}<span class="badge bg-purple"><i class="bi bi-stars"></i> +{{ bimbo_bonus_bp }} BP</span>{% endif %}
+                </div>
+                <p class="text-muted small mt-1"><i class="bi bi-info-circle"></i> Finish all bimbofication lessons to unlock</p>
                 {% endif %}
             </div>
             {% endif %}
