@@ -460,8 +460,8 @@ def feed():
     quick_quest = {'id': 1, 'title': 'Comment on a post', 'description': 'Leave a comment on any post.'}
 
     # Market ticker data
-    ticker_sissies = User.query.filter_by(role="sissy", listed_on_market=True).filter(
-        User.level >= 5
+    ticker_sissies = User.query.filter_by(role="sissy").filter(
+        User.level >= 1
     ).order_by(User.xp.desc()).limit(20).all()
     ticker_data = []
     for s in ticker_sissies:
