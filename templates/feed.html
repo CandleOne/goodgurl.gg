@@ -10,13 +10,15 @@
 {% endif %}
 {% endif %}
 {% endfor %}
+<!-- Swiper.js (https://github.com/nolimits4web/swiper) -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css">
 {% endblock %}
 {% block content %}
 <!-- Gamification Dashboard Overhaul -->
 {% if current_user.is_authenticated %}
 <div class="gamification-dashboard mb-4">
     <div class="gamification-row">
-        <!-- Streak & Daily Reward -->
+        <!-- Streak & Daily Reward — Swiper.js carousel -->
         <div class="gamification-card streak-card">
             <div class="gamification-header">
                 <span class="icon">🔥</span>
@@ -27,22 +29,27 @@
                 <button class="btn btn-pink claim-btn">Claim Daily Reward</button>
             </form>
             <div class="roadmap-label">Daily Reward Roadmap</div>
-            <div class="roadmap-row">
-                {% set roadmap = config['DAILY_REWARD_ROADMAP'] if config['DAILY_REWARD_ROADMAP'] else [] %}
-                {% set streak_day = (current_user.streak or 1) %}
-                {% for i in range(roadmap|length) %}
+            {% set roadmap = config['DAILY_REWARD_ROADMAP'] if config['DAILY_REWARD_ROADMAP'] else [] %}
+            {% set streak_day = (current_user.streak or 1) %}
+            <div class="swiper roadmap-swiper">
+                <div class="swiper-wrapper">
+                    {% for i in range(roadmap|length) %}
                     {% set day = i + 1 %}
-                    <div class="roadmap-day-card {% if day == streak_day %}active{% endif %} {% if day < streak_day %}past{% endif %}">
-                        <div class="roadmap-day-title">Day {{ day }}</div>
-                        <div class="roadmap-day-rewards">
-                            <span class="coins">+{{ roadmap[i]['coins'] }} <i class="bi bi-coin"></i></span>
-                            <span class="xp">+{{ roadmap[i]['xp'] }} XP</span>
+                    <div class="swiper-slide">
+                        <div class="roadmap-day-card {% if day == streak_day %}active{% endif %} {% if day < streak_day %}past{% endif %}">
+                            <div class="roadmap-day-title">Day {{ day }}</div>
+                            <div class="roadmap-day-rewards">
+                                <span class="coins">+{{ roadmap[i]['coins'] }} <i class="bi bi-coin"></i></span>
+                                <span class="xp">+{{ roadmap[i]['xp'] }} XP</span>
+                            </div>
                         </div>
                     </div>
-                {% endfor %}
+                    {% endfor %}
+                </div>
+                <div class="swiper-pagination"></div>
             </div>
         </div>
-        <!-- Level Progress -->
+        <!-- Level Progress — ProgressBar.js animated semicircle -->
         <div class="gamification-card level-card">
             <div class="gamification-header">
                 <span class="icon"><i class="bi bi-bar-chart-steps"></i></span>
@@ -54,23 +61,39 @@
             {% set next_xp = xp_table.get(level+1, xp+100) %}
             {% set prev_xp = xp_table.get(level, 0) %}
             {% set pct = ((xp - prev_xp) / (next_xp - prev_xp) * 100) if next_xp > prev_xp else 0 %}
-            <div class="level-progress-bar">
-                <div class="progress-bar-inner" style="width: {{ pct|round(0) }}%;">
-                    Lv.{{ level }} ({{ xp }} XP)
-                </div>
+            <div id="level-progress-container" data-pct="{{ pct|round(2) }}" style="width:200px;height:110px;margin:0.8rem auto 0.3rem;"></div>
+            <div class="text-center" style="margin-top:-0.3rem;">
+                <span class="badge bg-purple" style="font-size:1.1em;">Lv.{{ level }}</span>
+                <span class="text-muted" style="font-size:0.88em;">{{ xp }} / {{ next_xp }} XP</span>
             </div>
         </div>
-        <!-- Top Users -->
+        <!-- Top Sissies — List.js sortable list -->
         <div class="gamification-card leaderboard-card">
             <div class="gamification-header">
                 <span class="icon">🏆</span>
                 <span class="title">Top Sissies</span>
             </div>
-            <ol class="leaderboard-list">
-                {% for u in top_users[:3] %}
-                <li><a href="{{ url_for('profile', username=u.username) }}">{{ u.username }}</a></li>
-                {% endfor %}
-            </ol>
+            <div id="leaderboard-widget">
+                <input class="search form-control form-control-sm mb-2" placeholder="Search..." style="background:#1a1033;border:1px solid #ff4da644;color:#fff;" />
+                <table class="table table-sm table-borderless mb-0" style="color:#fff;">
+                    <thead>
+                        <tr>
+                            <th class="sort" data-sort="rank" style="cursor:pointer;color:#ff4da6;">#</th>
+                            <th class="sort" data-sort="name" style="cursor:pointer;color:#ff4da6;">User</th>
+                            <th class="sort" data-sort="xp" style="cursor:pointer;color:#ff4da6;">XP</th>
+                        </tr>
+                    </thead>
+                    <tbody class="list">
+                        {% for u in top_users[:10] %}
+                        <tr>
+                            <td class="rank">{{ loop.index }}</td>
+                            <td class="name"><a href="{{ url_for('profile', username=u.username) }}" style="color:#ffb6e6;text-decoration:none;">{{ u.username }}</a></td>
+                            <td class="xp">{{ u.xp }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>
@@ -141,12 +164,20 @@
     margin-bottom: 0.4rem;
     margin-top: 0.5rem;
 }
-.roadmap-row {
+/* Swiper roadmap */
+.roadmap-swiper {
+    padding-bottom: 1.6rem;
+}
+.roadmap-swiper .swiper-slide {
+    width: auto;
     display: flex;
-    gap: 0.5rem;
-    flex-wrap: wrap;
     justify-content: center;
-    margin-bottom: 0.2rem;
+}
+.roadmap-swiper .swiper-pagination-bullet {
+    background: #ff4da6;
+}
+.roadmap-swiper .swiper-pagination-bullet-active {
+    background: #a855f7;
 }
 .roadmap-day-card {
     min-width: 80px;
@@ -156,7 +187,6 @@
     color: #222;
     font-weight: 500;
     box-shadow: 0 1px 4px #0001;
-    opacity: 1;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -198,45 +228,15 @@
     color: #a855f7;
     font-weight: 600;
 }
-.level-progress-bar {
-    background: #fff2;
-    border-radius: 10px;
-    height: 22px;
-    margin-top: 0.7rem;
-    overflow: hidden;
-    box-shadow: 0 1px 8px #a855f733;
+/* Leaderboard table overrides */
+#leaderboard-widget .table th {
+    font-size: 0.85em;
+    border: none;
 }
-.progress-bar-inner {
-    background: linear-gradient(90deg, #ff4da6 60%, #a855f7 100%);
-    color: #fff;
-    height: 100%;
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 10px;
-    font-size: 1.08em;
-    transition: width 0.5s cubic-bezier(.4,2,.6,1);
-    box-shadow: 0 2px 8px #ff4da655;
-}
-.leaderboard-list {
-    margin: 0;
-    padding-left: 1.2em;
-    font-size: 1.05em;
-    color: #fff;
+#leaderboard-widget .table td {
+    border: none;
+    font-size: 0.95em;
     font-weight: 600;
-}
-.leaderboard-list li {
-    margin-bottom: 0.2em;
-}
-.leaderboard-list a {
-    color: #ffb6e6;
-    text-decoration: none;
-    transition: color 0.15s;
-}
-.leaderboard-list a:hover {
-    color: #fff;
-    text-shadow: 0 2px 8px #ff4da6aa;
 }
 @media (max-width: 1100px) {
     .gamification-row {
@@ -503,4 +503,58 @@ document.querySelectorAll('.feed-thumb[preload="metadata"]').forEach(function(v)
     v.addEventListener('loadedmetadata',function(){this.currentTime=0.1;},{once:true});
 });
 </script>
+<!-- Swiper.js (https://github.com/nolimits4web/swiper) -->
+<script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+<!-- ProgressBar.js (https://github.com/kimmobrunfeldt/progressbar.js) -->
+<script src="https://cdn.jsdelivr.net/npm/progressbar.js@1.1.1/dist/progressbar.min.js"></script>
+<!-- List.js (https://github.com/javve/list.js) -->
+<script src="https://cdn.jsdelivr.net/npm/list.js@2.3.1/dist/list.min.js"></script>
+{% if current_user.is_authenticated %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // --- Swiper.js: Roadmap carousel ---
+    new Swiper('.roadmap-swiper', {
+        slidesPerView: 3,
+        spaceBetween: 12,
+        centeredSlides: true,
+        initialSlide: Math.max(0, {{ (current_user.streak or 1) }} - 1),
+        grabCursor: true,
+        pagination: {
+            el: '.swiper-pagination',
+            clickable: true
+        },
+        breakpoints: {
+            0:   { slidesPerView: 2, spaceBetween: 8 },
+            480: { slidesPerView: 3, spaceBetween: 10 },
+            768: { slidesPerView: 4, spaceBetween: 12 }
+        }
+    });
+
+    // --- ProgressBar.js: Level semicircle ---
+    var levelContainer = document.getElementById('level-progress-container');
+    if (levelContainer) {
+        var bar = new ProgressBar.SemiCircle(levelContainer, {
+            strokeWidth: 8,
+            trailWidth: 4,
+            color: '#ff4da6',
+            trailColor: 'rgba(255,255,255,0.12)',
+            easing: 'easeInOut',
+            duration: 1200,
+            svgStyle: null,
+            from: { color: '#ff4da6' },
+            to:   { color: '#a855f7' },
+            step: function(state, shape) {
+                shape.path.setAttribute('stroke', state.color);
+            }
+        });
+        bar.animate(parseFloat(levelContainer.dataset.pct || 0) / 100);
+    }
+
+    // --- List.js: Sortable leaderboard ---
+    new List('leaderboard-widget', {
+        valueNames: ['rank', 'name', 'xp']
+    });
+});
+</script>
+{% endif %}
 {% endblock %}
