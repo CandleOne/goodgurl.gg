@@ -2884,12 +2884,25 @@ def academy_complete_day():
         db.session.flush()
         entry.post_id = album_post.id
 
+    # Award completion bonus — equal to the total earned from all lessons in the track
+    current_user.xp += total_xp
+    current_user.coins += total_coins
+    if total_fp:
+        current_user.fp += total_fp
+    if total_bp:
+        current_user.bp += total_bp
+
     db.session.commit()
     track_label = "Feminization" if track == "feminization" else "Bimbofication"
+    bonus_msg = f"🎉 Bonus: +{total_xp} XP, +{total_coins} coins"
+    if total_fp:
+        bonus_msg += f", +{total_fp} FP"
+    if total_bp:
+        bonus_msg += f", +{total_bp} BP"
     if share_public and entry.photos:
-        flash(f"📓 {track_label} journal saved & photo album posted!", "success")
+        flash(f"📓 {track_label} journal saved & photo album posted! {bonus_msg}", "success")
     else:
-        flash(f"📓 {track_label} track archived to your Lab Journal!", "success")
+        flash(f"📓 {track_label} track archived to your Lab Journal! {bonus_msg}", "success")
     return redirect(url_for("academy"))
 
 
