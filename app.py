@@ -2536,6 +2536,7 @@ def claim_quest(quest_id):
 # GoodGurl Labs — Academy
 # ---------------------------------------------------------------------------
 @app.route("/academy")
+@login_required
 def academy():
     from constants import utcnow
     today = utcnow().strftime("%Y-%m-%d")
