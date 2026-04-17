@@ -242,26 +242,26 @@ class User(UserMixin, db.Model):
 
     # ---- Achievements ----
 
-    def grant_achievement(self, achievement, progress=100):
-        ua = UserAchievement.query.filter_by(user_id=self.id, achievement_id=achievement.id).first()
+    def grant_achievement(self, achievement_id, progress=100):
+        ua = UserAchievement.query.filter_by(user_id=self.id, achievement_id=achievement_id).first()
         if ua:
             ua.progress = min(100, progress)
         else:
-            ua = UserAchievement(user_id=self.id, achievement_id=achievement.id, progress=min(100, progress))
+            ua = UserAchievement(user_id=self.id, achievement_id=achievement_id, progress=min(100, progress))
             db.session.add(ua)
         return ua
 
-    def increment_achievement_progress(self, achievement, amount=10):
-        ua = UserAchievement.query.filter_by(user_id=self.id, achievement_id=achievement.id).first()
+    def increment_achievement_progress(self, achievement_id, amount=10):
+        ua = UserAchievement.query.filter_by(user_id=self.id, achievement_id=achievement_id).first()
         if ua:
             ua.progress = min(100, ua.progress + amount)
         else:
-            ua = UserAchievement(user_id=self.id, achievement_id=achievement.id, progress=min(100, amount))
+            ua = UserAchievement(user_id=self.id, achievement_id=achievement_id, progress=min(100, amount))
             db.session.add(ua)
         return ua
 
-    def has_achievement(self, achievement):
-        ua = UserAchievement.query.filter_by(user_id=self.id, achievement_id=achievement.id).first()
+    def has_achievement(self, achievement_id):
+        ua = UserAchievement.query.filter_by(user_id=self.id, achievement_id=achievement_id).first()
         return ua is not None and ua.progress >= 100
 
     def get_user_achievements(self):

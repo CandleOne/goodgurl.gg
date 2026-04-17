@@ -155,7 +155,7 @@ def _get_achievement_rules():
         return _ACHIEVEMENT_RULES
     _ACHIEVEMENT_RULES = {}
     for ach in Achievement.query.all():
-        _ACHIEVEMENT_RULES[ach.name] = ach
+        _ACHIEVEMENT_RULES[ach.name] = {"id": ach.id, "xp_reward": ach.xp_reward}
     return _ACHIEVEMENT_RULES
 
 
@@ -188,17 +188,18 @@ def check_achievements(user):
         ach = rules.get(name)
         if not ach:
             continue
-        if user.has_achievement(ach):
+        ach_id = ach["id"]
+        if user.has_achievement(ach_id):
             continue
         if earned:
-            user.grant_achievement(ach, 100)
-            if ach.xp_reward:
-                user.add_points(ach.xp_reward, reason=f"Achievement: {name}")
+            user.grant_achievement(ach_id, 100)
+            if ach["xp_reward"]:
+                user.add_points(ach["xp_reward"], reason=f"Achievement: {name}")
             notify(user.id, "achievement",
                    f"Achievement unlocked: {name}!",
                    "/account")
         else:
-            user.increment_achievement_progress(ach, max(0, progress))
+            user.increment_achievement_progress(ach_id, max(0, progress))
 
 
 # ---------------------------------------------------------------------------
