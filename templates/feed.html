@@ -26,8 +26,8 @@
 {% endblock %}
 {% block content %}
 <!-- Market Ticker -->
-{% if ticker_data %}
 <div class="ticker-wrap">
+{% if ticker_data %}
     <div class="ticker-viewport" id="tickerViewport">
         <div class="ticker-container" id="tickerContainer">
             {% for t in ticker_data %}
@@ -59,8 +59,8 @@
             {% endfor %}
         </div>
     </div>
-</div>
 {% endif %}
+</div>
 
 <!-- Welcome Banner -->
 <div class="text-center my-4">
