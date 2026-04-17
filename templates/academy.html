@@ -78,9 +78,10 @@
     </div>
 
     {% if not labs_accepted and current_user.is_authenticated %}
-    <div class="alert alert-warning text-center">
-        <i class="bi bi-lock-fill"></i> You must accept your calling before accessing lessons.
-        <a href="#" onclick="new bootstrap.Modal(document.getElementById('acceptanceModal')).show(); return false;" class="alert-link">Accept now</a>
+    <div class="text-center mb-4">
+        <button class="btn btn-pink btn-lg" onclick="new bootstrap.Modal(document.getElementById('acceptanceModal')).show();">
+            <i class="bi bi-unlock"></i> Accept Your Calling to Begin
+        </button>
     </div>
     {% else %}
 
