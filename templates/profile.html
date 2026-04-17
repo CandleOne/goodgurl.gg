@@ -177,6 +177,59 @@
             {% endfor %}
         </div>
         {% endif %}
+
+        <!-- ===== GOODGURL LAB JOURNAL ===== -->
+        {% if user.role == 'sissy' and journal_entries %}
+        <h5 class="mb-3 mt-4"><i class="bi bi-journal-richtext text-pink"></i> GoodGurl Lab Journal</h5>
+        <p class="text-muted small mb-3">{{ journal_entries | length }} session{{ 's' if journal_entries | length != 1 else '' }} completed</p>
+        <div class="row g-3">
+            {% for entry in journal_entries %}
+            <div class="col-12">
+                <div class="card glass-card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <h6 class="mb-1">
+                                    <i class="bi bi-calendar3 text-info"></i> {{ entry.date_key }}
+                                </h6>
+                                <div class="d-flex gap-2 flex-wrap">
+                                    <span class="badge bg-pink"><i class="bi bi-hearts"></i> {{ entry.fem_completed }} Fem</span>
+                                    <span class="badge bg-purple"><i class="bi bi-stars"></i> {{ entry.bimbo_completed }} Bimbo</span>
+                                    <span class="badge bg-info"><i class="bi bi-lightning"></i> {{ entry.total_xp_earned }} XP</span>
+                                    <span class="badge bg-warning text-dark"><i class="bi bi-coin"></i> {{ entry.total_coins_earned }}</span>
+                                    {% if entry.total_fp_earned %}
+                                    <span class="badge bg-pink"><i class="bi bi-hearts"></i> {{ entry.total_fp_earned }} FP</span>
+                                    {% endif %}
+                                    {% if entry.total_bp_earned %}
+                                    <span class="badge bg-purple"><i class="bi bi-stars"></i> {{ entry.total_bp_earned }} BP</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% if entry.post %}
+                            <a href="{{ url_for('view_post', post_id=entry.post.id) }}" class="btn btn-sm btn-outline-pink">
+                                <i class="bi bi-images"></i> View Album
+                            </a>
+                            {% endif %}
+                        </div>
+                        {% if entry.photos %}
+                        <div class="d-flex gap-2 mt-2 overflow-auto pb-2" style="white-space: nowrap;">
+                            {% for photo in entry.photos %}
+                            <div class="position-relative" style="min-width: 100px;">
+                                <img src="{{ photo.photo_url }}" alt="{{ photo.lesson_title }}" class="rounded" style="width:100px; height:100px; object-fit:cover; border: 2px solid rgba(255,77,166,0.3);" title="{{ photo.lesson_title }}">
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% elif user.role == 'sissy' %}
+        <h5 class="mb-3 mt-4"><i class="bi bi-journal-richtext text-pink"></i> GoodGurl Lab Journal</h5>
+        <p class="text-muted">No journal entries yet. Complete daily lab sessions to start your journal!</p>
+        {% endif %}
+
     </div>
 </div>
 {% endblock %}

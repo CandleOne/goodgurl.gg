@@ -40,7 +40,7 @@ from models import (
     XPAudit, MarketSnapshot, Notification, Comment, Message, DailyReward,
     ForumCategory, ForumThread, ForumReply, Report,
     DailyChallenge, UserDailyChallenge, ShopItem, UserPurchase, UserPowerup,
-    Lesson, LessonProgress,
+    Lesson, LessonProgress, JournalEntry, JournalPhoto,
     likes_table, post_tags, followers_table, blocked_users,
 )
 from helpers import (
@@ -1579,10 +1579,11 @@ def profile(username):
     user_achievements = user.get_user_achievements() if user.role == "sissy" else []
     login_streak = user.get_current_streak_count("login") if user.role == "sissy" else 0
     sponsor = get_sponsor(user) if user.role == "sissy" else None
+    journal_entries = JournalEntry.query.filter_by(user_id=user.id).order_by(JournalEntry.created_at.desc()).all() if user.role == "sissy" else []
     return render_template("profile.html", user=user, posts=posts, threads=threads,
                            completed_tasks=completed_tasks,
                            user_achievements=user_achievements, login_streak=login_streak,
-                           sponsor=sponsor)
+                           sponsor=sponsor, journal_entries=journal_entries)
 
 
 # ---------------------------------------------------------------------------
@@ -2595,12 +2596,14 @@ def academy():
     bimbo_lessons = Lesson.query.filter_by(track="bimbofication", is_active=True, date_key=today).order_by(Lesson.order).all()
 
     completed_ids = set()
+    day_journaled = False
     if current_user.is_authenticated:
         completed_ids = {
             lp.lesson_id for lp in LessonProgress.query.filter_by(
                 user_id=current_user.id, completed=True
             ).all()
         }
+        day_journaled = JournalEntry.query.filter_by(user_id=current_user.id, date_key=today).first() is not None
 
     return render_template(
         "academy.html",
@@ -2611,6 +2614,7 @@ def academy():
         show_acceptance=show_acceptance,
         labs_accepted=labs_accepted,
         today=today,
+        day_journaled=day_journaled,
     )
 
 
@@ -2698,6 +2702,106 @@ def academy_complete_lesson(lesson_id):
           + (f", +{lesson.reward_fp} FP" if lesson.reward_fp else "")
           + (f", +{lesson.reward_bp} BP" if lesson.reward_bp else ""),
           "success")
+    return redirect(url_for("academy"))
+
+
+@app.route("/academy/complete-day", methods=["POST"])
+@login_required
+def academy_complete_day():
+    """Archive today's completed lessons into the Lab Journal."""
+    from constants import utcnow
+    today = utcnow().strftime("%Y-%m-%d")
+
+    # Ensure not already archived
+    existing = JournalEntry.query.filter_by(user_id=current_user.id, date_key=today).first()
+    if existing:
+        flash("Today's journal entry already saved!", "info")
+        return redirect(url_for("academy"))
+
+    fem_lessons = Lesson.query.filter_by(track="feminization", is_active=True, date_key=today).all()
+    bimbo_lessons = Lesson.query.filter_by(track="bimbofication", is_active=True, date_key=today).all()
+    all_lessons = fem_lessons + bimbo_lessons
+
+    completed_progress = LessonProgress.query.filter(
+        LessonProgress.user_id == current_user.id,
+        LessonProgress.lesson_id.in_([l.id for l in all_lessons]),
+        LessonProgress.completed == True,
+    ).all()
+    completed_ids = {lp.lesson_id for lp in completed_progress}
+
+    # Verify all lessons are actually completed
+    if len(completed_ids) != len(all_lessons):
+        flash("You must complete all lessons in both tracks first.", "warning")
+        return redirect(url_for("academy"))
+
+    # Tally rewards
+    total_xp = sum(l.reward_xp for l in all_lessons)
+    total_coins = sum(l.reward_coins for l in all_lessons)
+    total_fp = sum(l.reward_fp for l in all_lessons)
+    total_bp = sum(l.reward_bp for l in all_lessons)
+
+    # Create journal entry
+    entry = JournalEntry(
+        user_id=current_user.id,
+        date_key=today,
+        fem_completed=len(fem_lessons),
+        bimbo_completed=len(bimbo_lessons),
+        total_xp_earned=total_xp,
+        total_coins_earned=total_coins,
+        total_fp_earned=total_fp,
+        total_bp_earned=total_bp,
+    )
+    db.session.add(entry)
+    db.session.flush()
+
+    # Attach proof photos
+    proof_map = {lp.lesson_id: lp for lp in completed_progress}
+    for lesson in all_lessons:
+        lp = proof_map.get(lesson.id)
+        if lp and lp.proof_photo:
+            photo = JournalPhoto(
+                entry_id=entry.id,
+                photo_url=lp.proof_photo,
+                caption=lesson.objective_text or lesson.description,
+                lesson_title=lesson.title,
+            )
+            db.session.add(photo)
+            entry.photos.append(photo)
+
+    # Optionally create a public photo album post
+    share_public = request.form.get("share_album") == "1"
+    if share_public and entry.photos:
+        photos_with_captions = []
+        for p in entry.photos:
+            photos_with_captions.append(f"**{p.lesson_title}**\n{p.caption}")
+
+        album_body = (
+            f"📓 **GoodGurl Lab Journal — {today}**\n\n"
+            f"Completed {len(fem_lessons)} feminization + {len(bimbo_lessons)} bimbofication lessons today!\n\n"
+            + "\n\n---\n\n".join(photos_with_captions)
+        )
+        # Use first photo as media
+        first_photo_url = entry.photos[0].photo_url
+        album_post = Post(
+            author_id=current_user.id,
+            title=f"Lab Journal — {today}",
+            body=album_body,
+            media_url=first_photo_url,
+        )
+        tag = Tag.query.filter_by(name="labjournal").first()
+        if not tag:
+            tag = Tag(name="labjournal")
+            db.session.add(tag)
+        album_post.tags.append(tag)
+        db.session.add(album_post)
+        db.session.flush()
+        entry.post_id = album_post.id
+
+    db.session.commit()
+    if share_public and entry.photos:
+        flash("📓 Journal saved & photo album posted!", "success")
+    else:
+        flash("📓 Today's lessons archived to your Lab Journal!", "success")
     return redirect(url_for("academy"))
 
 

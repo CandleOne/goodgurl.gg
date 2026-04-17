@@ -728,3 +728,45 @@ class LessonProgress(db.Model):
     __table_args__ = (db.UniqueConstraint("user_id", "lesson_id", name="uq_user_lesson"),)
 
     user = db.relationship("User", backref=db.backref("lesson_progress", lazy="dynamic"))
+
+
+# ---------------------------------------------------------------------------
+# GoodGurl Lab Journal – archives daily completed sessions
+# ---------------------------------------------------------------------------
+
+journal_photos = db.Table(
+    "journal_photos",
+    db.Column("entry_id", db.Integer, db.ForeignKey("journal_entry.id"), primary_key=True),
+    db.Column("photo_id", db.Integer, db.ForeignKey("journal_photo.id"), primary_key=True),
+)
+
+
+class JournalEntry(db.Model):
+    __tablename__ = "journal_entry"
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False, index=True)
+    date_key = db.Column(db.String(10), nullable=False)  # 'YYYY-MM-DD'
+    fem_completed = db.Column(db.Integer, default=0)
+    bimbo_completed = db.Column(db.Integer, default=0)
+    total_xp_earned = db.Column(db.Integer, default=0)
+    total_coins_earned = db.Column(db.Integer, default=0)
+    total_fp_earned = db.Column(db.Integer, default=0)
+    total_bp_earned = db.Column(db.Integer, default=0)
+    post_id = db.Column(db.Integer, db.ForeignKey("post.id"), nullable=True)  # optional album post
+    created_at = db.Column(db.DateTime, default=utcnow)
+
+    __table_args__ = (db.UniqueConstraint("user_id", "date_key", name="uq_user_journal_date"),)
+
+    user = db.relationship("User", backref=db.backref("journal_entries", lazy="dynamic"))
+    post = db.relationship("Post", backref="journal_entry")
+    photos = db.relationship("JournalPhoto", secondary=journal_photos, backref="entries", lazy="select")
+
+
+class JournalPhoto(db.Model):
+    __tablename__ = "journal_photo"
+    id = db.Column(db.Integer, primary_key=True)
+    entry_id = db.Column(db.Integer, db.ForeignKey("journal_entry.id"), nullable=False)
+    photo_url = db.Column(db.String(256), nullable=False)
+    caption = db.Column(db.Text, default="")
+    lesson_title = db.Column(db.String(120), default="")
+    created_at = db.Column(db.DateTime, default=utcnow)

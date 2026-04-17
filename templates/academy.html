@@ -352,12 +352,32 @@
     {% set all_fem_done = (fem_lessons | selectattr('id', 'in', completed_ids) | list | length) == (fem_lessons | length) %}
     {% set all_bimbo_done = (bimbo_lessons | selectattr('id', 'in', completed_ids) | list | length) == (bimbo_lessons | length) %}
     {% set all_done = all_fem_done and all_bimbo_done %}
+    {% set already_journaled = day_journaled %}
     <div class="text-center mt-4 mb-3">
-        <button class="btn btn-lg px-5 py-3 fw-bold {{ 'btn-pink' if all_done else 'btn-secondary' }}" id="completeDayBtn" {{ '' if all_done else 'disabled' }}>
-            <i class="bi {{ 'bi-check-circle-fill' if all_done else 'bi-lock-fill' }} me-2"></i>
-            {{ "Today's Assignments Complete!" if all_done else "Complete Today's Assignments" }}
+        {% if already_journaled %}
+        <button class="btn btn-lg px-5 py-3 fw-bold btn-success" disabled>
+            <i class="bi bi-journal-check me-2"></i> Today's Journal Saved!
         </button>
-        {% if not all_done %}
+        <p class="text-muted small mt-2"><i class="bi bi-check-circle"></i> View your journal on your <a href="{{ url_for('profile', username=current_user.username) }}">profile</a></p>
+        {% elif all_done %}
+        <form method="POST" action="{{ url_for('academy_complete_day') }}" id="completeDayForm">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-lg px-5 py-3 fw-bold btn-pink" id="completeDayBtn">
+                <i class="bi bi-journal-richtext me-2"></i> Complete Today's Assignments
+            </button>
+            <div class="mt-3">
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="checkbox" name="share_album" value="1" id="shareAlbumCheck">
+                    <label class="form-check-label text-light" for="shareAlbumCheck">
+                        <i class="bi bi-images text-info"></i> Share my proof photos as a public album post
+                    </label>
+                </div>
+            </div>
+        </form>
+        {% else %}
+        <button class="btn btn-lg px-5 py-3 fw-bold btn-secondary" disabled>
+            <i class="bi bi-lock-fill me-2"></i> Complete Today's Assignments
+        </button>
         <p class="text-muted small mt-2"><i class="bi bi-info-circle"></i> Finish all lessons in both tracks to unlock</p>
         {% endif %}
     </div>
@@ -432,14 +452,15 @@ document.addEventListener('DOMContentLoaded', function() {
         check2.addEventListener('change', updateBtn);
     }
 
-    // Complete Today's Assignments button
-    var completeDayBtn = document.getElementById('completeDayBtn');
-    if (completeDayBtn && !completeDayBtn.disabled) {
-        completeDayBtn.addEventListener('click', function() {
-            this.innerHTML = '<i class="bi bi-star-fill me-2"></i> Amazing work today! <i class="bi bi-star-fill ms-2"></i>';
-            this.classList.add('animate__animated', 'animate__pulse');
-            this.disabled = true;
-            this.style.opacity = '1';
+    // Complete Today's Assignments – show loading state on submit
+    var completeDayForm = document.getElementById('completeDayForm');
+    if (completeDayForm) {
+        completeDayForm.addEventListener('submit', function() {
+            var btn = document.getElementById('completeDayBtn');
+            if (btn) {
+                btn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i> Saving to journal...';
+                btn.disabled = true;
+            }
         });
     }
 });
