@@ -15,9 +15,9 @@
                     <textarea name="body" class="form-control" rows="5" required></textarea>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label">Upload Media <span class="text-danger">*</span> <small class="text-muted">(png, jpg, gif, webp, mp4, webm — max 16 MB)</small></label>
-                    <input type="file" name="media_file" class="form-control" accept="image/*,video/mp4,video/webm" id="mediaFileInput">
-                    <div id="mediaPreview" class="mt-2"></div>
+                    <label class="form-label">Upload Media <span class="text-danger">*</span> <small class="text-muted">(png, jpg, gif, webp, mp4, webm — max 16 MB total, up to 10 files)</small></label>
+                    <input type="file" name="media_file" class="form-control" accept="image/*,video/mp4,video/webm" id="mediaFileInput" multiple>
+                    <div id="mediaPreview" class="d-flex flex-wrap gap-2 mt-2"></div>
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Or paste a URL <small class="text-muted">(used if no file uploaded)</small></label>
@@ -53,22 +53,40 @@
 document.getElementById('mediaFileInput').addEventListener('change', function(e) {
     const preview = document.getElementById('mediaPreview');
     preview.innerHTML = '';
-    const file = e.target.files[0];
-    if (!file) return;
-    const url = URL.createObjectURL(file);
-    if (file.type.startsWith('video/')) {
-        const vid = document.createElement('video');
-        vid.src = url;
-        vid.controls = true;
-        vid.className = 'img-fluid rounded';
-        vid.style.maxHeight = '250px';
-        preview.appendChild(vid);
-    } else {
-        const img = document.createElement('img');
-        img.src = url;
-        img.className = 'img-fluid rounded';
-        img.style.maxHeight = '250px';
-        preview.appendChild(img);
+    const files = Array.from(e.target.files).slice(0, 10);
+    files.forEach(function(file, idx) {
+        const url = URL.createObjectURL(file);
+        const wrap = document.createElement('div');
+        wrap.className = 'position-relative';
+        wrap.style.cssText = 'width:120px; height:120px;';
+        if (file.type.startsWith('video/')) {
+            const vid = document.createElement('video');
+            vid.src = url;
+            vid.className = 'rounded';
+            vid.style.cssText = 'width:120px; height:120px; object-fit:cover;';
+            vid.muted = true;
+            wrap.appendChild(vid);
+        } else {
+            const img = document.createElement('img');
+            img.src = url;
+            img.className = 'rounded';
+            img.style.cssText = 'width:120px; height:120px; object-fit:cover;';
+            wrap.appendChild(img);
+        }
+        if (idx === 0) {
+            const badge = document.createElement('span');
+            badge.className = 'badge bg-pink position-absolute top-0 start-0 m-1';
+            badge.style.fontSize = '0.6rem';
+            badge.textContent = 'Cover';
+            wrap.appendChild(badge);
+        }
+        preview.appendChild(wrap);
+    });
+    if (files.length > 1) {
+        const info = document.createElement('div');
+        info.className = 'text-muted small w-100 mt-1';
+        info.textContent = files.length + ' files selected — first image will be the cover thumbnail';
+        preview.appendChild(info);
     }
 });
 </script>

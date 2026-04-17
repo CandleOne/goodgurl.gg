@@ -372,10 +372,21 @@ class Post(db.Model):
     created_at = db.Column(db.DateTime, default=utcnow, index=True)
     is_boosted = db.Column(db.Boolean, default=False)
     tags = db.relationship("Tag", secondary=post_tags, backref="posts", lazy="dynamic")
+    media_items = db.relationship("PostMedia", backref="post", lazy="select", order_by="PostMedia.position")
 
     @property
     def like_count(self):
         return self.liked_by.count() if hasattr(self, '_liked_by') or True else 0
+
+
+class PostMedia(db.Model):
+    __tablename__ = "post_media"
+    id = db.Column(db.Integer, primary_key=True)
+    post_id = db.Column(db.Integer, db.ForeignKey("post.id"), nullable=False, index=True)
+    media_url = db.Column(db.String(512), nullable=False)
+    media_type = db.Column(db.String(10), default="image")  # image, gif, video
+    position = db.Column(db.Integer, default=0)
+    created_at = db.Column(db.DateTime, default=utcnow)
 
 
 class Tag(db.Model):

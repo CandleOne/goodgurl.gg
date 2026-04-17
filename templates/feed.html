@@ -372,6 +372,11 @@ document.addEventListener('DOMContentLoaded', function(){
                     {% else %}
                     <img src="{{ post.media_url }}" class="w-100 feed-thumb" alt="" {% if loop.index <= 6 %}fetchpriority="high" decoding="sync"{% else %}loading="lazy" decoding="async"{% endif %}>
                     {% endif %}
+                    {% if post.media_items|length > 1 %}
+                    <div class="position-absolute bottom-0 end-0 m-1" style="z-index:2;">
+                        <span class="badge bg-dark" style="font-size: 0.65rem; opacity: 0.85;"><i class="bi bi-images"></i> {{ post.media_items|length }}</span>
+                    </div>
+                    {% endif %}
                 {% else %}
                 <div class="w-100 feed-thumb placeholder-img d-flex align-items-center justify-content-center">
                     <i class="bi bi-image display-6 text-muted"></i>

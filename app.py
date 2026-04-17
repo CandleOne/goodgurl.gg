@@ -40,7 +40,7 @@ from models import (
     XPAudit, MarketSnapshot, Notification, Comment, Message, DailyReward,
     ForumCategory, ForumThread, ForumReply, Report,
     DailyChallenge, UserDailyChallenge, ShopItem, UserPurchase, UserPowerup,
-    Lesson, LessonProgress, JournalEntry, JournalPhoto,
+    Lesson, LessonProgress, JournalEntry, JournalPhoto, PostMedia,
     likes_table, post_tags, followers_table, blocked_users,
 )
 from helpers import (
@@ -500,15 +500,20 @@ def new_post():
             return redirect(url_for("new_post"))
 
         media_url = ""
-        file = request.files.get("media_file")
-        if file and file.filename and allowed_file(file.filename):
-            ext = file.filename.rsplit(".", 1)[1].lower()
-            safe_name = secrets.token_hex(16) + "." + ext
-            file.save(os.path.join(app.config["UPLOAD_FOLDER"], safe_name))
-            media_url = url_for("uploaded_file", filename=safe_name)
-        elif file and file.filename:
-            flash("File type not allowed. Accepted: png, jpg, jpeg, gif, webp, mp4, webm.", "warning")
-            return redirect(url_for("new_post"))
+        media_urls = []
+        files = request.files.getlist("media_file")
+        for file in files:
+            if file and file.filename and allowed_file(file.filename):
+                ext = file.filename.rsplit(".", 1)[1].lower()
+                safe_name = secrets.token_hex(16) + "." + ext
+                file.save(os.path.join(app.config["UPLOAD_FOLDER"], safe_name))
+                media_urls.append(url_for("uploaded_file", filename=safe_name))
+            elif file and file.filename:
+                flash("File type not allowed. Accepted: png, jpg, jpeg, gif, webp, mp4, webm.", "warning")
+                return redirect(url_for("new_post"))
+
+        if media_urls:
+            media_url = media_urls[0]
 
         if not media_url:
             media_url = request.form.get("media_url", "").strip()
@@ -517,6 +522,7 @@ def new_post():
                 if parsed.scheme not in ("http", "https") or not parsed.netloc:
                     flash("Invalid media URL. Only http/https URLs are allowed.", "danger")
                     return redirect(url_for("new_post"))
+                media_urls = [media_url]
 
         if not media_url:
             flash("Media is required for feed posts. Upload a file or paste a URL. Use the Forum for text-only posts.", "danger")
@@ -552,6 +558,18 @@ def new_post():
 
         db.session.add(post)
         db.session.flush()
+
+        # Create PostMedia entries for album
+        for idx, murl in enumerate(media_urls):
+            ext = murl.rsplit(".", 1)[-1].lower() if "." in murl else ""
+            if ext in ("mp4", "webm"):
+                mtype = "video"
+            elif ext == "gif":
+                mtype = "gif"
+            else:
+                mtype = "image"
+            db.session.add(PostMedia(post_id=post.id, media_url=murl, media_type=mtype, position=idx))
+
         # XP logic
         final_xp, levelled_up = current_user.add_points(POST_REWARD_XP, reason=f"Posted: {title}")
         # Double XP if powerup applied
@@ -2882,6 +2900,13 @@ def academy_complete_day():
         album_post.tags.append(tag)
         db.session.add(album_post)
         db.session.flush()
+
+        # Create PostMedia entries for each proof photo
+        for idx, photo in enumerate(entry.photos):
+            ext = photo.photo_url.rsplit(".", 1)[-1].lower() if "." in photo.photo_url else ""
+            mtype = "gif" if ext == "gif" else "image"
+            db.session.add(PostMedia(post_id=album_post.id, media_url=photo.photo_url, media_type=mtype, position=idx))
+
         entry.post_id = album_post.id
 
     # Award completion bonus — equal to the total earned from all lessons in the track

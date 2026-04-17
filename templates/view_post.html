@@ -14,7 +14,42 @@
 
             <h2>{{ post.title }}</h2>
 
-            {% if post.media_url %}
+            {% if post.media_items|length > 1 %}
+            <!-- Album carousel -->
+            <div class="my-3">
+                <div id="albumCarousel" class="carousel slide" data-bs-ride="false">
+                    <div class="carousel-indicators">
+                        {% for m in post.media_items %}
+                        <button type="button" data-bs-target="#albumCarousel" data-bs-slide-to="{{ loop.index0 }}" {% if loop.first %}class="active" aria-current="true"{% endif %} aria-label="Slide {{ loop.index }}"></button>
+                        {% endfor %}
+                    </div>
+                    <div class="carousel-inner rounded overflow-hidden">
+                        {% for m in post.media_items %}
+                        <div class="carousel-item {% if loop.first %}active{% endif %}">
+                            {% if m.media_type == 'video' %}
+                            <div class="plyr-wrap">
+                                <video class="plyr-player w-100" playsinline controls>
+                                    <source src="{{ m.media_url }}" type="video/{{ 'mp4' if m.media_url.endswith('.mp4') else 'webm' }}">
+                                </video>
+                            </div>
+                            {% elif m.media_type == 'gif' %}
+                            <img src="{{ m.media_url }}" class="d-block w-100" alt="Media {{ loop.index }}">
+                            {% else %}
+                            <img src="{{ m.media_url }}" class="d-block w-100" alt="Media {{ loop.index }}">
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <button class="carousel-control-prev" type="button" data-bs-target="#albumCarousel" data-bs-slide="prev">
+                        <span class="carousel-control-prev-icon"></span>
+                    </button>
+                    <button class="carousel-control-next" type="button" data-bs-target="#albumCarousel" data-bs-slide="next">
+                        <span class="carousel-control-next-icon"></span>
+                    </button>
+                </div>
+                <div class="text-muted small text-center mt-1"><i class="bi bi-images"></i> {{ post.media_items|length }} items in album</div>
+            </div>
+            {% elif post.media_url %}
             <div class="my-3">
                 {% if post.media_url.endswith(('.mp4', '.webm')) %}
                 <div class="plyr-wrap rounded overflow-hidden">

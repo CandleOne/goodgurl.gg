@@ -19,7 +19,7 @@ from constants import (
 from models import (
     User, Post, Tag, Task, Investment, Transaction, PendingGift,
     Notification, Comment, Multiplier, XPAudit, MarketSnapshot,
-    ForumCategory, ForumThread, ForumReply,
+    ForumCategory, ForumThread, ForumReply, PostMedia,
     likes_table, post_tags, followers_table,
 )
 from helpers import generate_avatar, extract_hashtags, record_market_snapshot
@@ -321,6 +321,9 @@ def run_simulation(num_sissies, num_masters, actions_min, actions_max):
             post = Post(author_id=bot.id, title=title, body=body, media_url=media)
             db.session.add(post)
             db.session.flush()
+            ext = media.rsplit('.', 1)[-1].lower() if '.' in media else ''
+            mtype = 'video' if ext in ('mp4', 'webm') else ('gif' if ext == 'gif' else 'image')
+            db.session.add(PostMedia(post_id=post.id, media_url=media, media_type=mtype, position=0))
             for tag_name in extract_hashtags(body + " " + title):
                 post.tags.append(get_or_create_tag(tag_name))
             fast_add_points(bot, POST_REWARD_XP, reason=f"Bot post: {title[:40]}")
@@ -722,6 +725,9 @@ def _run_timed_sim_inner(num_sissies, num_masters, actions_min, actions_max, sim
             post = Post(author_id=bot.id, title=title, body=body, media_url=media)
             db.session.add(post)
             db.session.flush()
+            ext = media.rsplit('.', 1)[-1].lower() if '.' in media else ''
+            mtype = 'video' if ext in ('mp4', 'webm') else ('gif' if ext == 'gif' else 'image')
+            db.session.add(PostMedia(post_id=post.id, media_url=media, media_type=mtype, position=0))
             for tag_name in extract_hashtags(body + " " + title):
                 post.tags.append(get_or_create_tag(tag_name))
             fast_add_points(bot, POST_REWARD_XP, reason=f"Bot post: {title[:40]}")
