@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}GG TV – goodgurl.gg{% endblock %}
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <h2 class="mb-0"><i class="bi bi-broadcast"></i> GG TV</h2>
+        <button class="btn btn-pink" id="goLiveBtn"><i class="bi bi-camera-video"></i> Go Live</button>
+    </div>
+
+    <!-- Live Now section -->
+    <section class="mb-5">
+        <h5 class="text-pink mb-3"><i class="bi bi-circle-fill text-danger blink"></i> Live Now</h5>
+        <div id="liveStreams" class="row g-3">
+            <div class="col-12 text-center text-muted py-5">
+                <i class="bi bi-broadcast" style="font-size:3rem;opacity:.3"></i>
+                <p class="mt-2">No one is live right now. Be the first to go live!</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Go Live modal -->
+    <div class="modal fade" id="goLiveModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content glass-card">
+                <div class="modal-header border-0">
+                    <h5 class="modal-title"><i class="bi bi-broadcast"></i> Start a Live Stream</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="streamTitle" class="form-label">Stream Title</label>
+                        <input type="text" class="form-control" id="streamTitle" placeholder="What are you streaming?" maxlength="100">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Preview</label>
+                        <div class="ratio ratio-16x9 bg-dark rounded overflow-hidden">
+                            <video id="localPreview" autoplay muted playsinline></video>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-pink" id="startStreamBtn" disabled>
+                        <i class="bi bi-broadcast"></i> Start Streaming
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.blink { animation: blink 1.2s infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const goLiveBtn = document.getElementById('goLiveBtn');
+    const goLiveModal = new bootstrap.Modal(document.getElementById('goLiveModal'));
+    const localPreview = document.getElementById('localPreview');
+    const startStreamBtn = document.getElementById('startStreamBtn');
+    let localStream = null;
+
+    goLiveBtn.addEventListener('click', async function() {
+        goLiveModal.show();
+        try {
+            localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+            localPreview.srcObject = localStream;
+            startStreamBtn.disabled = false;
+        } catch (err) {
+            console.error('Camera access denied:', err);
+        }
+    });
+
+    document.getElementById('goLiveModal').addEventListener('hidden.bs.modal', function() {
+        if (localStream) {
+            localStream.getTracks().forEach(t => t.stop());
+            localStream = null;
+            localPreview.srcObject = null;
+            startStreamBtn.disabled = true;
+        }
+    });
+
+    startStreamBtn.addEventListener('click', function() {
+        const title = document.getElementById('streamTitle').value.trim();
+        if (!title) { document.getElementById('streamTitle').focus(); return; }
+        // Placeholder — streaming backend integration goes here
+        alert('Streaming infrastructure coming soon! Your camera is working though 🎬');
+    });
+});
+</script>
+{% endblock %}
