@@ -1,108 +1,411 @@
 {% extends "base.html" %}
 {% block title %}GG TV – goodgurl.gg{% endblock %}
 {% block content %}
-<div class="container py-4">
-    <div class="d-flex align-items-center justify-content-between mb-4">
-        <h2 class="mb-0"><i class="bi bi-broadcast"></i> GG TV</h2>
-        {% if current_user.is_authenticated %}
-        <button class="btn btn-pink" id="goLiveBtn"><i class="bi bi-camera-video"></i> Go Live</button>
-        {% endif %}
-    </div>
 
-    <!-- Live Now section -->
-    <section class="mb-5">
-        <h5 class="text-pink mb-3"><i class="bi bi-circle-fill text-danger blink"></i> Live Now</h5>
-        <div id="liveStreams" class="row g-3 position-relative">
-            {% if not current_user.is_authenticated %}
-            <div class="ggtv-login-wall">
-                <div class="ggtv-login-wall-inner">
-                    <i class="bi bi-lock-fill" style="font-size:2rem"></i>
-                    <p class="mt-2 mb-3 fw-bold">You must login to view livestreams</p>
-                    <a href="{{ url_for('login') }}" class="btn btn-pink">Login</a>
-                </div>
-            </div>
-            {% endif %}
-            <div class="col-12 text-center text-muted py-5 {% if not current_user.is_authenticated %}ggtv-blurred{% endif %}">
-                <i class="bi bi-broadcast" style="font-size:3rem;opacity:.3"></i>
-                <p class="mt-2">No one is live right now. Be the first to go live!</p>
+<!-- GG TV full-width layout (sidebar + main + info panel) -->
+<div class="ggtv-layout">
+
+    <!-- ── Left Sidebar: Live Channels ────────────────────────── -->
+    <aside class="ggtv-sidebar glass-card">
+        <div class="ggtv-sidebar-header d-flex align-items-center justify-content-between px-3 pt-3 pb-2">
+            <span class="fw-bold text-uppercase" style="font-size:.75rem;letter-spacing:.08em;color:rgba(255,255,255,.5)">Live Channels</span>
+            <i class="bi bi-chevron-left text-muted" style="font-size:.75rem"></i>
+        </div>
+        <div id="sidebarChannelList">
+            <!-- Empty state — populated by JS when streams exist -->
+            <div class="ggtv-sidebar-empty px-3 py-4 text-center text-muted" style="font-size:.82rem">
+                <i class="bi bi-broadcast d-block mb-2" style="font-size:1.5rem;opacity:.3"></i>
+                No channels live
             </div>
         </div>
-    </section>
+        {% if current_user.is_authenticated %}
+        <div class="px-3 pb-3 mt-2">
+            <button class="btn btn-pink btn-sm w-100" id="goLiveBtn">
+                <i class="bi bi-camera-video-fill me-1"></i> Go Live
+            </button>
+        </div>
+        {% endif %}
+    </aside>
 
-    <!-- Go Live modal -->
-    <div class="modal fade" id="goLiveModal" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content glass-card">
-                <div class="modal-header border-0">
-                    <h5 class="modal-title"><i class="bi bi-broadcast"></i> Start a Live Stream</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label for="streamTitle" class="form-label">Stream Title</label>
-                        <input type="text" class="form-control" id="streamTitle" placeholder="What are you streaming?" maxlength="100">
+    <!-- ── Main + Info Panel ───────────────────────────────────── -->
+    <div class="ggtv-main-wrap">
+
+        <!-- Spotlight player + info row -->
+        <div class="ggtv-spotlight-row">
+
+            <!-- Spotlight video -->
+            <div class="ggtv-player-col">
+                <div class="ratio ratio-16x9 ggtv-player-bg rounded-3 overflow-hidden position-relative" id="spotlightPlayer">
+                    {% if not current_user.is_authenticated %}
+                    <!-- Login wall overlaid on blurred placeholder -->
+                    <div class="ggtv-player-placeholder ggtv-blurred">
+                        <i class="bi bi-broadcast" style="font-size:4rem;opacity:.15"></i>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Preview</label>
-                        <div class="ratio ratio-16x9 bg-dark rounded overflow-hidden">
-                            <video id="localPreview" autoplay muted playsinline></video>
+                    <div class="ggtv-login-wall">
+                        <div class="ggtv-login-wall-inner glass-card px-4 py-4 text-center">
+                            <i class="bi bi-lock-fill d-block mb-2" style="font-size:1.8rem;color:var(--pink)"></i>
+                            <p class="fw-bold mb-3">Login to watch live streams</p>
+                            <a href="{{ url_for('login') }}" class="btn btn-pink">Login</a>
                         </div>
                     </div>
+                    {% else %}
+                    <!-- Offline placeholder (replaced with live embed when a stream is selected) -->
+                    <div class="ggtv-player-placeholder" id="spotlightPlaceholder">
+                        <div class="text-center">
+                            <i class="bi bi-broadcast mb-3 d-block" style="font-size:4rem;opacity:.25"></i>
+                            <p class="text-muted mb-0" style="font-size:.95rem">No stream selected</p>
+                            <p class="text-muted" style="font-size:.8rem">Pick a channel from the sidebar or go live yourself</p>
+                        </div>
+                    </div>
+                    <video id="spotlightVideo" class="w-100 h-100" autoplay playsinline style="display:none;object-fit:cover"></video>
+                    {% endif %}
                 </div>
-                <div class="modal-footer border-0">
-                    <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-pink" id="startStreamBtn" disabled>
-                        <i class="bi bi-broadcast"></i> Start Streaming
+            </div>
+
+            <!-- Stream info panel -->
+            <div class="ggtv-info-col glass-card p-3" id="spotlightInfo">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <div class="ggtv-channel-avatar ggtv-channel-avatar--lg" id="infoAvatar">
+                        <i class="bi bi-person-fill"></i>
+                    </div>
+                    <div>
+                        <div class="fw-bold" id="infoChannelName" style="font-size:1rem">—</div>
+                        <div class="text-muted" id="infoCategory" style="font-size:.8rem">Just Chatting</div>
+                    </div>
+                </div>
+                <p class="text-white fw-semibold mb-2" id="infoTitle" style="font-size:.9rem;line-height:1.35">No one is live right now</p>
+                <div class="d-flex align-items-center gap-2 mb-3 flex-wrap" id="infoMeta">
+                    <span class="badge" style="background:rgba(255,255,255,.1);font-size:.72rem"><i class="bi bi-eye-fill me-1"></i><span id="infoViewers">0</span> viewers</span>
+                </div>
+                <div class="d-flex flex-wrap gap-1 mb-3" id="infoTags">
+                    <span class="badge bg-purple">GG TV</span>
+                    <span class="badge" style="background:rgba(255,255,255,.1)">English</span>
+                </div>
+                <p class="text-muted mb-3" id="infoDesc" style="font-size:.82rem;line-height:1.5">
+                    Be the first to go live and start streaming for the community!
+                </p>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-pink btn-sm flex-fill" id="followStreamBtn" disabled>
+                        <i class="bi bi-heart-fill me-1"></i> Follow
+                    </button>
+                    <button class="btn btn-outline-light btn-sm" id="shareStreamBtn" disabled>
+                        <i class="bi bi-share-fill"></i>
                     </button>
                 </div>
+
+                <!-- Divider -->
+                <hr style="border-color:rgba(255,255,255,.08); margin: 1rem 0">
+
+                <!-- About the channel placeholder -->
+                <div style="font-size:.78rem;color:rgba(255,255,255,.4)" class="text-uppercase fw-bold mb-2" style="letter-spacing:.06em">About the channel</div>
+                <p class="text-muted" style="font-size:.8rem;line-height:1.4" id="infoAbout">
+                    Streaming will be available once a user goes live.
+                </p>
+            </div>
+        </div>
+
+        <!-- ── "Live on GG TV" grid ──────────────────────────── -->
+        <section class="ggtv-grid-section">
+            <h5 class="text-white fw-semibold mb-3">
+                <i class="bi bi-circle-fill text-danger blink me-2" style="font-size:.6rem"></i>
+                Live on GG TV
+            </h5>
+
+            <!-- Carousel nav row -->
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <span class="text-muted" style="font-size:.82rem" id="gridCountLabel">0 channels live</span>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-sm" style="background:rgba(255,255,255,.08);border:none;color:#fff" id="gridPrev"><i class="bi bi-chevron-left"></i></button>
+                    <button class="btn btn-sm" style="background:rgba(255,255,255,.08);border:none;color:#fff" id="gridNext"><i class="bi bi-chevron-right"></i></button>
+                </div>
+            </div>
+
+            <div id="liveStreamsGrid" class="row g-3 position-relative">
+                {% if not current_user.is_authenticated %}
+                <div class="ggtv-login-wall ggtv-login-wall--grid">
+                    <div class="ggtv-login-wall-inner glass-card px-4 py-4 text-center">
+                        <i class="bi bi-lock-fill d-block mb-2" style="font-size:1.8rem;color:var(--pink)"></i>
+                        <p class="fw-bold mb-3">Login to browse live channels</p>
+                        <a href="{{ url_for('login') }}" class="btn btn-pink">Login</a>
+                    </div>
+                </div>
+                {% endif %}
+                <!-- Empty state card -->
+                <div class="col-12 {% if not current_user.is_authenticated %}ggtv-blurred{% endif %}" id="gridEmpty">
+                    <div class="glass-card p-5 text-center text-muted">
+                        <i class="bi bi-broadcast d-block mb-2" style="font-size:3rem;opacity:.25"></i>
+                        <p class="mb-1">No one is live right now.</p>
+                        <p class="mb-0" style="font-size:.85rem">Be the first to go live!</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </div><!-- /.ggtv-main-wrap -->
+</div><!-- /.ggtv-layout -->
+
+<!-- ── Go Live Modal ──────────────────────────────────────────── -->
+<div class="modal fade" id="goLiveModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content glass-card">
+            <div class="modal-header border-0">
+                <h5 class="modal-title"><i class="bi bi-broadcast me-2"></i>Start a Live Stream</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="streamTitle" class="form-label">Stream Title</label>
+                    <input type="text" class="form-control" id="streamTitle" placeholder="What are you streaming?" maxlength="100">
+                </div>
+                <div class="mb-3">
+                    <label for="streamCategory" class="form-label">Category</label>
+                    <input type="text" class="form-control" id="streamCategory" placeholder="e.g. Just Chatting, Gaming…" maxlength="60">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Camera Preview</label>
+                    <div class="ratio ratio-16x9 bg-dark rounded overflow-hidden">
+                        <video id="localPreview" autoplay muted playsinline></video>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-0 gap-2">
+                <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-pink" id="startStreamBtn" disabled>
+                    <i class="bi bi-broadcast me-1"></i> Start Streaming
+                </button>
             </div>
         </div>
     </div>
 </div>
 
+<!-- ── Styles ──────────────────────────────────────────────────── -->
 <style>
+/* Layout shell */
+.ggtv-layout {
+    display: flex;
+    gap: 0;
+    min-height: calc(100vh - 70px);
+    padding: 0;
+    overflow: hidden;
+}
+
+/* Left sidebar */
+.ggtv-sidebar {
+    width: 220px;
+    min-width: 220px;
+    border-radius: 0 !important;
+    border-top: none !important;
+    border-bottom: none !important;
+    border-left: none !important;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+}
+.ggtv-sidebar-header { border-bottom: 1px solid rgba(255,255,255,.06); }
+
+/* Sidebar channel item */
+.ggtv-channel-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: background .15s;
+    margin: 2px 6px;
+    text-decoration: none;
+    color: inherit;
+}
+.ggtv-channel-item:hover { background: rgba(255,255,255,.07); color: inherit; }
+.ggtv-channel-item.active { background: rgba(255,77,166,.12); }
+
+.ggtv-channel-avatar {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--pink), var(--purple));
+    display: flex; align-items: center; justify-content: center;
+    font-size: .9rem;
+    flex-shrink: 0;
+    overflow: hidden;
+}
+.ggtv-channel-avatar--lg { width: 44px; height: 44px; font-size: 1.2rem; }
+.ggtv-channel-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+.ggtv-channel-meta { flex: 1; min-width: 0; }
+.ggtv-channel-name { font-size: .83rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ggtv-channel-cat  { font-size: .72rem; color: rgba(255,255,255,.45); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ggtv-viewer-dot   { width: 7px; height: 7px; border-radius: 50%; background: var(--pink); flex-shrink: 0; }
+.ggtv-viewer-count { font-size: .7rem; color: rgba(255,255,255,.5); min-width: 28px; text-align: right; flex-shrink: 0; }
+
+/* Main content */
+.ggtv-main-wrap {
+    flex: 1;
+    min-width: 0;
+    padding: 20px 20px 32px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+/* Spotlight row */
+.ggtv-spotlight-row {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+}
+.ggtv-player-col  { flex: 1; min-width: 0; }
+.ggtv-info-col    { width: 280px; min-width: 280px; border-radius: 12px; max-height: 480px; overflow-y: auto; }
+
+/* Player background */
+.ggtv-player-bg   { background: #050310; }
+.ggtv-player-placeholder {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: radial-gradient(ellipse at center, rgba(168,85,247,.08) 0%, #050310 70%);
+}
+
+/* Login walls */
+.ggtv-login-wall {
+    position: absolute; inset: 0; z-index: 10;
+    display: flex; align-items: center; justify-content: center;
+}
+.ggtv-login-wall--grid { border-radius: 12px; background: rgba(5,3,16,.6); backdrop-filter: blur(4px); }
+.ggtv-login-wall-inner { max-width: 260px; }
+
+/* Grid section */
+.ggtv-grid-section { flex: 1; }
+
+/* Stream card */
+.ggtv-card {
+    cursor: pointer;
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    transition: transform .18s, box-shadow .18s;
+}
+.ggtv-card:hover { transform: translateY(-4px); box-shadow: 0 8px 28px rgba(168,85,247,.22); }
+.ggtv-card-thumb {
+    position: relative;
+    width: 100%;
+    padding-top: 56.25%; /* 16:9 */
+    background: radial-gradient(ellipse at center, rgba(168,85,247,.15) 0%, #050310 80%);
+    overflow: hidden;
+}
+.ggtv-card-thumb img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.ggtv-card-thumb-placeholder { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; opacity: .2; font-size: 2.5rem; }
+.ggtv-live-badge {
+    position: absolute; top: 8px; left: 8px;
+    background: #e91916; color: #fff;
+    font-size: .65rem; font-weight: 700; letter-spacing: .05em;
+    padding: 2px 6px; border-radius: 3px;
+    text-transform: uppercase;
+}
+.ggtv-viewer-badge {
+    position: absolute; bottom: 8px; left: 8px;
+    background: rgba(0,0,0,.7); color: #fff;
+    font-size: .7rem; padding: 2px 7px; border-radius: 3px;
+}
+.ggtv-card-body { padding: 10px 12px 12px; }
+.ggtv-card-title { font-size: .83rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 4px; }
+.ggtv-card-sub   { font-size: .75rem; color: rgba(255,255,255,.5); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ggtv-card-tags  { margin-top: 6px; display: flex; gap: 4px; flex-wrap: wrap; }
+.ggtv-card-tags .badge { font-size: .65rem; background: rgba(255,255,255,.09); color: rgba(255,255,255,.7); }
+
+/* Blurred state */
+.ggtv-blurred { filter: blur(7px); pointer-events: none; user-select: none; }
+
+/* Blink animation */
 .blink { animation: blink 1.2s infinite; }
 @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
-.ggtv-blurred { filter: blur(8px); pointer-events: none; user-select: none; }
-.ggtv-login-wall { position: absolute; inset: 0; z-index: 10; display: flex; align-items: center; justify-content: center; }
-.ggtv-login-wall-inner { text-align: center; color: #fff; }
+
+/* Responsive */
+@media (max-width: 991px) {
+    .ggtv-layout { flex-direction: column; }
+    .ggtv-sidebar { width: 100%; min-width: unset; flex-direction: row; flex-wrap: wrap; border: none !important; max-height: 140px; overflow-x: auto; overflow-y: hidden; }
+    .ggtv-sidebar-header { display: none !important; }
+    .ggtv-sidebar-empty { display: none; }
+    .ggtv-spotlight-row { flex-direction: column; }
+    .ggtv-info-col { width: 100%; min-width: unset; max-height: unset; }
+}
+@media (max-width: 576px) {
+    .ggtv-main-wrap { padding: 12px 12px 24px; }
+}
 </style>
 
+<!-- ── Scripts ─────────────────────────────────────────────────── -->
 <script>
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
+
+    /* ── Go Live modal ── */
     const goLiveBtn = document.getElementById('goLiveBtn');
-    if (!goLiveBtn) return;
-    const goLiveModal = new bootstrap.Modal(document.getElementById('goLiveModal'));
-    const localPreview = document.getElementById('localPreview');
-    const startStreamBtn = document.getElementById('startStreamBtn');
-    let localStream = null;
+    if (goLiveBtn) {
+        const goLiveModal  = new bootstrap.Modal(document.getElementById('goLiveModal'));
+        const localPreview = document.getElementById('localPreview');
+        const startBtn     = document.getElementById('startStreamBtn');
+        let localStream    = null;
 
-    goLiveBtn.addEventListener('click', async function() {
-        goLiveModal.show();
-        try {
-            localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-            localPreview.srcObject = localStream;
-            startStreamBtn.disabled = false;
-        } catch (err) {
-            console.error('Camera access denied:', err);
-        }
+        goLiveBtn.addEventListener('click', async function () {
+            goLiveModal.show();
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                localPreview.srcObject = localStream;
+                startBtn.disabled = false;
+            } catch (err) {
+                console.error('Camera access denied:', err);
+            }
+        });
+
+        document.getElementById('goLiveModal').addEventListener('hidden.bs.modal', function () {
+            if (localStream) {
+                localStream.getTracks().forEach(t => t.stop());
+                localStream = null;
+                localPreview.srcObject = null;
+                startBtn.disabled = true;
+            }
+        });
+
+        startBtn.addEventListener('click', function () {
+            const title = document.getElementById('streamTitle').value.trim();
+            if (!title) { document.getElementById('streamTitle').focus(); return; }
+            // Placeholder — streaming backend integration goes here
+            alert('Streaming infrastructure coming soon! Your camera is working though 🎬');
+        });
+    }
+
+    /* ── Stream card click → update spotlight info ── */
+    document.addEventListener('click', function (e) {
+        const card = e.target.closest('.ggtv-card[data-stream]');
+        if (!card) return;
+        const stream = JSON.parse(card.dataset.stream);
+        selectStream(stream);
+        document.querySelectorAll('.ggtv-channel-item').forEach(el => el.classList.remove('active'));
+        const sidebarItem = document.querySelector(`.ggtv-channel-item[data-uid="${stream.uid}"]`);
+        if (sidebarItem) sidebarItem.classList.add('active');
     });
 
-    document.getElementById('goLiveModal').addEventListener('hidden.bs.modal', function() {
-        if (localStream) {
-            localStream.getTracks().forEach(t => t.stop());
-            localStream = null;
-            localPreview.srcObject = null;
-            startStreamBtn.disabled = true;
-        }
+    document.addEventListener('click', function (e) {
+        const item = e.target.closest('.ggtv-channel-item[data-stream]');
+        if (!item) return;
+        const stream = JSON.parse(item.dataset.stream);
+        selectStream(stream);
+        document.querySelectorAll('.ggtv-channel-item').forEach(el => el.classList.remove('active'));
+        item.classList.add('active');
     });
 
-    startStreamBtn.addEventListener('click', function() {
-        const title = document.getElementById('streamTitle').value.trim();
-        if (!title) { document.getElementById('streamTitle').focus(); return; }
-        // Placeholder — streaming backend integration goes here
-        alert('Streaming infrastructure coming soon! Your camera is working though 🎬');
-    });
+    function selectStream(stream) {
+        document.getElementById('infoChannelName').textContent = stream.username || '—';
+        document.getElementById('infoCategory').textContent    = stream.category || 'Just Chatting';
+        document.getElementById('infoTitle').textContent       = stream.title    || 'Untitled stream';
+        document.getElementById('infoViewers').textContent     = (stream.viewers || 0).toLocaleString();
+        document.getElementById('infoAbout').textContent       = stream.about    || '';
+        document.getElementById('followStreamBtn').disabled    = false;
+        document.getElementById('shareStreamBtn').disabled     = false;
+
+        const placeholder = document.getElementById('spotlightPlaceholder');
+        if (placeholder) placeholder.style.display = 'none';
+    }
 });
 </script>
 {% endblock %}
