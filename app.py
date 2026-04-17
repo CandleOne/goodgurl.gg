@@ -2662,8 +2662,28 @@ def academy_complete_lesson(lesson_id):
         existing = LessonProgress(user_id=current_user.id, lesson_id=lesson.id)
         db.session.add(existing)
 
+    # Task (objective) lessons require photo proof
+    proof_url = ""
+    if lesson.lesson_type == "objective":
+        file = request.files.get("proof_photo")
+        if not file or not file.filename:
+            flash("📸 You must upload a photo as proof of completing this task.", "warning")
+            return redirect(url_for("academy"))
+        if not allowed_file(file.filename):
+            flash("File type not allowed. Accepted: png, jpg, jpeg, gif, webp.", "warning")
+            return redirect(url_for("academy"))
+        ext = file.filename.rsplit(".", 1)[1].lower()
+        if ext not in {"png", "jpg", "jpeg", "gif", "webp"}:
+            flash("Only image files are accepted as proof.", "warning")
+            return redirect(url_for("academy"))
+        safe_name = secrets.token_hex(16) + "." + ext
+        file.save(os.path.join(app.config["UPLOAD_FOLDER"], safe_name))
+        proof_url = url_for("uploaded_file", filename=safe_name)
+
     existing.completed = True
     existing.completed_at = utcnow()
+    if proof_url:
+        existing.proof_photo = proof_url
 
     # Award rewards
     current_user.xp += lesson.reward_xp
@@ -2754,6 +2774,12 @@ with app.app_context():
                 conn.commit()
             except Exception:
                 conn.rollback()
+        # Add proof_photo to lesson_progress if missing
+        try:
+            conn.execute(db.text("ALTER TABLE lesson_progress ADD COLUMN proof_photo VARCHAR(256) DEFAULT ''"))
+            conn.commit()
+        except Exception:
+            conn.rollback()
     seed_data()
     seed_shop_items()
     seed_academy_lessons()

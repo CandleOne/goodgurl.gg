@@ -723,6 +723,7 @@ class LessonProgress(db.Model):
     lesson_id = db.Column(db.Integer, db.ForeignKey("lessons.id"), nullable=False, index=True)
     completed = db.Column(db.Boolean, default=False)
     completed_at = db.Column(db.DateTime, nullable=True)
+    proof_photo = db.Column(db.String(256), default="")
 
     __table_args__ = (db.UniqueConstraint("user_id", "lesson_id", name="uq_user_lesson"),)
 

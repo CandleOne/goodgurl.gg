@@ -179,17 +179,15 @@
                         <div>
                             {% if is_completed %}
                             <span class="badge bg-success p-2"><i class="bi bi-check-circle"></i> Done</span>
-                            {% elif is_current and current_user.is_authenticated %}
+                            {% elif is_current and is_audio and current_user.is_authenticated %}
                             <form method="POST" action="{{ url_for('academy_complete_lesson', lesson_id=lesson.id) }}">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <button type="submit" class="btn btn-pink btn-sm">
-                                    {% if is_audio %}
                                     <i class="bi bi-headphones"></i> Listen & Complete
-                                    {% else %}
-                                    <i class="bi bi-check2-square"></i> Complete Task
-                                    {% endif %}
                                 </button>
                             </form>
+                            {% elif is_current and is_task and current_user.is_authenticated %}
+                            <span class="badge bg-pink p-2"><i class="bi bi-camera"></i> Upload below</span>
                             {% elif is_locked %}
                             <span class="badge bg-secondary p-2"><i class="bi bi-lock"></i> Locked</span>
                             {% endif %}
@@ -206,7 +204,17 @@
 
                     {% if is_current and is_task and lesson.objective_text %}
                     <div class="card-footer bg-transparent">
-                        <p class="mb-0 small"><i class="bi bi-clipboard-check"></i> <strong>Objective:</strong> {{ lesson.objective_text }}</p>
+                        <p class="mb-2 small"><i class="bi bi-clipboard-check"></i> <strong>Objective:</strong> {{ lesson.objective_text }}</p>
+                        <form method="POST" action="{{ url_for('academy_complete_lesson', lesson_id=lesson.id) }}" enctype="multipart/form-data">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <label class="form-label small text-muted"><i class="bi bi-camera-fill"></i> Upload proof photo:</label>
+                            <div class="d-flex gap-2 align-items-center">
+                                <input type="file" name="proof_photo" accept="image/*" class="form-control form-control-sm" required>
+                                <button type="submit" class="btn btn-pink btn-sm text-nowrap">
+                                    <i class="bi bi-check2-square"></i> Submit
+                                </button>
+                            </div>
+                        </form>
                     </div>
                     {% endif %}
                 </div>
@@ -293,17 +301,15 @@
                         <div>
                             {% if is_completed %}
                             <span class="badge bg-success p-2"><i class="bi bi-check-circle"></i> Done</span>
-                            {% elif is_current and current_user.is_authenticated %}
+                            {% elif is_current and is_audio and current_user.is_authenticated %}
                             <form method="POST" action="{{ url_for('academy_complete_lesson', lesson_id=lesson.id) }}">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <button type="submit" class="btn btn-purple btn-sm">
-                                    {% if is_audio %}
                                     <i class="bi bi-headphones"></i> Listen & Complete
-                                    {% else %}
-                                    <i class="bi bi-check2-square"></i> Complete Task
-                                    {% endif %}
                                 </button>
                             </form>
+                            {% elif is_current and is_task and current_user.is_authenticated %}
+                            <span class="badge bg-purple p-2"><i class="bi bi-camera"></i> Upload below</span>
                             {% elif is_locked %}
                             <span class="badge bg-secondary p-2"><i class="bi bi-lock"></i> Locked</span>
                             {% endif %}
@@ -320,7 +326,17 @@
 
                     {% if is_current and is_task and lesson.objective_text %}
                     <div class="card-footer bg-transparent">
-                        <p class="mb-0 small"><i class="bi bi-clipboard-check"></i> <strong>Objective:</strong> {{ lesson.objective_text }}</p>
+                        <p class="mb-2 small"><i class="bi bi-clipboard-check"></i> <strong>Objective:</strong> {{ lesson.objective_text }}</p>
+                        <form method="POST" action="{{ url_for('academy_complete_lesson', lesson_id=lesson.id) }}" enctype="multipart/form-data">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <label class="form-label small text-muted"><i class="bi bi-camera-fill"></i> Upload proof photo:</label>
+                            <div class="d-flex gap-2 align-items-center">
+                                <input type="file" name="proof_photo" accept="image/*" class="form-control form-control-sm" required>
+                                <button type="submit" class="btn btn-purple btn-sm text-nowrap">
+                                    <i class="bi bi-check2-square"></i> Submit
+                                </button>
+                            </div>
+                        </form>
                     </div>
                     {% endif %}
                 </div>
