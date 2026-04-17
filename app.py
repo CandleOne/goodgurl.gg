@@ -2625,14 +2625,16 @@ def academy():
     bimbo_lessons = Lesson.query.filter_by(track="bimbofication", is_active=True, date_key=today).order_by(Lesson.order).all()
 
     completed_ids = set()
-    day_journaled = False
+    fem_journaled = False
+    bimbo_journaled = False
     if current_user.is_authenticated:
         completed_ids = {
             lp.lesson_id for lp in LessonProgress.query.filter_by(
                 user_id=current_user.id, completed=True
             ).all()
         }
-        day_journaled = JournalEntry.query.filter_by(user_id=current_user.id, date_key=today).first() is not None
+        fem_journaled = JournalEntry.query.filter_by(user_id=current_user.id, date_key=today, track="feminization").first() is not None
+        bimbo_journaled = JournalEntry.query.filter_by(user_id=current_user.id, date_key=today, track="bimbofication").first() is not None
 
     return render_template(
         "academy.html",
@@ -2643,7 +2645,8 @@ def academy():
         show_acceptance=show_acceptance,
         labs_accepted=labs_accepted,
         today=today,
-        day_journaled=day_journaled,
+        fem_journaled=fem_journaled,
+        bimbo_journaled=bimbo_journaled,
     )
 
 
@@ -2760,9 +2763,9 @@ def academy_reset_lesson(lesson_id):
             flash("Reset the later lessons first before resetting this one.", "warning")
             return redirect(url_for("academy"))
 
-    # Don't allow reset if the day is already journaled
+    # Don't allow reset if the track is already journaled for this day
     today = lesson.date_key
-    journal = JournalEntry.query.filter_by(user_id=current_user.id, date_key=today).first()
+    journal = JournalEntry.query.filter_by(user_id=current_user.id, date_key=today, track=lesson.track).first()
     if journal:
         flash("Can't reset — today's journal has already been saved.", "warning")
         return redirect(url_for("academy"))
@@ -2784,44 +2787,52 @@ def academy_reset_lesson(lesson_id):
 @app.route("/academy/complete-day", methods=["POST"])
 @login_required
 def academy_complete_day():
-    """Archive today's completed lessons into the Lab Journal."""
+    """Archive a track's completed lessons into the Lab Journal."""
     from constants import utcnow
     today = utcnow().strftime("%Y-%m-%d")
+    track = request.form.get("track", "").strip()
 
-    # Ensure not already archived
-    existing = JournalEntry.query.filter_by(user_id=current_user.id, date_key=today).first()
-    if existing:
-        flash("Today's journal entry already saved!", "info")
+    if track not in ("feminization", "bimbofication"):
+        flash("Invalid track.", "danger")
         return redirect(url_for("academy"))
 
-    fem_lessons = Lesson.query.filter_by(track="feminization", is_active=True, date_key=today).all()
-    bimbo_lessons = Lesson.query.filter_by(track="bimbofication", is_active=True, date_key=today).all()
-    all_lessons = fem_lessons + bimbo_lessons
+    # Ensure not already archived for this track
+    existing = JournalEntry.query.filter_by(user_id=current_user.id, date_key=today, track=track).first()
+    if existing:
+        flash(f"{track.title()} track already saved for today!", "info")
+        return redirect(url_for("academy"))
+
+    lessons = Lesson.query.filter_by(track=track, is_active=True, date_key=today).all()
+    if not lessons:
+        flash("No lessons found for this track today.", "warning")
+        return redirect(url_for("academy"))
 
     completed_progress = LessonProgress.query.filter(
         LessonProgress.user_id == current_user.id,
-        LessonProgress.lesson_id.in_([l.id for l in all_lessons]),
+        LessonProgress.lesson_id.in_([l.id for l in lessons]),
         LessonProgress.completed == True,
     ).all()
     completed_ids = {lp.lesson_id for lp in completed_progress}
 
-    # Verify all lessons are actually completed
-    if len(completed_ids) != len(all_lessons):
-        flash("You must complete all lessons in both tracks first.", "warning")
+    # Verify all lessons in this track are completed
+    if len(completed_ids) != len(lessons):
+        flash(f"Complete all {track} lessons first.", "warning")
         return redirect(url_for("academy"))
 
     # Tally rewards
-    total_xp = sum(l.reward_xp for l in all_lessons)
-    total_coins = sum(l.reward_coins for l in all_lessons)
-    total_fp = sum(l.reward_fp for l in all_lessons)
-    total_bp = sum(l.reward_bp for l in all_lessons)
+    total_xp = sum(l.reward_xp for l in lessons)
+    total_coins = sum(l.reward_coins for l in lessons)
+    total_fp = sum(l.reward_fp for l in lessons)
+    total_bp = sum(l.reward_bp for l in lessons)
 
     # Create journal entry
     entry = JournalEntry(
         user_id=current_user.id,
         date_key=today,
-        fem_completed=len(fem_lessons),
-        bimbo_completed=len(bimbo_lessons),
+        track=track,
+        lessons_completed=len(lessons),
+        fem_completed=len(lessons) if track == "feminization" else 0,
+        bimbo_completed=len(lessons) if track == "bimbofication" else 0,
         total_xp_earned=total_xp,
         total_coins_earned=total_coins,
         total_fp_earned=total_fp,
@@ -2832,7 +2843,7 @@ def academy_complete_day():
 
     # Attach proof photos
     proof_map = {lp.lesson_id: lp for lp in completed_progress}
-    for lesson in all_lessons:
+    for lesson in lessons:
         lp = proof_map.get(lesson.id)
         if lp and lp.proof_photo:
             photo = JournalPhoto(
@@ -2851,16 +2862,16 @@ def academy_complete_day():
         for p in entry.photos:
             photos_with_captions.append(f"**{p.lesson_title}**\n{p.caption}")
 
+        track_label = "Feminization" if track == "feminization" else "Bimbofication"
         album_body = (
-            f"📓 **GoodGurl Lab Journal — {today}**\n\n"
-            f"Completed {len(fem_lessons)} feminization + {len(bimbo_lessons)} bimbofication lessons today!\n\n"
+            f"📓 **GoodGurl Lab Journal — {track_label} — {today}**\n\n"
+            f"Completed {len(lessons)} {track} lessons today!\n\n"
             + "\n\n---\n\n".join(photos_with_captions)
         )
-        # Use first photo as media
         first_photo_url = entry.photos[0].photo_url
         album_post = Post(
             author_id=current_user.id,
-            title=f"Lab Journal — {today}",
+            title=f"Lab Journal — {track_label} — {today}",
             body=album_body,
             media_url=first_photo_url,
         )
@@ -2874,10 +2885,11 @@ def academy_complete_day():
         entry.post_id = album_post.id
 
     db.session.commit()
+    track_label = "Feminization" if track == "feminization" else "Bimbofication"
     if share_public and entry.photos:
-        flash("📓 Journal saved & photo album posted!", "success")
+        flash(f"📓 {track_label} journal saved & photo album posted!", "success")
     else:
-        flash("📓 Today's lessons archived to your Lab Journal!", "success")
+        flash(f"📓 {track_label} track archived to your Lab Journal!", "success")
     return redirect(url_for("academy"))
 
 

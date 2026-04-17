@@ -746,6 +746,8 @@ class JournalEntry(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False, index=True)
     date_key = db.Column(db.String(10), nullable=False)  # 'YYYY-MM-DD'
+    track = db.Column(db.String(20), nullable=False, default="feminization")  # 'feminization' or 'bimbofication'
+    lessons_completed = db.Column(db.Integer, default=0)
     fem_completed = db.Column(db.Integer, default=0)
     bimbo_completed = db.Column(db.Integer, default=0)
     total_xp_earned = db.Column(db.Integer, default=0)
@@ -755,7 +757,7 @@ class JournalEntry(db.Model):
     post_id = db.Column(db.Integer, db.ForeignKey("post.id"), nullable=True)  # optional album post
     created_at = db.Column(db.DateTime, default=utcnow)
 
-    __table_args__ = (db.UniqueConstraint("user_id", "date_key", name="uq_user_journal_date"),)
+    __table_args__ = (db.UniqueConstraint("user_id", "date_key", "track", name="uq_user_journal_date_track"),)
 
     user = db.relationship("User", backref=db.backref("journal_entries", lazy="dynamic"))
     post = db.relationship("Post", backref="journal_entry")
