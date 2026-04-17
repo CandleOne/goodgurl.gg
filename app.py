@@ -2108,6 +2108,25 @@ def admin_set_market_value():
     return redirect(url_for("admin_panel"))
 
 
+@app.route("/admin/toggle_market", methods=["POST"])
+@login_required
+@admin_required
+def admin_toggle_market():
+    username = request.form.get("username", "").strip()
+    user = User.query.filter_by(username=username).first()
+    if not user:
+        flash(f"User '{username}' not found.", "danger")
+        return redirect(url_for("admin_panel"))
+    if user.role != "sissy":
+        flash(f"{user.username} is not a sissy — only sissies can be listed on the market.", "warning")
+        return redirect(url_for("admin_panel"))
+    user.listed_on_market = not user.listed_on_market
+    db.session.commit()
+    state = "listed on" if user.listed_on_market else "removed from"
+    flash(f"{user.username} has been {state} the market.", "success")
+    return redirect(url_for("admin_panel"))
+
+
 @app.route("/admin/report/<int:report_id>/dismiss", methods=["POST"])
 @login_required
 @admin_required
