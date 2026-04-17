@@ -248,11 +248,11 @@
                     <button type="submit" class="btn btn-lg px-5 py-3 fw-bold btn-pink">
                         <i class="bi bi-journal-richtext me-2"></i> Complete Feminization Track
                     </button>
-                    <div class="mt-2">
-                        <span class="badge bg-info"><i class="bi bi-lightning"></i> +{{ fem_bonus_xp }} XP</span>
-                        <span class="badge bg-warning text-dark"><i class="bi bi-coin"></i> +{{ fem_bonus_coins }}</span>
-                        {% if fem_bonus_fp %}<span class="badge bg-pink"><i class="bi bi-hearts"></i> +{{ fem_bonus_fp }} FP</span>{% endif %}
-                        <span class="badge bg-success"><i class="bi bi-gift"></i> Completion Bonus</span>
+                    <div class="mt-2" id="femBonusBadges">
+                        <span class="badge bg-info" data-base="{{ fem_bonus_xp }}"><i class="bi bi-lightning"></i> +<span class="bonus-val">{{ fem_bonus_xp }}</span> XP</span>
+                        <span class="badge bg-warning text-dark" data-base="{{ fem_bonus_coins }}"><i class="bi bi-coin"></i> +<span class="bonus-val">{{ fem_bonus_coins }}</span></span>
+                        {% if fem_bonus_fp %}<span class="badge bg-pink" data-base="{{ fem_bonus_fp }}"><i class="bi bi-hearts"></i> +<span class="bonus-val">{{ fem_bonus_fp }}</span> FP</span>{% endif %}
+                        <span class="badge bg-success" id="femBonusLabel"><i class="bi bi-gift"></i> Completion Bonus</span>
                     </div>
                     <div class="mt-3">
                         <div class="form-check form-check-inline">
@@ -428,11 +428,11 @@
                     <button type="submit" class="btn btn-lg px-5 py-3 fw-bold btn-purple">
                         <i class="bi bi-journal-richtext me-2"></i> Complete Bimbofication Track
                     </button>
-                    <div class="mt-2">
-                        <span class="badge bg-info"><i class="bi bi-lightning"></i> +{{ bimbo_bonus_xp }} XP</span>
-                        <span class="badge bg-warning text-dark"><i class="bi bi-coin"></i> +{{ bimbo_bonus_coins }}</span>
-                        {% if bimbo_bonus_bp %}<span class="badge bg-purple"><i class="bi bi-stars"></i> +{{ bimbo_bonus_bp }} BP</span>{% endif %}
-                        <span class="badge bg-success"><i class="bi bi-gift"></i> Completion Bonus</span>
+                    <div class="mt-2" id="bimboBonusBadges">
+                        <span class="badge bg-info" data-base="{{ bimbo_bonus_xp }}"><i class="bi bi-lightning"></i> +<span class="bonus-val">{{ bimbo_bonus_xp }}</span> XP</span>
+                        <span class="badge bg-warning text-dark" data-base="{{ bimbo_bonus_coins }}"><i class="bi bi-coin"></i> +<span class="bonus-val">{{ bimbo_bonus_coins }}</span></span>
+                        {% if bimbo_bonus_bp %}<span class="badge bg-purple" data-base="{{ bimbo_bonus_bp }}"><i class="bi bi-stars"></i> +<span class="bonus-val">{{ bimbo_bonus_bp }}</span> BP</span>{% endif %}
+                        <span class="badge bg-success" id="bimboBonusLabel"><i class="bi bi-gift"></i> Completion Bonus</span>
                     </div>
                     <div class="mt-3">
                         <div class="form-check form-check-inline">
@@ -531,6 +531,28 @@ document.addEventListener('DOMContentLoaded', function() {
         check1.addEventListener('change', updateBtn);
         check2.addEventListener('change', updateBtn);
     }
+
+    // Update bonus badges when share album checkbox is toggled
+    function setupBonusToggle(checkboxId, badgesId, labelId) {
+        var checkbox = document.getElementById(checkboxId);
+        var container = document.getElementById(badgesId);
+        var label = document.getElementById(labelId);
+        if (!checkbox || !container) return;
+        checkbox.addEventListener('change', function() {
+            var mult = this.checked ? 2 : 1;
+            container.querySelectorAll('[data-base]').forEach(function(badge) {
+                var base = parseInt(badge.getAttribute('data-base'));
+                badge.querySelector('.bonus-val').textContent = base * mult;
+            });
+            if (label) {
+                label.innerHTML = this.checked
+                    ? '<i class="bi bi-gift"></i> 2x Completion Bonus!'
+                    : '<i class="bi bi-gift"></i> Completion Bonus';
+            }
+        });
+    }
+    setupBonusToggle('shareAlbumFem', 'femBonusBadges', 'femBonusLabel');
+    setupBonusToggle('shareAlbumBimbo', 'bimboBonusBadges', 'bimboBonusLabel');
 });
 </script>
 {% endblock %}
