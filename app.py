@@ -2400,6 +2400,10 @@ def claim_quest(quest_id):
 # ---------------------------------------------------------------------------
 # New: Help/FAQ and Legal Pages
 # ---------------------------------------------------------------------------
+@app.route("/academy")
+def academy():
+    return render_template("academy.html")
+
 @app.route("/help")
 def help_page():
     return render_template("help.html")
