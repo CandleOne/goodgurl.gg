@@ -84,6 +84,7 @@ class User(UserMixin, db.Model):
     market_value_boost = db.Column(db.Integer, default=0)
     fp = db.Column(db.Integer, default=0)   # Feminization Power
     bp = db.Column(db.Integer, default=0)   # Bimbofication Power
+    labs_accepted = db.Column(db.Boolean, default=False)
     profile_frame = db.Column(db.String(60), default="")
     profile_title = db.Column(db.String(60), default="")
     created_at = db.Column(db.DateTime, default=utcnow)
@@ -708,6 +709,8 @@ class Lesson(db.Model):
     reward_fp = db.Column(db.Integer, default=0)
     reward_bp = db.Column(db.Integer, default=0)
     is_active = db.Column(db.Boolean, default=True)
+    date_key = db.Column(db.String(10), nullable=True, index=True)  # 'YYYY-MM-DD' for daily lessons
+    paired_with = db.Column(db.Integer, db.ForeignKey("lessons.id"), nullable=True)  # task linked to audio
     created_at = db.Column(db.DateTime, default=utcnow)
 
     progress = db.relationship("LessonProgress", backref="lesson", lazy="dynamic", cascade="all, delete-orphan")
