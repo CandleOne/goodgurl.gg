@@ -459,6 +459,26 @@ def feed():
     # Quick quest (placeholder logic)
     quick_quest = {'id': 1, 'title': 'Comment on a post', 'description': 'Leave a comment on any post.'}
 
+    # Market ticker data
+    ticker_sissies = User.query.filter_by(role="sissy", listed_on_market=True).filter(
+        User.level >= 5
+    ).order_by(User.xp.desc()).limit(20).all()
+    ticker_data = []
+    for s in ticker_sissies:
+        mv = s.market_value
+        first_snap = MarketSnapshot.query.filter_by(sissy_id=s.id).order_by(
+            MarketSnapshot.timestamp.asc()
+        ).first()
+        if first_snap and first_snap.market_value > 0:
+            change_pct = round((mv - first_snap.market_value) / first_snap.market_value * 100, 1)
+        else:
+            change_pct = 0.0
+        ticker_data.append({
+            "username": s.username,
+            "value": mv,
+            "change_pct": change_pct,
+        })
+
     return render_template(
         "feed.html",
         posts=pagination.items,
@@ -467,7 +487,8 @@ def feed():
         top_users=top_users,
         daily_challenge=daily_challenge,
         site_goal=site_goal,
-        quick_quest=quick_quest
+        quick_quest=quick_quest,
+        ticker_data=ticker_data,
     )
 
 

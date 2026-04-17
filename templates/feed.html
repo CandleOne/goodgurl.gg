@@ -12,8 +12,56 @@
 {% endfor %}
 <!-- Swiper.js (https://github.com/nolimits4web/swiper) -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css">
+<style>
+.ticker-wrap{background:rgba(0,0,0,.45);border-bottom:1px solid rgba(255,255,255,.08);overflow:hidden;white-space:nowrap;padding:6px 0}
+.ticker-viewport{overflow:hidden}
+.ticker-container{display:flex;gap:0;will-change:transform}
+.ticker-slide{flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;padding:0 18px;font-size:.82rem;font-family:monospace;color:#ccc}
+.ticker-sym{font-weight:700;color:#fff}
+.ticker-val{color:#e0e0e0}
+.ticker-up{color:#00e676}
+.ticker-down{color:#ff5252}
+.ticker-flat{color:#888}
+</style>
 {% endblock %}
 {% block content %}
+<!-- Market Ticker -->
+{% if ticker_data %}
+<div class="ticker-wrap">
+    <div class="ticker-viewport" id="tickerViewport">
+        <div class="ticker-container" id="tickerContainer">
+            {% for t in ticker_data %}
+            <div class="ticker-slide">
+                <span class="ticker-sym">${{ t.username[:10] }}</span>
+                <span class="ticker-val">{{ t.value }}</span>
+                {% if t.change_pct > 0 %}
+                <span class="ticker-up">▲ {{ t.change_pct }}%</span>
+                {% elif t.change_pct < 0 %}
+                <span class="ticker-down">▼ {{ t.change_pct }}%</span>
+                {% else %}
+                <span class="ticker-flat">— 0%</span>
+                {% endif %}
+            </div>
+            {% endfor %}
+            {# duplicate slides for seamless loop #}
+            {% for t in ticker_data %}
+            <div class="ticker-slide">
+                <span class="ticker-sym">${{ t.username[:10] }}</span>
+                <span class="ticker-val">{{ t.value }}</span>
+                {% if t.change_pct > 0 %}
+                <span class="ticker-up">▲ {{ t.change_pct }}%</span>
+                {% elif t.change_pct < 0 %}
+                <span class="ticker-down">▼ {{ t.change_pct }}%</span>
+                {% else %}
+                <span class="ticker-flat">— 0%</span>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
 <!-- Welcome Banner -->
 <div class="text-center my-4">
     <div class="text-muted text-uppercase" style="letter-spacing:.15em;font-size:1.1rem;">Welcome to</div>
@@ -566,6 +614,24 @@ document.addEventListener('DOMContentLoaded', function() {
         valueNames: ['rank', 'name', 'xp']
     });
 });
+</script>
+{% endif %}
+
+<!-- Embla Carousel Ticker -->
+{% if ticker_data %}
+<script type="module">
+import EmblaCarousel from 'https://cdn.jsdelivr.net/npm/embla-carousel@8/esm/embla-carousel.esm.js';
+import AutoScroll from 'https://cdn.jsdelivr.net/npm/embla-carousel-auto-scroll@8/esm/embla-carousel-auto-scroll.esm.js';
+
+const viewport = document.getElementById('tickerViewport');
+if (viewport) {
+    const embla = EmblaCarousel(viewport, {
+        loop: true,
+        dragFree: true,
+        containScroll: false,
+        align: 'start',
+    }, [AutoScroll({ speed: 0.6, stopOnInteraction: false, stopOnFocusIn: false })]);
+}
 </script>
 {% endif %}
 {% endblock %}
