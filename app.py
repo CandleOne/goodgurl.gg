@@ -2885,22 +2885,28 @@ def academy_complete_day():
         entry.post_id = album_post.id
 
     # Award completion bonus — equal to the total earned from all lessons in the track
-    current_user.xp += total_xp
-    current_user.coins += total_coins
-    if total_fp:
-        current_user.fp += total_fp
-    if total_bp:
-        current_user.bp += total_bp
+    # Double the bonus if sharing as a public album post
+    bonus_mult = 2 if (share_public and entry.photos) else 1
+    bonus_xp = total_xp * bonus_mult
+    bonus_coins = total_coins * bonus_mult
+    bonus_fp = total_fp * bonus_mult
+    bonus_bp = total_bp * bonus_mult
+    current_user.xp += bonus_xp
+    current_user.coins += bonus_coins
+    if bonus_fp:
+        current_user.fp += bonus_fp
+    if bonus_bp:
+        current_user.bp += bonus_bp
 
     db.session.commit()
     track_label = "Feminization" if track == "feminization" else "Bimbofication"
-    bonus_msg = f"🎉 Bonus: +{total_xp} XP, +{total_coins} coins"
-    if total_fp:
-        bonus_msg += f", +{total_fp} FP"
-    if total_bp:
-        bonus_msg += f", +{total_bp} BP"
+    bonus_msg = f"🎉 Bonus: +{bonus_xp} XP, +{bonus_coins} coins"
+    if bonus_fp:
+        bonus_msg += f", +{bonus_fp} FP"
+    if bonus_bp:
+        bonus_msg += f", +{bonus_bp} BP"
     if share_public and entry.photos:
-        flash(f"📓 {track_label} journal saved & photo album posted! {bonus_msg}", "success")
+        flash(f"📓 {track_label} journal saved & photo album posted! {bonus_msg} (2x for sharing!)", "success")
     else:
         flash(f"📓 {track_label} track archived to your Lab Journal! {bonus_msg}", "success")
     return redirect(url_for("academy"))
