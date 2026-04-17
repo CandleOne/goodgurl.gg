@@ -730,18 +730,28 @@ def complete_task(task_id):
 
 @app.route("/task/<int:task_id>/reset", methods=["POST"])
 @login_required
-@role_required("sissy")
 def reset_task(task_id):
     task = Task.query.get_or_404(task_id)
-    if task.assignee_id != current_user.id or task.status != "accepted":
+    if task.status != "accepted":
         abort(403)
+    # Sissies can reset their own accepted tasks; masters can reset tasks they created
+    if current_user.role == "sissy" and task.assignee_id != current_user.id:
+        abort(403)
+    if current_user.role == "master" and task.creator_id != current_user.id:
+        abort(403)
+    old_assignee_id = task.assignee_id
     task.assignee_id = None
     task.status = "open"
     log_activity(current_user.id, "task_reset",
                  f'Reset progress on task "{escape(task.title)}"')
-    notify(task.creator_id, "task",
-           f"{current_user.username} dropped your task \"{task.title}\"",
-           url_for("tasks"))
+    if current_user.role == "sissy":
+        notify(task.creator_id, "task",
+               f"{current_user.username} dropped your task \"{task.title}\"",
+               url_for("tasks"))
+    elif old_assignee_id:
+        notify(old_assignee_id, "task",
+               f"{current_user.username} reset your task \"{task.title}\"",
+               url_for("tasks"))
     db.session.commit()
     flash("Task progress reset. The task is open again.", "info")
     return redirect(url_for("tasks"))
