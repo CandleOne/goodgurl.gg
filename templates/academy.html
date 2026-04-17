@@ -346,6 +346,23 @@
         </div>
 
     </div><!-- /tab-content -->
+
+    <!-- Complete Today's Assignments Button -->
+    {% if current_user.is_authenticated and (fem_lessons or bimbo_lessons) %}
+    {% set all_fem_done = (fem_lessons | selectattr('id', 'in', completed_ids) | list | length) == (fem_lessons | length) %}
+    {% set all_bimbo_done = (bimbo_lessons | selectattr('id', 'in', completed_ids) | list | length) == (bimbo_lessons | length) %}
+    {% set all_done = all_fem_done and all_bimbo_done %}
+    <div class="text-center mt-4 mb-3">
+        <button class="btn btn-lg px-5 py-3 fw-bold {{ 'btn-pink' if all_done else 'btn-secondary' }}" id="completeDayBtn" {{ '' if all_done else 'disabled' }}>
+            <i class="bi {{ 'bi-check-circle-fill' if all_done else 'bi-lock-fill' }} me-2"></i>
+            {{ "Today's Assignments Complete!" if all_done else "Complete Today's Assignments" }}
+        </button>
+        {% if not all_done %}
+        <p class="text-muted small mt-2"><i class="bi bi-info-circle"></i> Finish all lessons in both tracks to unlock</p>
+        {% endif %}
+    </div>
+    {% endif %}
+
     {% endif %}
 </div>
 
@@ -413,6 +430,17 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         check1.addEventListener('change', updateBtn);
         check2.addEventListener('change', updateBtn);
+    }
+
+    // Complete Today's Assignments button
+    var completeDayBtn = document.getElementById('completeDayBtn');
+    if (completeDayBtn && !completeDayBtn.disabled) {
+        completeDayBtn.addEventListener('click', function() {
+            this.innerHTML = '<i class="bi bi-star-fill me-2"></i> Amazing work today! <i class="bi bi-star-fill ms-2"></i>';
+            this.classList.add('animate__animated', 'animate__pulse');
+            this.disabled = true;
+            this.style.opacity = '1';
+        });
     }
 });
 </script>
