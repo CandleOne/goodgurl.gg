@@ -107,6 +107,7 @@
             <div class="alert alert-info text-center">Feminization lessons coming soon!</div>
             {% else %}
             {% set fem_completed = fem_lessons | selectattr('id', 'in', completed_ids) | list | length %}
+            <div class="track-content-wrapper position-relative">
             <div class="mb-3">
                 <div class="d-flex justify-content-between align-items-center mb-1">
                     <span class="fw-bold text-pink">Today's Progress</span>
@@ -228,6 +229,17 @@
                 </div>
                 {% endfor %}
             </div>
+            {% if fem_journaled %}
+            <div class="track-overlay">
+                <div class="track-overlay-content">
+                    <i class="bi bi-check-circle-fill fs-1 mb-2 d-block text-success"></i>
+                    <h5 class="mb-1">Track Complete!</h5>
+                    <p class="text-muted mb-2">New assignments in</p>
+                    <div class="countdown-timer text-pink">--:--:--</div>
+                </div>
+            </div>
+            {% endif %}
+            </div><!-- /track-content-wrapper -->
 
             <!-- Feminization Track Completion Button -->
             {% if current_user.is_authenticated %}
@@ -287,6 +299,7 @@
             <div class="alert alert-info text-center">Bimbofication lessons coming soon!</div>
             {% else %}
             {% set bimbo_completed = bimbo_lessons | selectattr('id', 'in', completed_ids) | list | length %}
+            <div class="track-content-wrapper position-relative">
             <div class="mb-3">
                 <div class="d-flex justify-content-between align-items-center mb-1">
                     <span class="fw-bold text-purple">Today's Progress</span>
@@ -408,6 +421,17 @@
                 </div>
                 {% endfor %}
             </div>
+            {% if bimbo_journaled %}
+            <div class="track-overlay">
+                <div class="track-overlay-content">
+                    <i class="bi bi-check-circle-fill fs-1 mb-2 d-block text-success"></i>
+                    <h5 class="mb-1">Track Complete!</h5>
+                    <p class="text-muted mb-2">New assignments in</p>
+                    <div class="countdown-timer text-purple">--:--:--</div>
+                </div>
+            </div>
+            {% endif %}
+            </div><!-- /track-content-wrapper -->
 
             <!-- Bimbofication Track Completion Button -->
             {% if current_user.is_authenticated %}
@@ -484,6 +508,30 @@
     .lesson-track .card { transition: box-shadow 0.2s, opacity 0.2s; }
     .lesson-track .card:hover:not(.opacity-50) { box-shadow: 0 0 20px rgba(255,255,255,0.05); }
 
+    .track-content-wrapper { position: relative; }
+    .track-overlay {
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(30, 30, 30, 0.75);
+        backdrop-filter: blur(5px);
+        -webkit-backdrop-filter: blur(5px);
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+    }
+    .track-overlay-content {
+        text-align: center;
+        color: #fff;
+    }
+    .countdown-timer {
+        font-size: 2.2rem;
+        font-weight: bold;
+        font-family: 'Courier New', monospace;
+        letter-spacing: 2px;
+    }
+
     .pair-header hr { margin: 0; }
 
     #acceptanceModal .form-check-input:checked { background-color: #ff4da6; border-color: #ff4da6; }
@@ -553,6 +601,22 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     setupBonusToggle('shareAlbumFem', 'femBonusBadges', 'femBonusLabel');
     setupBonusToggle('shareAlbumBimbo', 'bimboBonusBadges', 'bimboBonusLabel');
+
+    // Countdown timers for completed tracks
+    document.querySelectorAll('.countdown-timer').forEach(function(el) {
+        function updateCountdown() {
+            var now = new Date();
+            var midnight = new Date(now);
+            midnight.setHours(24, 0, 0, 0);
+            var diff = midnight - now;
+            var h = Math.floor(diff / 3600000);
+            var m = Math.floor((diff % 3600000) / 60000);
+            var s = Math.floor((diff % 60000) / 1000);
+            el.textContent = String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+        }
+        updateCountdown();
+        setInterval(updateCountdown, 1000);
+    });
 });
 </script>
 {% endblock %}
