@@ -880,6 +880,16 @@ BIMBOFICATION_LESSON_POOL = [
 ]
 
 
+# Fixed Session 1 for Feminization track (every day)
+FEMINIZATION_SESSION_ONE = {
+    "audio_title": "Assuming Feminine Identity",
+    "audio_desc": "Before any training can begin, you must first assume your feminine identity. This guided audio walks you through getting properly dressed, mentally preparing, and fully submitting to your role as a sissy.",
+    "task_title": "Feminine Identity Preparation",
+    "task_desc": "Get properly dressed in feminine attire, do your makeup if available, and mentally assume your position as a sissy before proceeding with today's training.",
+    "objective": "Dress in your feminine attire, prepare yourself mentally, and affirm your sissy identity. You must be in role before continuing with today's sessions.",
+}
+
+
 def generate_daily_lessons_for_date(date_str):
     """Generate 6 lessons per track for a given date (3 audio + 3 paired tasks)."""
     import hashlib
@@ -895,9 +905,37 @@ def generate_daily_lessons_for_date(date_str):
         seed_val = int(hashlib.md5(f"{date_str}-{track}".encode()).hexdigest(), 16)
         import random
         rng = random.Random(seed_val)
-        selected = rng.sample(pool, min(3, len(pool)))
 
         order = 1
+
+        if track == "feminization":
+            # Session 1 is always "Assuming Feminine Identity"
+            item = FEMINIZATION_SESSION_ONE
+            audio = Lesson(
+                track=track, order=order, title=item["audio_title"],
+                description=item["audio_desc"], lesson_type="audio",
+                reward_xp=15, reward_coins=10, reward_fp=10,
+                is_active=True, date_key=date_str,
+            )
+            db.session.add(audio)
+            db.session.flush()
+
+            task = Lesson(
+                track=track, order=order + 1, title=item["task_title"],
+                description=item["task_desc"], lesson_type="objective",
+                objective_text=item["objective"],
+                reward_xp=20, reward_coins=15, reward_fp=15,
+                is_active=True, date_key=date_str, paired_with=audio.id,
+            )
+            db.session.add(task)
+            order += 2
+
+            # Sessions 2 & 3 from the random pool
+            selected = rng.sample(pool, min(2, len(pool)))
+        else:
+            # Bimbofication: 3 random sessions
+            selected = rng.sample(pool, min(3, len(pool)))
+
         for item in selected:
             # Create audio lesson
             audio = Lesson(
@@ -909,9 +947,8 @@ def generate_daily_lessons_for_date(date_str):
                 is_active=True, date_key=date_str,
             )
             db.session.add(audio)
-            db.session.flush()  # get audio.id
+            db.session.flush()
 
-            # Create paired task lesson
             task = Lesson(
                 track=track, order=order + 1, title=item["task_title"],
                 description=item["task_desc"], lesson_type="objective",
@@ -919,8 +956,7 @@ def generate_daily_lessons_for_date(date_str):
                 reward_xp=20, reward_coins=15,
                 reward_fp=15 if fp_reward else 0,
                 reward_bp=15 if bp_reward else 0,
-                is_active=True, date_key=date_str,
-                paired_with=audio.id,
+                is_active=True, date_key=date_str, paired_with=audio.id,
             )
             db.session.add(task)
             order += 2
