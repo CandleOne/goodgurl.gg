@@ -20,6 +20,9 @@
                 <li class="nav-item" role="presentation">
                     <button class="nav-link" id="simulation-tab" data-bs-toggle="tab" data-bs-target="#simulation" type="button" role="tab">Simulation</button>
                 </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="ggtv-tab" data-bs-toggle="tab" data-bs-target="#ggtv" type="button" role="tab"><i class="bi bi-broadcast me-1"></i>GG TV</button>
+                </li>
             </ul>
             <div class="tab-content" id="adminTabContent">
                 <!-- Dashboard Tab -->
@@ -350,4 +353,160 @@
                     polling = setInterval(poll, 2000);
             })();
             </script>
+                <!-- GG TV Tab -->
+                <div class="tab-pane fade" id="ggtv" role="tabpanel">
+                    <div class="row g-4">
+                        <div class="col-lg-5">
+                            <div class="card glass-card p-4">
+                                <h5 class="mb-3"><i class="bi bi-robot text-pink me-2"></i>Start Bot Stream</h5>
+                                <p class="text-muted small mb-3">Provide a YouTube URL and the bot will pull the video and broadcast it live on GG TV via MediaMTX + FFmpeg.</p>
+                                <div class="mb-3">
+                                    <label class="form-label small">YouTube URL</label>
+                                    <input type="url" class="form-control" id="adminBotYtUrl" placeholder="https://youtube.com/watch?v=…" autocomplete="off">
+                                </div>
+                                <div class="row g-2 mb-3">
+                                    <div class="col">
+                                        <label class="form-label small">Bot Name</label>
+                                        <input type="text" class="form-control" id="adminBotName" placeholder="GG Bot" maxlength="32">
+                                    </div>
+                                    <div class="col">
+                                        <label class="form-label small">Category</label>
+                                        <input type="text" class="form-control" id="adminBotCategory" placeholder="Music, Gaming…" maxlength="60">
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label small">Stream Title</label>
+                                    <input type="text" class="form-control" id="adminBotTitle" placeholder="What are we broadcasting?" maxlength="100">
+                                </div>
+                                <button class="btn btn-pink w-100" id="adminStartBotBtn">
+                                    <i class="bi bi-broadcast me-1"></i> Start Bot Stream
+                                </button>
+                                <div id="adminBotError" class="text-danger mt-2 small" style="display:none"></div>
+                                <div id="adminBotSuccess" class="text-success mt-2 small" style="display:none"></div>
+                            </div>
+                        </div>
+                        <div class="col-lg-7">
+                            <div class="card glass-card p-4">
+                                <div class="d-flex align-items-center justify-content-between mb-3">
+                                    <h5 class="mb-0"><i class="bi bi-circle-fill text-danger blink me-2" style="font-size:.6rem"></i>Active Bot Streams</h5>
+                                    <button class="btn btn-sm btn-outline-secondary" id="adminRefreshStreams"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
+                                </div>
+                                <div id="adminStreamsList">
+                                    <div class="text-center text-muted py-4" id="adminStreamsEmpty">
+                                        <i class="bi bi-broadcast d-block mb-2" style="font-size:2.5rem;opacity:.2"></i>
+                                        No bot streams running
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div><!-- /.tab-content -->
+
+            <script>
+            /* ── Admin GG TV Bot Stream ──────────────────────────────── */
+            (function () {
+                function escHtml(s) {
+                    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+                }
+
+                function loadStreams() {
+                    fetch('/api/ggtv/streams', { credentials: 'same-origin' })
+                        .then(r => r.json())
+                        .then(streams => {
+                            const list  = document.getElementById('adminStreamsList');
+                            const empty = document.getElementById('adminStreamsEmpty');
+                            if (!list) return;
+                            list.querySelectorAll('.admin-stream-row').forEach(el => el.remove());
+                            if (streams.length === 0) {
+                                if (empty) empty.style.display = '';
+                                return;
+                            }
+                            if (empty) empty.style.display = 'none';
+                            streams.forEach(s => {
+                                const row = document.createElement('div');
+                                row.className = 'admin-stream-row d-flex align-items-center gap-3 py-2 px-1';
+                                row.style.borderBottom = '1px solid rgba(255,255,255,.07)';
+                                row.innerHTML = `
+                                    <span class="badge" style="background:#e91916;font-size:.65rem">LIVE</span>
+                                    <div style="flex:1;min-width:0">
+                                        <div class="fw-semibold" style="font-size:.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(s.title)}</div>
+                                        <div class="text-muted" style="font-size:.75rem">${escHtml(s.username)} &middot; ${escHtml(s.category)}</div>
+                                        <div class="text-muted" style="font-size:.7rem;font-family:monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(s.hls_url)}</div>
+                                    </div>
+                                    <button class="btn btn-sm btn-danger" data-stop-key="${s.stream_key}" style="white-space:nowrap">Stop</button>`;
+                                list.appendChild(row);
+                            });
+                        })
+                        .catch(() => {});
+                }
+
+                document.addEventListener('DOMContentLoaded', function () {
+                    loadStreams();
+
+                    const refreshBtn = document.getElementById('adminRefreshStreams');
+                    if (refreshBtn) refreshBtn.addEventListener('click', loadStreams);
+
+                    /* Start bot stream */
+                    const startBtn = document.getElementById('adminStartBotBtn');
+                    if (startBtn) {
+                        startBtn.addEventListener('click', function () {
+                            const youtube_url = (document.getElementById('adminBotYtUrl').value || '').trim();
+                            const bot_name    = (document.getElementById('adminBotName').value  || 'GG Bot').trim();
+                            const title       = (document.getElementById('adminBotTitle').value  || 'Bot Stream').trim();
+                            const category    = (document.getElementById('adminBotCategory').value || 'Live').trim();
+                            const errEl       = document.getElementById('adminBotError');
+                            const okEl        = document.getElementById('adminBotSuccess');
+
+                            errEl.style.display = 'none';
+                            okEl.style.display  = 'none';
+
+                            if (!youtube_url) { errEl.textContent = 'YouTube URL is required'; errEl.style.display = ''; return; }
+
+                            startBtn.disabled = true;
+                            startBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Starting…';
+
+                            fetch('/api/ggtv/bot_stream/start', {
+                                method: 'POST',
+                                credentials: 'same-origin',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ youtube_url, bot_name, title, category }),
+                            })
+                            .then(r => r.json().then(d => ({ ok: r.ok, data: d })))
+                            .then(({ ok, data }) => {
+                                if (!ok) { errEl.textContent = data.error || 'Failed to start stream'; errEl.style.display = ''; return; }
+                                okEl.textContent = `Stream started — key: ${data.stream_key}`;
+                                okEl.style.display = '';
+                                document.getElementById('adminBotYtUrl').value = '';
+                                loadStreams();
+                            })
+                            .catch(() => { errEl.textContent = 'Network error'; errEl.style.display = ''; })
+                            .finally(() => {
+                                startBtn.disabled = false;
+                                startBtn.innerHTML = '<i class="bi bi-broadcast me-1"></i> Start Bot Stream';
+                            });
+                        });
+                    }
+
+                    /* Stop a stream */
+                    document.addEventListener('click', function (e) {
+                        const btn = e.target.closest('[data-stop-key]');
+                        if (!btn || !btn.closest('#adminStreamsList')) return;
+                        btn.disabled = true;
+                        fetch('/api/ggtv/bot_stream/stop', {
+                            method: 'POST',
+                            credentials: 'same-origin',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ stream_key: btn.dataset.stopKey }),
+                        }).then(() => loadStreams()).catch(() => { btn.disabled = false; });
+                    });
+
+                    /* Auto-refresh every 8s while tab is visible */
+                    document.getElementById('ggtv-tab')?.addEventListener('shown.bs.tab', function () {
+                        loadStreams();
+                    });
+                });
+            })();
+            </script>
+
             {% endblock %}
