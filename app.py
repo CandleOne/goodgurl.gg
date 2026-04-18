@@ -25,7 +25,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 
 # --- Project modules ---
-from extensions import db, login_manager, csrf, limiter
+from extensions import db, login_manager, csrf, limiter, mail, migrate
 from constants import (
     utcnow, STARTING_LEVEL, LEVEL_CAP, LEVEL_XP_TABLE, TIERS,
     MULTIPLIER_STACK_STRATEGY,
@@ -50,24 +50,35 @@ from helpers import (
     generate_daily_challenges, bump_daily_challenge,
     validate_password, generate_verification_token, verify_email_token,
     generate_reset_token, verify_reset_token,
+    compute_market_values_batch,
 )
 from simulation import run_simulation, start_timed_simulation, get_timed_sim_status
 
 # ---------------------------------------------------------------------------
 # App configuration
 # ---------------------------------------------------------------------------
+# Load .env file if present (no-op in production where env vars are set externally)
+from dotenv import load_dotenv
+load_dotenv()
+
 app = Flask(__name__)
+
+# Secret key — must be set via env var in production
 _secret = os.environ.get("SECRET_KEY")
-if not _secret and not os.environ.get("FLASK_DEBUG"):
-    import warnings
-    warnings.warn(
-        "SECRET_KEY not set! Using insecure default. "
-        "Set the SECRET_KEY environment variable for production.",
-        stacklevel=1,
-    )
+if not _secret:
+    if os.environ.get("FLASK_DEBUG", "0") != "1":
+        import warnings
+        warnings.warn(
+            "SECRET_KEY not set! Using insecure default. "
+            "Set the SECRET_KEY environment variable for production.",
+            stacklevel=1,
+        )
     _secret = "goodgurl-dev-key-change-in-production"
 app.config["SECRET_KEY"] = _secret
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///goodgurl.db"
+
+# Database — read from env, default to SQLite for local dev
+app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL", "sqlite:///goodgurl.db")
+
 # Expose daily reward roadmap to templates
 from constants import DAILY_REWARD_ROADMAP
 app.config["DAILY_REWARD_ROADMAP"] = DAILY_REWARD_ROADMAP
@@ -77,11 +88,43 @@ app.config["UPLOAD_FOLDER"] = os.path.join(os.path.dirname(os.path.abspath(__fil
 app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16 MB
 os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 
+# Session / cookie security
+_is_prod = os.environ.get("FLASK_DEBUG", "0") == "0"
+app.config["SESSION_COOKIE_SECURE"] = _is_prod
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+app.config["REMEMBER_COOKIE_SECURE"] = _is_prod
+app.config["REMEMBER_COOKIE_HTTPONLY"] = True
+app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=14)
+app.config["WTF_CSRF_TIME_LIMIT"] = 3600  # 1 hour
+
+# Flask-Mail
+app.config["MAIL_SERVER"] = os.environ.get("MAIL_SERVER", "localhost")
+app.config["MAIL_PORT"] = int(os.environ.get("MAIL_PORT", 587))
+app.config["MAIL_USE_TLS"] = os.environ.get("MAIL_USE_TLS", "true").lower() == "true"
+app.config["MAIL_USERNAME"] = os.environ.get("MAIL_USERNAME", "")
+app.config["MAIL_PASSWORD"] = os.environ.get("MAIL_PASSWORD", "")
+app.config["MAIL_DEFAULT_SENDER"] = os.environ.get("MAIL_DEFAULT_SENDER", "noreply@goodgurl.gg")
+
 # Initialize extensions with app
 db.init_app(app)
 csrf.init_app(app)
 limiter.init_app(app)
 login_manager.init_app(app)
+mail.init_app(app)
+migrate.init_app(app, db)
+
+# Sentry error monitoring (only when DSN is configured)
+_sentry_dsn = os.environ.get("SENTRY_DSN", "")
+if _sentry_dsn:
+    import sentry_sdk
+    from sentry_sdk.integrations.flask import FlaskIntegration
+    sentry_sdk.init(
+        dsn=_sentry_dsn,
+        integrations=[FlaskIntegration()],
+        traces_sample_rate=0.2,
+        send_default_pii=False,
+    )
 
 
 @app.before_request
@@ -118,6 +161,16 @@ def set_security_headers(response):
     response.headers["X-Frame-Options"] = "SAMEORIGIN"
     response.headers["X-XSS-Protection"] = "1; mode=block"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://code.iconify.design https://api.iconify.design; "
+        "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; "
+        "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net; "
+        "img-src 'self' data: blob: https:; "
+        "media-src 'self' blob: https:; "
+        "connect-src 'self' https://api.iconify.design; "
+        "frame-ancestors 'none';"
+    )
     if not app.debug:
         response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
     return response
@@ -173,6 +226,22 @@ def admin_required(f):
 
 
 # ---------------------------------------------------------------------------
+# Email helpers
+# ---------------------------------------------------------------------------
+def _send_email(to, subject, body_text, body_html=None):
+    """Send a transactional email. Silently logs on failure so the request doesn't 500."""
+    from flask_mail import Message as MailMessage
+    try:
+        msg = MailMessage(subject=subject, recipients=[to])
+        msg.body = body_text
+        if body_html:
+            msg.html = body_html
+        mail.send(msg)
+    except Exception as exc:
+        app.logger.error("Failed to send email to %s: %s", to, exc)
+
+
+# ---------------------------------------------------------------------------
 # Auth routes
 # ---------------------------------------------------------------------------
 @app.route("/register", methods=["GET", "POST"])
@@ -215,9 +284,21 @@ def register():
         if role == "sissy":
             user.record_streak("login")
 
-        # FIX: email verification token
+        # Send verification email
         token = generate_verification_token(email)
-        flash(f"Welcome! Please verify your email. Your verification link: /verify/{token}", "info")
+        verify_url = url_for("verify_email", token=token, _external=True)
+        _send_email(
+            to=email,
+            subject="Verify your goodgurl.gg account",
+            body_text=f"Hi {username},\n\nClick the link below to verify your email address:\n{verify_url}\n\nThis link expires in 24 hours.",
+            body_html=(
+                f"<p>Hi <strong>{username}</strong>,</p>"
+                f"<p>Click the link below to verify your email address:</p>"
+                f'<p><a href="{verify_url}">{verify_url}</a></p>'
+                f"<p>This link expires in 24 hours.</p>"
+            ),
+        )
+        flash("Welcome! A verification email has been sent — please check your inbox.", "info")
 
         db.session.commit()
         login_user(user)
@@ -318,9 +399,20 @@ def forgot_password():
         user = User.query.filter_by(email=email).first()
         if user:
             token = generate_reset_token(email)
-            flash(f"Password reset link (valid 1 hour): /reset-password/{token}", "info")
-        else:
-            flash("If that email exists, a reset link has been generated.", "info")
+            reset_url = url_for("reset_password", token=token, _external=True)
+            _send_email(
+                to=email,
+                subject="Reset your goodgurl.gg password",
+                body_text=f"Hi {user.username},\n\nClick the link below to reset your password:\n{reset_url}\n\nThis link expires in 1 hour. If you didn't request this, ignore this email.",
+                body_html=(
+                    f"<p>Hi <strong>{user.username}</strong>,</p>"
+                    f"<p>Click the link below to reset your password:</p>"
+                    f'<p><a href="{reset_url}">{reset_url}</a></p>'
+                    f"<p>This link expires in 1 hour. If you didn't request this, ignore this email.</p>"
+                ),
+            )
+        # Always show the same message to prevent email enumeration
+        flash("If that email exists, a reset link has been sent.", "info")
         return redirect(url_for("forgot_password"))
     return render_template("forgot_password.html")
 
@@ -1202,7 +1294,6 @@ def forum_new_thread(category_id):
 @login_required
 def forum_thread(thread_id):
     thread = ForumThread.query.get_or_404(thread_id)
-    thread.view_count += 1
 
     if request.method == "POST":
         if not current_user.is_authenticated:
@@ -1242,9 +1333,18 @@ def forum_thread(thread_id):
         flash("Reply posted!", "success")
         return redirect(url_for("forum_thread", thread_id=thread.id))
 
+    # Commit the view_count increment using a direct UPDATE to avoid row-level
+    # locking for the duration of pagination/render under concurrent load.
+    db.session.execute(
+        db.update(ForumThread)
+        .where(ForumThread.id == thread_id)
+        .values(view_count=ForumThread.view_count + 1)
+    )
+    db.session.commit()
+    # Refresh thread object so template sees updated count
+    db.session.refresh(thread)
     page = request.args.get("page", 1, type=int)
     replies = thread.replies.paginate(page=page, per_page=25, error_out=False)
-    db.session.commit()
     return render_template("forum/thread.html", thread=thread, replies=replies)
 
 
@@ -1293,13 +1393,24 @@ def leaderboard():
     top_sissies = User.query.filter_by(role="sissy").order_by(User.xp.desc()).limit(50).all()
 
     masters = User.query.filter_by(role="master").all()
+    # Batch-load all investments and compute sissy market values in one pass
+    all_investments = Investment.query.filter(
+        Investment.investor_id.in_([m.id for m in masters])
+    ).all() if masters else []
+    inv_by_master: dict = {}
+    for inv in all_investments:
+        inv_by_master.setdefault(inv.investor_id, []).append(inv)
+    sissy_ids = list({inv.sissy_id for inv in all_investments})
+    mv_cache = compute_market_values_batch(sissy_ids)
+
     whale_list = []
     for m in masters:
-        investments = Investment.query.filter_by(investor_id=m.id).all()
+        investments = inv_by_master.get(m.id, [])
         portfolio_value = 0
         for inv in investments:
+            sissy_mv = mv_cache.get(inv.sissy_id, 0)
             if inv.bought_value > 0:
-                portfolio_value += int(inv.amount * (inv.sissy.market_value / inv.bought_value))
+                portfolio_value += int(inv.amount * (sissy_mv / inv.bought_value))
             else:
                 portfolio_value += inv.amount
         whale_list.append({
@@ -1347,33 +1458,49 @@ def payout_leaderboard():
 @login_required
 def market():
     sissies = User.query.filter_by(role="sissy", listed_on_market=True).filter(User.level >= 5).order_by(User.xp.desc()).all()
+    sissy_ids = [s.id for s in sissies]
+
+    # Batch all per-sissy aggregations to avoid N+1
+    mv_cache = compute_market_values_batch(sissy_ids)
+
+    invest_rows = db.session.query(
+        Investment.sissy_id,
+        db.func.sum(Investment.amount),
+        db.func.count(Investment.id),
+    ).filter(Investment.sissy_id.in_(sissy_ids)).group_by(Investment.sissy_id).all() if sissy_ids else []
+    invest_agg = {r[0]: (r[1] or 0, r[2] or 0) for r in invest_rows}
+
+    first_snaps = {
+        r[0]: r[1] for r in db.session.query(
+            MarketSnapshot.sissy_id,
+            db.func.min(MarketSnapshot.market_value),
+        ).filter(MarketSnapshot.sissy_id.in_(sissy_ids)).group_by(MarketSnapshot.sissy_id).all()
+    } if sissy_ids else {}
+
+    # Recent snaps (last 5 per sissy) — fetch all then slice in Python
+    recent_snap_rows = MarketSnapshot.query.filter(
+        MarketSnapshot.sissy_id.in_(sissy_ids)
+    ).order_by(MarketSnapshot.sissy_id, MarketSnapshot.timestamp.desc()).all() if sissy_ids else []
+    recent_snaps_by_sissy: dict = {}
+    for snap in recent_snap_rows:
+        recent_snaps_by_sissy.setdefault(snap.sissy_id, []).append(snap)
+    for sid in recent_snaps_by_sissy:
+        recent_snaps_by_sissy[sid] = recent_snaps_by_sissy[sid][:5]
+
     market_data = []
     for s in sissies:
-        total_invested = db.session.query(db.func.sum(Investment.amount)).filter_by(sissy_id=s.id).scalar() or 0
-        investors = Investment.query.filter_by(sissy_id=s.id).count()
-        current_mv = s.market_value
+        current_mv = mv_cache.get(s.id, 0)
+        total_invested, investors = invest_agg.get(s.id, (0, 0))
 
-        first_snap = MarketSnapshot.query.filter_by(sissy_id=s.id).order_by(
-            MarketSnapshot.timestamp.asc()
-        ).first()
-        if first_snap and first_snap.market_value > 0:
-            actual_growth = round((current_mv - first_snap.market_value) / first_snap.market_value * 100, 1)
-        else:
-            actual_growth = 0.0
+        first_mv = first_snaps.get(s.id)
+        actual_growth = round((current_mv - first_mv) / first_mv * 100, 1) if first_mv and first_mv > 0 else 0.0
 
-        recent_snaps = MarketSnapshot.query.filter_by(sissy_id=s.id).order_by(
-            MarketSnapshot.timestamp.desc()
-        ).limit(5).all()
-        if len(recent_snaps) >= 2:
-            oldest = recent_snaps[-1]
-            newest = recent_snaps[0]
-            delta_val = newest.market_value - oldest.market_value
+        recent = recent_snaps_by_sissy.get(s.id, [])
+        if len(recent) >= 2:
+            newest, oldest = recent[0], recent[-1]
             hours = max((newest.timestamp - oldest.timestamp).total_seconds() / 3600, 0.1)
-            rate_per_hour = delta_val / hours
-            if current_mv > 0:
-                expected_growth = round(rate_per_hour * 24 / current_mv * 100, 1)
-            else:
-                expected_growth = 0.0
+            rate_per_hour = (newest.market_value - oldest.market_value) / hours
+            expected_growth = round(rate_per_hour * 24 / current_mv * 100, 1) if current_mv > 0 else 0.0
         else:
             expected_growth = 0.0
 
@@ -1474,10 +1601,13 @@ def wallet():
     user_powerups = []
     if hasattr(current_user, 'powerups'):
         user_powerups = current_user.powerups
+    user_posts = Post.query.filter_by(author_id=current_user.id).order_by(Post.created_at.desc()).limit(20).all()
     return render_template("wallet.html",
         investments=investments_in_me, total_funded=total_funded,
         sponsor=sponsor, flair_colors=FLAIR_COLORS, flair_cost=FLAIR_COST,
-        powerups=powerups, user_powerups=user_powerups)
+        boost_cost=BOOST_COST,
+        powerups=powerups, user_powerups=user_powerups,
+        user_posts=user_posts)
 # Angel Shop: buy powerup with funded coins
 @app.route("/wallet/buy_powerup/<int:item_id>", methods=["POST"])
 @login_required
@@ -2168,8 +2298,7 @@ def admin_toggle_market():
         return redirect(url_for("admin_panel"))
     if user.role != "sissy":
         flash(f"{user.username} is not a sissy — only sissies can be listed on the market.", "warning")
-        return redirect(url_for("admin_panel")
-                        )
+        return redirect(url_for("admin_panel"))
     user.listed_on_market = not user.listed_on_market
     db.session.commit()
     state = "listed on" if user.listed_on_market else "removed from"

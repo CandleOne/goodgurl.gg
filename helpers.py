@@ -1,3 +1,4 @@
+import math
 import os
 import re
 import random
@@ -209,6 +210,103 @@ def check_achievements(user):
                    "/account")
         else:
             user.increment_achievement_progress(ach_id, max(0, progress))
+
+
+# ---------------------------------------------------------------------------
+# Batch market value computation (avoids N+1 in leaderboard / market route)
+# ---------------------------------------------------------------------------
+
+def compute_market_values_batch(user_ids):
+    """
+    Compute market values for a list of user IDs using batch SQL queries
+    instead of firing 7+ queries per user. Returns {user_id: market_value}.
+    """
+    if not user_ids:
+        return {}
+    user_ids = list(set(user_ids))
+
+    post_counts = dict(
+        db.session.query(Post.author_id, db.func.count(Post.id))
+        .filter(Post.author_id.in_(user_ids))
+        .group_by(Post.author_id).all()
+    )
+    like_counts = dict(
+        db.session.query(Post.author_id, db.func.count(likes_table.c.user_id))
+        .join(likes_table, likes_table.c.post_id == Post.id)
+        .filter(Post.author_id.in_(user_ids))
+        .group_by(Post.author_id).all()
+    )
+    comment_counts = dict(
+        db.session.query(Post.author_id, db.func.count(Comment.id))
+        .join(Comment, Comment.post_id == Post.id)
+        .filter(Post.author_id.in_(user_ids))
+        .group_by(Post.author_id).all()
+    )
+    task_counts = dict(
+        db.session.query(Task.assignee_id, db.func.count(Task.id))
+        .filter(Task.assignee_id.in_(user_ids), Task.status == "completed")
+        .group_by(Task.assignee_id).all()
+    )
+    invest_rows = db.session.query(
+        Investment.sissy_id,
+        db.func.sum(Investment.amount),
+        db.func.count(Investment.id),
+    ).filter(Investment.sissy_id.in_(user_ids)).group_by(Investment.sissy_id).all()
+    invest_data = {r[0]: (r[1] or 0, r[2] or 0) for r in invest_rows}
+
+    achievement_counts = dict(
+        db.session.query(UserAchievement.user_id, db.func.count(UserAchievement.id))
+        .filter(UserAchievement.user_id.in_(user_ids), UserAchievement.progress >= 100)
+        .group_by(UserAchievement.user_id).all()
+    )
+    follower_counts = dict(
+        db.session.query(followers_table.c.followed_id, db.func.count(followers_table.c.follower_id))
+        .filter(followers_table.c.followed_id.in_(user_ids))
+        .group_by(followers_table.c.followed_id).all()
+    )
+    streaks_raw = Streak.query.filter(Streak.user_id.in_(user_ids)).all()
+    streaks: dict = {}
+    for s in streaks_raw:
+        streaks.setdefault(s.user_id, {})[s.activity_name] = s.count
+
+    latest_posts = dict(
+        db.session.query(Post.author_id, db.func.max(Post.created_at))
+        .filter(Post.author_id.in_(user_ids))
+        .group_by(Post.author_id).all()
+    )
+    users = {u.id: u for u in User.query.filter(User.id.in_(user_ids)).all()}
+
+    now = utcnow()
+    results = {}
+    for uid in user_ids:
+        u = users.get(uid)
+        if not u:
+            results[uid] = 0
+            continue
+        post_count = post_counts.get(uid, 0)
+        total_likes = like_counts.get(uid, 0)
+        total_comments = comment_counts.get(uid, 0)
+        completed = task_counts.get(uid, 0)
+        total_invested, investor_count = invest_data.get(uid, (0, 0))
+        achievement_count = achievement_counts.get(uid, 0)
+        follower_count = follower_counts.get(uid, 0)
+        user_streaks = streaks.get(uid, {})
+        login_streak = user_streaks.get("login", 0)
+        post_streak = user_streaks.get("post", 0)
+        streak_bonus = min(login_streak, 30) * 2 + min(post_streak, 14) * 3
+        latest_dt = latest_posts.get(uid)
+        recency = max(0.7, 1.0 - ((now - latest_dt).days * 0.01)) if latest_dt else 0.7
+        engagement_rate = min((total_likes / post_count) if post_count > 0 else 0, 20)
+        base = u.xp + (u.level - 1) * 10
+        content = post_count * 5 + total_likes * 2 + total_comments * 3
+        engagement = int(engagement_rate * 20)
+        work = completed * 15
+        social = follower_count * 8 + investor_count * 12
+        consistency = streak_bonus + achievement_count * 5
+        demand = int(math.log2(1 + total_invested) * 3)
+        raw = base + content + engagement + work + social + consistency + demand
+        results[uid] = max(0, int(raw * recency) + int(u.market_value_boost or 0))
+    return results
 
 
 # ---------------------------------------------------------------------------
