@@ -83,13 +83,13 @@
                 <span class="icon">🔥</span>
                 <span class="title">Streak</span>
             </div>
-            <div class="streak-days">{{ current_user.streak or 1 }} <span class="days-label">days</span></div>
+            <div class="streak-days">{{ current_user.get_current_streak_count('login') or 1 }} <span class="days-label">days</span></div>
             <form method="POST" action="{{ url_for('claim_daily_reward') }}">
                 <button class="btn btn-pink claim-btn">Claim Daily Reward</button>
             </form>
             <div class="roadmap-label">Daily Reward Roadmap</div>
             {% set roadmap = config['DAILY_REWARD_ROADMAP'] if config['DAILY_REWARD_ROADMAP'] else [] %}
-            {% set streak_day = (current_user.streak or 1) %}
+            {% set streak_day = (current_user.get_current_streak_count('login') or 1) %}
             <div class="swiper roadmap-swiper">
                 <div class="swiper-wrapper">
                     {% for i in range(roadmap|length) %}
@@ -581,7 +581,7 @@ document.addEventListener('DOMContentLoaded', function() {
         slidesPerView: 3,
         spaceBetween: 12,
         centeredSlides: true,
-        initialSlide: Math.max(0, {{ (current_user.streak or 1) }} - 1),
+        initialSlide: Math.max(0, {{ (current_user.get_current_streak_count('login') or 1) }} - 1),
         grabCursor: true,
         pagination: {
             el: '.swiper-pagination',

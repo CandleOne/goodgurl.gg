@@ -120,20 +120,25 @@ def distribute_dividends(sissy, coins_earned):
     total_invested = sum(inv.amount for inv in investments)
     if total_invested <= 0:
         return
-    sponsor_inv = max(investments, key=lambda i: i.amount)
+    sponsor_id = max(investments, key=lambda i: i.amount).investor_id
+    # Batch-load all investors in a single query to avoid N+1
+    investor_ids = [inv.investor_id for inv in investments]
+    investors_by_id = {u.id: u for u in User.query.filter(User.id.in_(investor_ids)).all()}
+    transactions = []
     for inv in investments:
         share = inv.amount / total_invested
         payout = max(1, int(dividend_pool * share))
-        if inv.id == sponsor_inv.id and len(investments) > 1:
+        if inv.investor_id == sponsor_id and len(investments) > 1:
             payout = int(payout * 1.5)
-        investor = User.query.get(inv.investor_id)
+        investor = investors_by_id.get(inv.investor_id)
         if investor:
             investor.coins += payout
             inv.total_dividends += payout
-            db.session.add(Transaction(
+            transactions.append(Transaction(
                 user_id=investor.id, amount=payout,
                 description=f"Dividend from {sissy.username} ({coins_earned} earned)"
             ))
+    db.session.add_all(transactions)
 
 
 def get_sponsor(sissy):

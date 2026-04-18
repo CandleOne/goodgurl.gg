@@ -365,7 +365,7 @@ class User(UserMixin, db.Model):
 
 class Post(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    author_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    author_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False, index=True)
     title = db.Column(db.String(200), nullable=False)
     body = db.Column(db.Text, nullable=False)
     media_url = db.Column(db.String(512), default="")
@@ -409,13 +409,14 @@ class Task(db.Model):
 
 class Investment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    investor_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
-    sissy_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    investor_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False, index=True)
+    sissy_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False, index=True)
     amount = db.Column(db.Integer, nullable=False)
     bought_value = db.Column(db.Integer, nullable=False)
     total_dividends = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=utcnow)
     sissy = db.relationship("User", foreign_keys=[sissy_id])
+    __table_args__ = (db.Index("ix_investment_investor_sissy", "investor_id", "sissy_id"),)
 
 
 class Transaction(db.Model):
@@ -524,8 +525,8 @@ class XPAudit(db.Model):
 
 class MarketSnapshot(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    sissy_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False, index=True)
-    timestamp = db.Column(db.DateTime, nullable=False, default=utcnow, index=True)
+    sissy_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    timestamp = db.Column(db.DateTime, nullable=False, default=utcnow)
     market_value = db.Column(db.Integer, nullable=False)
     xp = db.Column(db.Integer, nullable=False)
     post_count = db.Column(db.Integer, nullable=False)
@@ -533,6 +534,7 @@ class MarketSnapshot(db.Model):
     investor_count = db.Column(db.Integer, nullable=False)
     follower_count = db.Column(db.Integer, nullable=False, default=0)
     sissy = db.relationship("User", foreign_keys=[sissy_id])
+    __table_args__ = (db.Index("ix_marketsnapshot_sissy_ts", "sissy_id", "timestamp"),)
 
 
 class Notification(db.Model):

@@ -32,7 +32,7 @@ from constants import (
     TASK_REWARD_XP, TASK_REWARD_COINS, POST_REWARD_XP,
     STREAK_BONUS_TABLE, DAILY_LOGIN_COINS, DAILY_LOGIN_XP, DAILY_REWARD_ROADMAP,
     FLAIR_COLORS, FLAIR_COST, BOOST_COST,
-    ALLOWED_EXTENSIONS,
+    ALLOWED_EXTENSIONS, LEADERBOARD_TOP_REWARD_COINS,
 )
 from models import (
     User, Post, Tag, Task, Investment, Transaction, Activity, PendingGift,
@@ -291,7 +291,12 @@ def login():
                 check_achievements(user)
                 generate_daily_challenges()
                 db.session.commit()
-            return redirect(request.args.get("next") or url_for("feed"))
+            # Validate next URL is same-origin to prevent open redirect
+            next_url = request.args.get("next") or ""
+            parsed = urlparse(next_url)
+            if parsed.netloc and parsed.netloc != urlparse(request.host_url).netloc:
+                next_url = ""
+            return redirect(next_url or url_for("feed"))
         flash("Invalid credentials.", "danger")
     return render_template("login.html")
 
@@ -415,17 +420,6 @@ def feed():
         else:
             q = Post.query.filter(db.false())
     elif current_user.is_authenticated:
-        liked_post_ids = db.session.query(likes_table.c.post_id).filter(
-            likes_table.c.user_id == current_user.id
-        ).subquery()
-        liked_tag_ids = db.session.query(post_tags.c.tag_id).filter(
-            post_tags.c.post_id.in_(db.session.query(liked_post_ids))
-        ).subquery()
-
-        curated_ids_q = Post.query.filter(
-            Post.tags.any(Tag.id.in_(db.session.query(liked_tag_ids)))
-        ).with_entities(Post.id).subquery()
-
         q = Post.query
     else:
         q = Post.query
@@ -436,28 +430,60 @@ def feed():
     # Top users (by XP)
     top_users = User.query.order_by(User.xp.desc()).limit(3).all() if current_user.is_authenticated else []
 
-    # Daily challenge (placeholder logic)
+    # Daily challenge — real DB data
     daily_challenge = None
     if current_user.is_authenticated:
-        daily_challenge = {
-            'id': 1,
-            'title': 'Like 5 posts',
-            'description': 'Like 5 different posts today.',
-            'progress_pct': 60,
-            'completed': False
-        }
+        today = utcnow().date()
+        today_str = today.strftime("%Y-%m-%d")
+        ch = DailyChallenge.query.filter_by(date_key=today_str).first()
+        if ch:
+            uc = UserDailyChallenge.query.filter_by(
+                user_id=current_user.id, challenge_id=ch.id
+            ).first()
+            progress_pct = 0
+            if uc and ch.target > 0:
+                progress_pct = min(100, int(uc.progress / ch.target * 100))
+            daily_challenge = {
+                'id': ch.id,
+                'title': ch.title,
+                'description': ch.description,
+                'progress_pct': progress_pct,
+                'completed': bool(uc and uc.completed),
+                'claimed': bool(uc and uc.claimed),
+                'reward_coins': ch.reward_coins,
+                'reward_xp': ch.reward_xp,
+            }
 
-    # Site-wide goal (placeholder logic)
+    # Site-wide goal — real post count for today
+    today_start = utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    today_post_count = Post.query.filter(Post.created_at >= today_start).count()
+    site_goal_target = 100
     site_goal = {
-        'description': 'Reach 100 posts site-wide today!',
-        'progress': 42,
-        'target': 100,
+        'description': f'Reach {site_goal_target} posts site-wide today!',
+        'progress': today_post_count,
+        'target': site_goal_target,
         'unit': 'posts',
-        'progress_pct': 42
+        'progress_pct': min(100, int(today_post_count / site_goal_target * 100)),
     }
 
-    # Quick quest (placeholder logic)
-    quick_quest = {'id': 1, 'title': 'Comment on a post', 'description': 'Leave a comment on any post.'}
+    # Quick quest — first unclaimed DailyChallenge for the user (fallback stub if none)
+    quick_quest = None
+    if current_user.is_authenticated:
+        today_str2 = utcnow().date().strftime("%Y-%m-%d")
+        all_today = DailyChallenge.query.filter_by(date_key=today_str2).all()
+        for _qch in all_today:
+            _quc = UserDailyChallenge.query.filter_by(
+                user_id=current_user.id, challenge_id=_qch.id
+            ).first()
+            if not _quc or (not _quc.completed):
+                quick_quest = {
+                    'id': _qch.id,
+                    'title': _qch.title,
+                    'description': _qch.description,
+                }
+                break
+    if quick_quest is None:
+        quick_quest = {'id': 0, 'title': 'Comment on a post', 'description': 'Leave a comment on any post.'}
 
     # Market ticker data
     ticker_sissies = User.query.filter_by(role="sissy", listed_on_market=True).order_by(
@@ -1293,6 +1319,31 @@ def leaderboard():
 
 
 # ---------------------------------------------------------------------------
+# Leaderboard Reward Payout
+# ---------------------------------------------------------------------------
+@app.route("/admin/payout_leaderboard", methods=["POST"])
+@login_required
+def payout_leaderboard():
+    if current_user.role != "master" or not current_user.is_verified:
+        abort(403)
+    top_sissies = User.query.filter_by(role="sissy").order_by(User.xp.desc()).limit(3).all()
+    reward_map = {1: LEADERBOARD_TOP_REWARD_COINS, 2: LEADERBOARD_TOP_REWARD_COINS // 2, 3: LEADERBOARD_TOP_REWARD_COINS // 4}
+    for rank, sissy in enumerate(top_sissies, start=1):
+        reward = reward_map.get(rank, 0)
+        if reward <= 0:
+            continue
+        sissy.coins += reward
+        db.session.add(Transaction(
+            user_id=sissy.id, amount=reward,
+            description=f"Leaderboard reward – rank #{rank}"
+        ))
+        notify(sissy.id, "reward", f"You received {reward} coins as a leaderboard reward (rank #{rank})!", "/leaderboard")
+    db.session.commit()
+    flash(f"Leaderboard rewards paid out to top {len(top_sissies)} sissies.", "success")
+    return redirect(url_for("admin_panel"))
+
+
+# ---------------------------------------------------------------------------
 # Sissy Market
 # ---------------------------------------------------------------------------
 @app.route("/market")
@@ -1578,6 +1629,7 @@ def new_avatar():
 
 @app.route("/account/buy_coins", methods=["POST"])
 @login_required
+@limiter.limit("10 per minute")
 @role_required("master")
 def buy_coins():
     amount = request.form.get("amount", 0, type=int)
@@ -1800,7 +1852,7 @@ def messages_inbox():
 
 @app.route("/messages/<string:username>", methods=["GET", "POST"])
 @login_required
-@limiter.limit("30 per minute")
+@limiter.limit("20 per minute")
 def message_thread(username):
     partner = User.query.filter_by(username=username).first_or_404()
     if partner.id == current_user.id:
@@ -3133,7 +3185,6 @@ def api_ggtv_streams():
 @app.route("/api/ggtv/bot_stream/start", methods=["POST"])
 @login_required
 @admin_required
-@csrf.exempt          # Called from JS fetch with custom header; add X-CSRFToken if preferred
 def api_ggtv_bot_stream_start():
     """Start an ffmpeg process that pulls a YouTube URL and pushes to MediaMTX."""
     data = request.get_json(silent=True) or {}
@@ -3155,14 +3206,19 @@ def api_ggtv_bot_stream_start():
     try:
         import yt_dlp  # noqa: PLC0415
         ydl_opts = {
-            "format": "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
+            # Single-file format avoids merged DASH streams that have no top-level url
+            "format": "best[ext=mp4]/bestvideo[ext=mp4]+bestaudio[ext=m4a]/best",
             "quiet": True,
             "no_warnings": True,
         }
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(youtube_url, download=False)
-            # For merged formats info["url"] may not exist; prefer the direct url
-            stream_url = info.get("url") or info.get("webpage_url")
+            # For merged (DASH) formats the URL lives in requested_formats
+            stream_url = info.get("url")
+            if not stream_url:
+                fmts = info.get("requested_formats") or []
+                if fmts:
+                    stream_url = fmts[0].get("url")  # video track; ffmpeg handles audio separately
             thumbnail  = info.get("thumbnail", "")
     except Exception as exc:
         app.logger.error("yt-dlp extraction failed: %s", exc)
@@ -3224,7 +3280,6 @@ def api_ggtv_bot_stream_start():
 @app.route("/api/ggtv/bot_stream/stop", methods=["POST"])
 @login_required
 @admin_required
-@csrf.exempt
 def api_ggtv_bot_stream_stop():
     """Terminate a running bot stream by its stream_key."""
     data = request.get_json(silent=True) or {}
