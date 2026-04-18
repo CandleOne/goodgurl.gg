@@ -169,7 +169,7 @@
                         <span class="badge bg-secondary">{{ thread.category.name }}</span>
                     </div>
                     <div class="card-footer d-flex justify-content-between">
-                        <span class="text-muted small"><i class="bi bi-eye"></i> {{ thread.view_count }} &middot; <i class="bi bi-chat-dots"></i> {{ thread.replies.all()|length }}</span>
+                        <span class="text-muted small"><i class="bi bi-eye"></i> {{ thread.view_count }} &middot; <i class="bi bi-chat-dots"></i> {{ thread.reply_count }}</span>
                         <small class="text-muted">{{ thread.created_at.strftime('%b %d') }}</small>
                     </div>
                 </div>

@@ -144,7 +144,7 @@ def distribute_dividends(sissy, coins_earned):
 def get_sponsor(sissy):
     inv = Investment.query.filter_by(sissy_id=sissy.id).order_by(Investment.amount.desc()).first()
     if inv:
-        return User.query.get(inv.investor_id)
+        return db.session.get(User, inv.investor_id)
     return None
 
 
@@ -172,7 +172,11 @@ def check_achievements(user):
         return
     post_count = user.posts.count()
     task_count = Task.query.filter_by(assignee_id=user.id, status="completed").count()
-    total_likes = sum(p.liked_by.count() for p in user.posts)
+    total_likes = db.session.query(db.func.count()).select_from(
+        likes_table
+    ).join(Post, likes_table.c.post_id == Post.id).filter(
+        Post.author_id == user.id
+    ).scalar() or 0
     streak = user.get_current_streak_count("login")
     checks = [
         ("First Post", post_count >= 1, min(post_count * 100, 100)),

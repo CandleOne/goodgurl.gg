@@ -57,7 +57,7 @@
             </div>
             {% elif current_user.role == 'master' and task.creator_id == current_user.id and task.status == 'accepted' %}
             <div class="card-footer">
-                <form method="POST" action="{{ url_for('reset_task', task_id=task.id) }}" onsubmit="return confirm('Reset this task? {{ task.assignee.username }} will be unassigned and the task reopened.')">
+                <form method="POST" action="{{ url_for('reset_task', task_id=task.id) }}" onsubmit="return confirm('Reset this task? {{ task.assignee.username if task.assignee else 'the assigned user' }} will be unassigned and the task reopened.')">
                     <button class="btn btn-sm btn-outline-secondary w-100"><i class="bi bi-arrow-counterclockwise"></i> Reset Task Progress</button>
                 </form>
             </div>

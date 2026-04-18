@@ -434,15 +434,14 @@ def feed():
     daily_challenge = None
     if current_user.is_authenticated:
         today = utcnow().date()
-        today_str = today.strftime("%Y-%m-%d")
-        ch = DailyChallenge.query.filter_by(date_key=today_str).first()
+        ch = DailyChallenge.query.filter_by(date=today).first()
         if ch:
             uc = UserDailyChallenge.query.filter_by(
                 user_id=current_user.id, challenge_id=ch.id
             ).first()
             progress_pct = 0
-            if uc and ch.target > 0:
-                progress_pct = min(100, int(uc.progress / ch.target * 100))
+            if uc and ch.goal_count > 0:
+                progress_pct = min(100, int(uc.progress / ch.goal_count * 100))
             daily_challenge = {
                 'id': ch.id,
                 'title': ch.title,
@@ -469,8 +468,8 @@ def feed():
     # Quick quest — first unclaimed DailyChallenge for the user (fallback stub if none)
     quick_quest = None
     if current_user.is_authenticated:
-        today_str2 = utcnow().date().strftime("%Y-%m-%d")
-        all_today = DailyChallenge.query.filter_by(date_key=today_str2).all()
+        _today = utcnow().date()
+        all_today = DailyChallenge.query.filter_by(date=_today).all()
         for _qch in all_today:
             _quc = UserDailyChallenge.query.filter_by(
                 user_id=current_user.id, challenge_id=_qch.id
@@ -601,8 +600,7 @@ def new_post():
             if pu:
                 applied_powerup = pu
                 pu.used = True
-                from datetime import datetime
-                pu.used_at = datetime.utcnow()
+                pu.used_at = utcnow()
                 # Apply effect
                 if pu.item.css_class == "boost":
                     post.is_boosted = True
@@ -1323,9 +1321,8 @@ def leaderboard():
 # ---------------------------------------------------------------------------
 @app.route("/admin/payout_leaderboard", methods=["POST"])
 @login_required
+@admin_required
 def payout_leaderboard():
-    if current_user.role != "master" or not current_user.is_verified:
-        abort(403)
     top_sissies = User.query.filter_by(role="sissy").order_by(User.xp.desc()).limit(3).all()
     reward_map = {1: LEADERBOARD_TOP_REWARD_COINS, 2: LEADERBOARD_TOP_REWARD_COINS // 2, 3: LEADERBOARD_TOP_REWARD_COINS // 4}
     for rank, sissy in enumerate(top_sissies, start=1):
@@ -2708,15 +2705,28 @@ def claim_daily_reward():
 @app.route("/claim_quest/<int:quest_id>", methods=["POST"])
 @login_required
 def claim_quest(quest_id):
-    # Placeholder: always allow claim for demo
-    coins = 10
-    xp = 10
-    current_user.coins += coins
-    current_user.add_points(xp, reason="Quick quest reward")
-    db.session.add(Transaction(user_id=current_user.id, amount=coins, description="Quick quest reward"))
+    if quest_id == 0:
+        flash("No active quest to claim.", "info")
+        return redirect(url_for("feed"))
+    ch = DailyChallenge.query.get_or_404(quest_id)
+    # Must be today's challenge
+    if ch.date != utcnow().date():
+        flash("This quest is no longer active.", "warning")
+        return redirect(url_for("feed"))
+    uc = UserDailyChallenge.query.filter_by(user_id=current_user.id, challenge_id=ch.id).first()
+    if not uc or not uc.completed:
+        flash("You haven't completed this quest yet.", "warning")
+        return redirect(url_for("feed"))
+    if uc.claimed:
+        flash("You've already claimed this quest's reward.", "info")
+        return redirect(url_for("feed"))
+    uc.claimed = True
+    current_user.coins += ch.reward_coins
+    current_user.add_points(ch.reward_xp, reason=f"Quest reward: {ch.title}")
+    db.session.add(Transaction(user_id=current_user.id, amount=ch.reward_coins, description=f"Quest reward: {ch.title}"))
     db.session.commit()
-    flash(f"Quick quest completed! +{coins} coins, +{xp} XP!", "success")
-    session["show_achievement_popup"] = f"Quick quest: +{coins} coins, +{xp} XP!"
+    flash(f"Quest complete! +{ch.reward_coins} coins, +{ch.reward_xp} XP!", "success")
+    session["show_achievement_popup"] = f"Quest: +{ch.reward_coins} coins, +{ch.reward_xp} XP!"
     return redirect(url_for("feed"))
 
 # ---------------------------------------------------------------------------
@@ -2843,15 +2853,16 @@ def academy_complete_lesson(lesson_id):
         existing.proof_photo = proof_url
 
     # Award rewards
-    current_user.xp += lesson.reward_xp
+    xp_earned, levelled_up = current_user.add_points(lesson.reward_xp, reason=f"Academy lesson: {lesson.title}")
     current_user.coins += lesson.reward_coins
     if lesson.reward_fp:
         current_user.fp += lesson.reward_fp
     if lesson.reward_bp:
         current_user.bp += lesson.reward_bp
+    check_achievements(current_user)
 
     db.session.commit()
-    flash(f"✅ Lesson complete! +{lesson.reward_xp} XP, +{lesson.reward_coins} coins"
+    flash(f"✅ Lesson complete! +{xp_earned} XP, +{lesson.reward_coins} coins"
           + (f", +{lesson.reward_fp} FP" if lesson.reward_fp else "")
           + (f", +{lesson.reward_bp} BP" if lesson.reward_bp else ""),
           "success")
@@ -2892,7 +2903,7 @@ def academy_reset_lesson(lesson_id):
         return redirect(url_for("academy"))
 
     # Reverse rewards
-    current_user.xp = max(0, current_user.xp - lesson.reward_xp)
+    current_user.deduct_points(lesson.reward_xp, reason=f"Academy lesson reset: {lesson.title}")
     current_user.coins = max(0, current_user.coins - lesson.reward_coins)
     if lesson.reward_fp:
         current_user.fp = max(0, current_user.fp - lesson.reward_fp)
@@ -3019,12 +3030,13 @@ def academy_complete_day():
     bonus_coins = total_coins * bonus_mult
     bonus_fp = total_fp * bonus_mult
     bonus_bp = total_bp * bonus_mult
-    current_user.xp += bonus_xp
+    current_user.add_points(bonus_xp, reason=f"Academy {track} day completion bonus")
     current_user.coins += bonus_coins
     if bonus_fp:
         current_user.fp += bonus_fp
     if bonus_bp:
         current_user.bp += bonus_bp
+    check_achievements(current_user)
 
     db.session.commit()
     track_label = "Feminization" if track == "feminization" else "Bimbofication"
