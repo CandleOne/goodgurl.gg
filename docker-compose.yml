@@ -1,0 +1,99 @@
+services:
+  # ── PostgreSQL ──────────────────────────────────────────────────────────────
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: goodgurl
+      POSTGRES_USER: goodgurl
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U goodgurl"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Redis ───────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --save 60 1 --loglevel warning
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Flask / Gunicorn ─────────────────────────────────────────────────────── 
+  web:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      FLASK_DEBUG: "0"
+      DATABASE_URL: postgresql://goodgurl:${POSTGRES_PASSWORD}@db:5432/goodgurl
+      LIMITER_STORAGE_URI: redis://redis:6379/0
+      SECRET_KEY: ${SECRET_KEY:?SECRET_KEY must be set}
+      # Mail
+      MAIL_SERVER:   ${MAIL_SERVER:-}
+      MAIL_PORT:     ${MAIL_PORT:-587}
+      MAIL_USE_TLS:  ${MAIL_USE_TLS:-true}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_DEFAULT_SENDER: ${MAIL_DEFAULT_SENDER:-noreply@goodgurl.gg}
+      # S3 / object storage
+      S3_BUCKET:         ${S3_BUCKET:-}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      AWS_REGION:        ${AWS_REGION:-auto}
+      S3_ENDPOINT_URL:   ${S3_ENDPOINT_URL:-}
+      S3_PUBLIC_URL:     ${S3_PUBLIC_URL:-}
+      # Sentry
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      # GG TV
+      MEDIAMTX_RTMP: ${MEDIAMTX_RTMP:-rtmp://localhost:1935/live}
+      MEDIAMTX_HLS:  ${MEDIAMTX_HLS:-http://localhost:8888}
+    volumes:
+      - uploads:/app/uploads   # Only used when S3 is NOT configured
+    expose:
+      - "8000"
+
+  # ── Nginx ───────────────────────────────────────────────────────────────────
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    depends_on:
+      - web
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/goodgurl.conf:ro
+      - ./static:/srv/goodgurl.gg/static:ro
+      - uploads:/srv/goodgurl.gg/uploads:ro
+      - certbot_web:/var/www/certbot:ro
+      - certbot_certs:/etc/letsencrypt:ro
+
+  # ── Certbot (TLS cert management) ───────────────────────────────────────────
+  certbot:
+    image: certbot/certbot:latest
+    volumes:
+      - certbot_web:/var/www/certbot
+      - certbot_certs:/etc/letsencrypt
+    # Run manually:  docker compose run --rm certbot certonly --webroot ...
+    entrypoint: /bin/sh -c "trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done"
+
+volumes:
+  postgres_data:
+  redis_data:
+  uploads:
+  certbot_web:
+  certbot_certs:

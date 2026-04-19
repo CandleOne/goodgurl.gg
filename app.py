@@ -53,6 +53,7 @@ from helpers import (
     compute_market_values_batch,
 )
 from simulation import run_simulation, start_timed_simulation, get_timed_sim_status
+from storage import upload_file as _upload_file, upload_avatar as _upload_avatar
 
 # ---------------------------------------------------------------------------
 # App configuration
@@ -86,7 +87,9 @@ app.config["LEVEL_XP_TABLE"] = LEVEL_XP_TABLE
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["UPLOAD_FOLDER"] = os.path.join(os.path.dirname(os.path.abspath(__file__)), "uploads")
 app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16 MB
-os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
+# Only create local upload folder when not using S3
+if not os.environ.get("S3_BUCKET"):
+    os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 
 # Session / cookie security
 _is_prod = os.environ.get("FLASK_DEBUG", "0") == "0"
@@ -653,8 +656,7 @@ def new_post():
             if file and file.filename and allowed_file(file.filename):
                 ext = file.filename.rsplit(".", 1)[1].lower()
                 safe_name = secrets.token_hex(16) + "." + ext
-                file.save(os.path.join(app.config["UPLOAD_FOLDER"], safe_name))
-                media_urls.append(url_for("uploaded_file", filename=safe_name))
+                media_urls.append(_upload_file(file, safe_name, ext))
             elif file and file.filename:
                 flash("File type not allowed. Accepted: png, jpg, jpeg, gif, webp, mp4, webm.", "warning")
                 return redirect(url_for("new_post"))
@@ -1801,10 +1803,7 @@ def upload_avatar():
         flash("Only PNG, JPG, WEBP, or GIF images are allowed.", "danger")
         return redirect(url_for("account"))
     safe_name = f"{current_user.username}-{secrets.token_hex(4)}.{ext}"
-    avatar_dir = os.path.join(app.static_folder, "avatars")
-    os.makedirs(avatar_dir, exist_ok=True)
-    file.save(os.path.join(avatar_dir, safe_name))
-    current_user.avatar_url = f"/static/avatars/{safe_name}"
+    current_user.avatar_url = _upload_avatar(file, safe_name, ext)
     db.session.commit()
     flash("Profile picture updated!", "success")
     return redirect(url_for("account"))
@@ -2974,8 +2973,7 @@ def academy_complete_lesson(lesson_id):
             flash("Only image files are accepted as proof.", "warning")
             return redirect(url_for("academy"))
         safe_name = secrets.token_hex(16) + "." + ext
-        file.save(os.path.join(app.config["UPLOAD_FOLDER"], safe_name))
-        proof_url = url_for("uploaded_file", filename=safe_name)
+        proof_url = _upload_file(file, safe_name, ext)
 
     existing.completed = True
     existing.completed_at = utcnow()
