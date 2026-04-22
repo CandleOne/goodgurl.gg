@@ -61,4 +61,17 @@ pathDefaults:
 paths:
   live:
     # Wildcard — any sub-path under /live/<stream_key> is accepted
-    {}
+    # OBS webhook hooks — MediaMTX calls these when a publisher starts/stops.
+    # Set MEDIAMTX_HOOK_SECRET in both your env and here for production.
+    runOnPublish: >
+      curl -s -X POST http://127.0.0.1:5000/api/ggtv/obs/on_publish
+      -H "Content-Type: application/json"
+      -H "X-MediaMTX-Secret: ${MEDIAMTX_HOOK_SECRET}"
+      -d "{\"path\":\"$MTX_PATH\"}"
+    runOnPublishRestart: no
+    runOnUnpublish: >
+      curl -s -X POST http://127.0.0.1:5000/api/ggtv/obs/on_publish_done
+      -H "Content-Type: application/json"
+      -H "X-MediaMTX-Secret: ${MEDIAMTX_HOOK_SECRET}"
+      -d "{\"path\":\"$MTX_PATH\"}"
+

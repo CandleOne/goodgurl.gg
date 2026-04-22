@@ -88,6 +88,7 @@ class User(UserMixin, db.Model):
     profile_frame = db.Column(db.String(60), default="")
     profile_title = db.Column(db.String(60), default="")
     created_at = db.Column(db.DateTime, default=utcnow)
+    stream_key = db.Column(db.String(32), unique=True, nullable=True, index=True)
 
     # Relationships
     posts = db.relationship("Post", backref="author", lazy="dynamic", cascade="all, delete-orphan")

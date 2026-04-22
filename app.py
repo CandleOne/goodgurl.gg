@@ -3279,13 +3279,25 @@ import uuid
 import subprocess
 import re as _re
 import threading
+import secrets
 
 # In-memory registry of active bot streams: stream_key → metadata dict
 _bot_streams: dict = {}
 _bot_streams_lock = threading.Lock()
 
+# In-memory registry of active OBS/user streams: stream_key → metadata dict
+_user_streams: dict = {}
+_user_streams_lock = threading.Lock()
+
+# Pending stream info set by users before going live via OBS
+_pending_stream_info: dict = {}  # stream_key → {title, category}
+_pending_stream_info_lock = threading.Lock()
+
 _MEDIAMTX_RTMP = os.environ.get("MEDIAMTX_RTMP", "rtmp://localhost:1935/live")
 _MEDIAMTX_HLS  = os.environ.get("MEDIAMTX_HLS",  "http://localhost:8888")
+
+# Shared secret MediaMTX uses when calling our on_publish hooks
+_MEDIAMTX_HOOK_SECRET = os.environ.get("MEDIAMTX_HOOK_SECRET", "")
 
 _YT_URL_RE = _re.compile(
     r"^https?://(www\.)?(youtube\.com/(watch\?.*v=|shorts/|live/|embed/)|youtu\.be/)[\w\-]{11}",
@@ -3294,7 +3306,7 @@ _YT_URL_RE = _re.compile(
 
 
 def _reap_dead_streams():
-    """Remove stopped ffmpeg processes from the registry."""
+    """Remove stopped ffmpeg processes from the bot registry."""
     with _bot_streams_lock:
         dead = [k for k, v in _bot_streams.items() if v["proc"].poll() is not None]
         for k in dead:
@@ -3304,11 +3316,12 @@ def _reap_dead_streams():
 @app.route("/api/ggtv/streams")
 @login_required
 def api_ggtv_streams():
-    """Return the list of currently active bot streams."""
+    """Return the list of currently active streams (bots + OBS users)."""
     _reap_dead_streams()
+    streams = []
     with _bot_streams_lock:
-        streams = [
-            {
+        for k, v in _bot_streams.items():
+            streams.append({
                 "stream_key": k,
                 "title":      v["title"],
                 "username":   v["username"],
@@ -3316,10 +3329,150 @@ def api_ggtv_streams():
                 "viewers":    v.get("viewers", 0),
                 "hls_url":    f"{_MEDIAMTX_HLS}/{k}/index.m3u8",
                 "thumbnail":  v.get("thumbnail", ""),
-            }
-            for k, v in _bot_streams.items()
-        ]
+                "source":     "bot",
+            })
+    with _user_streams_lock:
+        for k, v in _user_streams.items():
+            streams.append({
+                "stream_key": k,
+                "title":      v["title"],
+                "username":   v["username"],
+                "category":   v["category"],
+                "viewers":    v.get("viewers", 0),
+                "hls_url":    f"{_MEDIAMTX_HLS}/{k}/index.m3u8",
+                "thumbnail":  v.get("thumbnail", ""),
+                "source":     "obs",
+            })
     return jsonify(streams)
+
+
+# ---------------------------------------------------------------------------
+# GG TV — OBS / External software stream support
+# ---------------------------------------------------------------------------
+
+def _ensure_stream_key(user) -> str:
+    """Return the user's stream key, generating one if absent."""
+    if not user.stream_key:
+        while True:
+            key = secrets.token_hex(16)  # 32 hex chars
+            if not User.query.filter_by(stream_key=key).first():
+                user.stream_key = key
+                db.session.commit()
+                break
+    return user.stream_key
+
+
+@app.route("/api/ggtv/my_stream_key")
+@login_required
+def api_ggtv_my_stream_key():
+    """Return (or generate) the current user's RTMP stream key."""
+    key = _ensure_stream_key(current_user)
+    rtmp_url = f"{_MEDIAMTX_RTMP}/{key}"
+    return jsonify({"stream_key": key, "rtmp_url": rtmp_url})
+
+
+@app.route("/api/ggtv/my_stream_key/regenerate", methods=["POST"])
+@login_required
+def api_ggtv_regenerate_stream_key():
+    """Issue a fresh stream key for the current user."""
+    # Invalidate any active stream for the old key
+    old_key = current_user.stream_key
+    if old_key:
+        with _user_streams_lock:
+            _user_streams.pop(old_key, None)
+        with _pending_stream_info_lock:
+            _pending_stream_info.pop(old_key, None)
+
+    while True:
+        key = secrets.token_hex(16)
+        if not User.query.filter_by(stream_key=key).first():
+            current_user.stream_key = key
+            db.session.commit()
+            break
+
+    return jsonify({"stream_key": key, "rtmp_url": f"{_MEDIAMTX_RTMP}/{key}"})
+
+
+@app.route("/api/ggtv/user_stream/set_info", methods=["POST"])
+@login_required
+def api_ggtv_user_stream_set_info():
+    """Store the stream title/category the user wants to broadcast before going live."""
+    data  = request.get_json(silent=True) or {}
+    title    = (data.get("title")    or "").strip()[:100]
+    category = (data.get("category") or "").strip()[:60]
+    if not title:
+        return jsonify({"error": "title is required"}), 400
+
+    key = _ensure_stream_key(current_user)
+    with _pending_stream_info_lock:
+        _pending_stream_info[key] = {"title": title, "category": category or "Just Chatting"}
+    return jsonify({"ok": True})
+
+
+@app.route("/api/ggtv/obs/on_publish", methods=["POST"])
+def api_ggtv_obs_on_publish():
+    """
+    MediaMTX on_publish webhook — called when an OBS client starts streaming.
+    MediaMTX sends: { "action": "on_publish", "path": "live/<stream_key>", ... }
+    Respond 2xx to allow publish, 4xx to reject.
+    """
+    # Optional shared-secret check
+    if _MEDIAMTX_HOOK_SECRET:
+        if request.headers.get("X-MediaMTX-Secret", "") != _MEDIAMTX_HOOK_SECRET:
+            return jsonify({"error": "Forbidden"}), 403
+
+    data = request.get_json(silent=True) or {}
+    path = (data.get("path") or data.get("name") or "").lstrip("/")
+    # path is like "live/abc123..." — extract the stream key portion
+    parts = path.split("/", 1)
+    stream_key = parts[-1].strip()
+
+    if not stream_key or not _re.fullmatch(r"[0-9a-f]{32}", stream_key):
+        return jsonify({"error": "Invalid stream path"}), 400
+
+    user = User.query.filter_by(stream_key=stream_key).first()
+    if not user:
+        return jsonify({"error": "Unknown stream key"}), 403
+    if user.is_banned:
+        return jsonify({"error": "Account banned"}), 403
+
+    with _pending_stream_info_lock:
+        info = _pending_stream_info.get(stream_key, {})
+
+    with _user_streams_lock:
+        _user_streams[stream_key] = {
+            "username": user.username,
+            "title":    info.get("title", f"{user.username}'s Stream"),
+            "category": info.get("category", "Just Chatting"),
+            "viewers":  0,
+            "thumbnail": user.avatar_url or "",
+        }
+
+    app.logger.info("OBS stream started: user=%s key=%s", user.username, stream_key)
+    return jsonify({"allow": True}), 200
+
+
+@app.route("/api/ggtv/obs/on_publish_done", methods=["POST"])
+def api_ggtv_obs_on_publish_done():
+    """
+    MediaMTX on_publish_done webhook — called when an OBS client stops streaming.
+    """
+    if _MEDIAMTX_HOOK_SECRET:
+        if request.headers.get("X-MediaMTX-Secret", "") != _MEDIAMTX_HOOK_SECRET:
+            return jsonify({"error": "Forbidden"}), 403
+
+    data = request.get_json(silent=True) or {}
+    path = (data.get("path") or data.get("name") or "").lstrip("/")
+    parts = path.split("/", 1)
+    stream_key = parts[-1].strip()
+
+    with _user_streams_lock:
+        entry = _user_streams.pop(stream_key, None)
+
+    if entry:
+        app.logger.info("OBS stream ended: user=%s key=%s", entry.get("username"), stream_key)
+    return jsonify({"ok": True}), 200
+
 
 
 @app.route("/api/ggtv/bot_stream/start", methods=["POST"])
