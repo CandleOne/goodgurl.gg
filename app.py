@@ -41,6 +41,7 @@ from models import (
     ForumCategory, ForumThread, ForumReply, Report,
     DailyChallenge, UserDailyChallenge, ShopItem, UserPurchase, UserPowerup,
     Lesson, LessonProgress, JournalEntry, JournalPhoto, PostMedia,
+    HypnoChainWatch,
     likes_table, post_tags, followers_table, blocked_users,
 )
 from helpers import (
@@ -3178,6 +3179,165 @@ def academy_complete_day():
     else:
         flash(f"📓 {track_label} track archived to your Lab Journal! {bonus_msg}", "success")
     return redirect(url_for("academy"))
+
+
+# ---------------------------------------------------------------------------
+# Hypno Chains — Reddit video scroller in GoodGurl Labs
+# ---------------------------------------------------------------------------
+
+HYPNO_CHAINS_XP_PER_VIDEO = 5
+HYPNO_CHAINS_DAILY_LIMIT   = 20   # max XP-earning videos per user per day
+HYPNO_CHAINS_SUBREDDITS    = ["sissyhypno", "sissification", "feminization", "crossdressing"]
+
+
+def _fetch_reddit_videos(subreddit: str, after: str = "") -> dict:
+    """Fetch video/gif posts from a subreddit via Reddit's public JSON API."""
+    import requests as _req
+    url = (
+        f"https://www.reddit.com/r/{subreddit}/hot.json"
+        f"?limit=25&raw_json=1{'&after=' + after if after else ''}"
+    )
+    try:
+        resp = _req.get(url, headers={"User-Agent": "goodgurl_gg/1.0"}, timeout=8)
+        resp.raise_for_status()
+        raw = resp.json()
+    except Exception:
+        return {"posts": [], "after": None}
+
+    posts = []
+    new_after = raw.get("data", {}).get("after")
+    for item in raw.get("data", {}).get("children", []):
+        d = item.get("data", {})
+        # Skip stickied/ads/removed posts
+        if d.get("stickied") or d.get("removed_by_category"):
+            continue
+
+        media_url = None
+        media_type = "image"
+
+        if d.get("is_video"):
+            rv = d.get("media", {}).get("reddit_video", {})
+            fallback = rv.get("fallback_url", "")
+            # Strip DASH query params for direct mp4 playback
+            media_url = fallback.split("?")[0] if fallback else None
+            media_type = "video"
+        elif d.get("url", "").lower().endswith((".gif", ".gifv")):
+            media_url = d["url"].replace(".gifv", ".gif")
+            media_type = "gif"
+        elif d.get("post_hint") == "rich:video":
+            # e.g. redgifs embeds — grab preview gif if available
+            preview_gif = (
+                d.get("preview", {})
+                 .get("reddit_video_preview", {})
+                 .get("fallback_url", "")
+            )
+            if preview_gif:
+                media_url = preview_gif.split("?")[0]
+                media_type = "video"
+
+        if not media_url:
+            continue
+
+        thumbnail = d.get("thumbnail", "")
+        if thumbnail in ("self", "nsfw", "default", "spoiler", ""):
+            thumbnail = ""
+
+        posts.append({
+            "id": d["id"],
+            "title": d.get("title", "")[:200],
+            "media_url": media_url,
+            "media_type": media_type,
+            "thumbnail": thumbnail,
+            "subreddit": d.get("subreddit_name_prefixed", f"r/{subreddit}"),
+            "author": d.get("author", ""),
+            "ups": d.get("ups", 0),
+            "permalink": f"https://reddit.com{d.get('permalink', '')}",
+        })
+
+    return {"posts": posts, "after": new_after}
+
+
+@app.route("/academy/hypno-chains")
+@login_required
+def hypno_chains():
+    if not current_user.labs_accepted:
+        flash("Accept your calling in GoodGurl Labs first.", "warning")
+        return redirect(url_for("academy"))
+    # Watched today count for the XP progress bar
+    from constants import utcnow
+    today_str = utcnow().strftime("%Y-%m-%d")
+    watched_today = (
+        HypnoChainWatch.query
+        .filter(HypnoChainWatch.user_id == current_user.id)
+        .filter(db.func.strftime("%Y-%m-%d", HypnoChainWatch.watched_at) == today_str)
+        .count()
+    )
+    return render_template(
+        "hypno_chains.html",
+        subreddits=HYPNO_CHAINS_SUBREDDITS,
+        xp_per_video=HYPNO_CHAINS_XP_PER_VIDEO,
+        daily_limit=HYPNO_CHAINS_DAILY_LIMIT,
+        watched_today=min(watched_today, HYPNO_CHAINS_DAILY_LIMIT),
+    )
+
+
+@app.route("/api/hypno-chains")
+@limiter.limit("30 per minute")
+def api_hypno_chains():
+    sub = request.args.get("sub", HYPNO_CHAINS_SUBREDDITS[0])
+    after = request.args.get("after", "")
+    # Whitelist subreddits
+    if sub not in HYPNO_CHAINS_SUBREDDITS:
+        sub = HYPNO_CHAINS_SUBREDDITS[0]
+    result = _fetch_reddit_videos(sub, after)
+    return jsonify(result)
+
+
+@app.route("/api/hypno-chains/watched", methods=["POST"])
+@login_required
+@limiter.limit("120 per minute")
+def api_hypno_chains_watched():
+    """Award XP when a user completes watching a hypno chain video."""
+    from constants import utcnow
+    data = request.get_json(silent=True) or {}
+    reddit_id = str(data.get("reddit_id", ""))[:20].strip()
+
+    if not reddit_id:
+        return jsonify({"error": "missing reddit_id"}), 400
+
+    today_str = utcnow().strftime("%Y-%m-%d")
+    watched_today = (
+        HypnoChainWatch.query
+        .filter(HypnoChainWatch.user_id == current_user.id)
+        .filter(db.func.strftime("%Y-%m-%d", HypnoChainWatch.watched_at) == today_str)
+        .count()
+    )
+
+    if watched_today >= HYPNO_CHAINS_DAILY_LIMIT:
+        return jsonify({"xp": 0, "limit_reached": True, "watched_today": watched_today})
+
+    # Prevent double-awarding for same video
+    already = HypnoChainWatch.query.filter_by(
+        user_id=current_user.id, reddit_id=reddit_id
+    ).first()
+    if already:
+        return jsonify({"xp": 0, "limit_reached": False, "watched_today": watched_today, "duplicate": True})
+
+    watch = HypnoChainWatch(user_id=current_user.id, reddit_id=reddit_id)
+    db.session.add(watch)
+
+    earned_xp, levelled_up = current_user.add_points(
+        HYPNO_CHAINS_XP_PER_VIDEO, reason="Hypno Chains: video watched"
+    )
+    db.session.commit()
+
+    return jsonify({
+        "xp": earned_xp,
+        "levelled_up": levelled_up,
+        "limit_reached": False,
+        "watched_today": watched_today + 1,
+        "duplicate": False,
+    })
 
 
 # ---------------------------------------------------------------------------

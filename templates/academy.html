@@ -97,6 +97,11 @@
                 <i class="bi bi-stars"></i> Bimbofication Track
             </button>
         </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="hypno-tab" data-bs-toggle="pill" data-bs-target="#hypno-chains" type="button" role="tab">
+                <i class="bi bi-hypnotize"></i> Hypno Chains
+            </button>
+        </li>
     </ul>
 
     <div class="tab-content">
@@ -484,6 +489,53 @@
 
             {% endif %}
         </div>
+
+    <!-- ===== HYPNO CHAINS ===== -->
+    <div class="tab-pane fade" id="hypno-chains" role="tabpanel">
+        <div class="row justify-content-center">
+            <div class="col-md-7 col-lg-5">
+                <div class="card border-0 text-center py-5 px-4"
+                     style="background: linear-gradient(135deg, rgba(26,20,50,0.9), rgba(70,30,120,0.6)); border-radius: 20px;">
+                    <div style="font-size: 4rem; margin-bottom: 16px;">
+                        <i class="bi bi-hypnotize" style="color: #a78bfa;"></i>
+                    </div>
+                    <h4 class="fw-bold mb-2" style="color:#d4c6ff;">Hypno Chains</h4>
+                    <p class="text-muted mb-3">
+                        A curated sissy hypno video scroller sourced live from Reddit.
+                        Watch videos to enter the loop — and earn XP for every video you complete.
+                    </p>
+                    <div class="d-flex justify-content-center gap-3 mb-4 flex-wrap">
+                        <span class="badge bg-info fs-6">
+                            <i class="bi bi-lightning"></i> +5 XP per video
+                        </span>
+                        <span class="badge" style="background:#a78bfa; font-size:.875rem;">
+                            <i class="bi bi-film"></i> Up to 20 videos/day
+                        </span>
+                    </div>
+                    <div class="mb-4 text-start" style="background:rgba(0,0,0,.2); border-radius:12px; padding:16px;">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <i class="bi bi-collection-play" style="color:#a78bfa;"></i>
+                            <span class="text-light fw-semibold">Subreddits</span>
+                        </div>
+                        <div class="d-flex flex-wrap gap-2">
+                            <span class="badge rounded-pill" style="background:rgba(167,139,250,.2); border:1px solid rgba(167,139,250,.4); color:#d4c6ff;">r/sissyhypno</span>
+                            <span class="badge rounded-pill" style="background:rgba(167,139,250,.2); border:1px solid rgba(167,139,250,.4); color:#d4c6ff;">r/sissification</span>
+                            <span class="badge rounded-pill" style="background:rgba(167,139,250,.2); border:1px solid rgba(167,139,250,.4); color:#d4c6ff;">r/feminization</span>
+                            <span class="badge rounded-pill" style="background:rgba(167,139,250,.2); border:1px solid rgba(167,139,250,.4); color:#d4c6ff;">r/crossdressing</span>
+                        </div>
+                    </div>
+                    <a href="{{ url_for('hypno_chains') }}" class="btn btn-lg fw-bold px-5 py-3"
+                       style="background: linear-gradient(135deg,#7c3aed,#a78bfa); border:none; color:#fff; border-radius:12px;">
+                        <i class="bi bi-hypnotize me-2"></i> Enter Hypno Chains
+                    </a>
+                    <p class="text-muted small mt-3">
+                        <i class="bi bi-info-circle"></i>
+                        Content streams live from Reddit public feeds. Use arrow keys or swipe to navigate.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
 
     </div><!-- /tab-content -->
 

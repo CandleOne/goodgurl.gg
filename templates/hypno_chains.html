@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hypno Chains – GoodGurl Labs</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+</head>
+<body style="overflow:hidden; margin:0; padding:0; background:#0a0818;">
+<style>
+/* ── Hypno Chains: full-viewport snap scroll ── */
+.hc-viewport {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    overflow-y: scroll;
+    scroll-snap-type: y mandatory;
+    -webkit-overflow-scrolling: touch;
+    z-index: 1050;
+    background: #0a0818;
+}
+
+.hc-slide {
+    scroll-snap-align: start;
+    height: 100vh;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+    background: #0a0818;
+}
+
+/* ── Media fill ── */
+.hc-slide video,
+.hc-slide img.hc-media {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    background: #000;
+}
+
+.hc-slide .hc-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #1a1033, #0f0c29);
+    color: rgba(255,255,255,.15);
+    font-size: 6rem;
+}
+
+/* ── Hypno overlay: subtle radial pulse ── */
+.hc-slide::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center, transparent 40%, rgba(138,43,226,0.08) 100%);
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* ── Bottom overlay info ── */
+.hc-info {
+    position: absolute;
+    bottom: 0; left: 0; right: 80px;
+    padding: 24px 16px;
+    background: linear-gradient(transparent, rgba(0,0,0,.9));
+    color: #fff;
+    z-index: 2;
+}
+.hc-info .hc-subreddit {
+    font-size: 0.75rem;
+    color: #a78bfa;
+    font-weight: 600;
+    margin-bottom: 4px;
+    letter-spacing: 0.03em;
+}
+.hc-info .hc-title {
+    font-weight: 700;
+    font-size: 1rem;
+    margin-bottom: 4px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+.hc-info .hc-author {
+    font-size: 0.8rem;
+    opacity: .7;
+}
+
+/* ── Right action sidebar ── */
+.hc-actions {
+    position: absolute;
+    right: 12px;
+    bottom: 120px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    z-index: 3;
+}
+.hc-actions .hc-action {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: #fff;
+    font-size: 0.75rem;
+    cursor: pointer;
+    text-decoration: none;
+}
+.hc-actions .hc-action i {
+    font-size: 1.6rem;
+    margin-bottom: 2px;
+    transition: transform .15s;
+}
+.hc-actions .hc-action:hover i {
+    transform: scale(1.2);
+}
+
+/* ── Top bar ── */
+.hc-top-bar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 54px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    z-index: 1060;
+    background: linear-gradient(rgba(0,0,0,.7), transparent);
+}
+.hc-top-bar a {
+    color: #fff;
+    font-size: 1.3rem;
+    text-decoration: none;
+}
+.hc-top-bar .hc-title-bar {
+    color: #fff;
+    font-weight: 700;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.hc-top-bar .hc-title-bar i {
+    color: #a78bfa;
+}
+
+/* ── Sub selector ── */
+.hc-sub-pills {
+    position: fixed;
+    top: 54px; left: 0; right: 0;
+    display: flex;
+    gap: 8px;
+    padding: 6px 12px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    z-index: 1059;
+    background: linear-gradient(rgba(0,0,0,.5), transparent);
+}
+.hc-sub-pills::-webkit-scrollbar { display: none; }
+.hc-sub-pill {
+    flex-shrink: 0;
+    background: rgba(255,255,255,.12);
+    border: 1px solid rgba(167,139,250,.3);
+    color: #d4c6ff;
+    border-radius: 20px;
+    padding: 3px 12px;
+    font-size: 0.75rem;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background .15s, border-color .15s;
+    text-decoration: none;
+}
+.hc-sub-pill.active,
+.hc-sub-pill:hover {
+    background: rgba(167,139,250,.35);
+    border-color: #a78bfa;
+    color: #fff;
+}
+
+/* ── XP progress bar ── */
+.hc-xp-bar {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    height: 3px;
+    background: rgba(255,255,255,.1);
+    z-index: 1060;
+}
+.hc-xp-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #a78bfa, #ff4da6);
+    transition: width .4s ease;
+}
+
+/* ── XP toast ── */
+.hc-xp-toast {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: rgba(167,139,250,.9);
+    color: #fff;
+    font-weight: 700;
+    font-size: 0.95rem;
+    padding: 8px 20px;
+    border-radius: 24px;
+    z-index: 1070;
+    opacity: 0;
+    transition: opacity .3s, transform .3s;
+    pointer-events: none;
+    white-space: nowrap;
+}
+.hc-xp-toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+/* ── Loader ── */
+.hc-loader {
+    scroll-snap-align: start;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #0a0818;
+}
+
+/* ── Mute btn ── */
+.hc-mute-btn {
+    position: absolute;
+    top: 108px; left: 12px;
+    z-index: 4;
+    background: rgba(0,0,0,.5);
+    border: none;
+    color: #fff;
+    font-size: 1.2rem;
+    border-radius: 50%;
+    width: 36px; height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+/* ── No-content card ── */
+.hc-empty {
+    scroll-snap-align: start;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 12px;
+    color: rgba(255,255,255,.5);
+    text-align: center;
+    padding: 20px;
+}
+
+/* ── Watched badge (checkmark) overlay ── */
+.hc-watched-badge {
+    position: absolute;
+    top: 108px; right: 12px;
+    z-index: 4;
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: rgba(40,220,120,.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity .3s;
+}
+.hc-watched-badge.visible { opacity: 1; }
+</style>
+
+<!-- Top bar -->
+<div class="hc-top-bar">
+    <a href="{{ url_for('academy') }}" title="Back to GoodGurl Labs"><i class="bi bi-arrow-left"></i></a>
+    <div class="hc-title-bar">
+        <i class="bi bi-hypnotize"></i>
+        <span>Hypno Chains</span>
+    </div>
+    <!-- XP counter -->
+    <span id="hcXpCounter" style="font-size:.8rem; color:#d4c6ff;">
+        <i class="bi bi-lightning-fill" style="color:#a78bfa;"></i>
+        <span id="hcWatchedCount">{{ watched_today }}</span>/{{ daily_limit }}
+    </span>
+</div>
+
+<!-- Subreddit selector pills -->
+<div class="hc-sub-pills" id="hcSubPills">
+    {% for sub in subreddits %}
+    <span class="hc-sub-pill {% if loop.first %}active{% endif %}" data-sub="{{ sub }}">r/{{ sub }}</span>
+    {% endfor %}
+</div>
+
+<!-- Scroll container -->
+<div class="hc-viewport" id="hcViewport">
+    <div id="hcLoader" class="hc-loader">
+        <div class="spinner-border" style="color:#a78bfa;" role="status">
+            <span class="visually-hidden">Loading…</span>
+        </div>
+    </div>
+</div>
+
+<!-- XP progress bar -->
+<div class="hc-xp-bar">
+    <div class="hc-xp-bar-fill" id="hcXpBarFill"
+         style="width: {{ (watched_today / daily_limit * 100)|int }}%"></div>
+</div>
+
+<!-- XP toast -->
+<div class="hc-xp-toast" id="hcXpToast"></div>
+
+<script>
+(function () {
+    const viewport     = document.getElementById('hcViewport');
+    const loader       = document.getElementById('hcLoader');
+    const xpToast      = document.getElementById('hcXpToast');
+    const watchedCount = document.getElementById('hcWatchedCount');
+    const xpBarFill    = document.getElementById('hcXpBarFill');
+    const csrfToken    = document.querySelector('meta[name=csrf-token]')?.content || '';
+
+    const DAILY_LIMIT    = {{ daily_limit }};
+    const XP_PER_VIDEO   = {{ xp_per_video }};
+    let watchedToday     = {{ watched_today }};
+    let globalMuted      = true;
+    let afterToken       = '';
+    let loading          = false;
+    let hasMore          = true;
+    let currentSub       = document.querySelector('.hc-sub-pill.active')?.dataset.sub || 'sissyhypno';
+
+    // Already-awarded set (client-side guard against same-slide duplicate calls)
+    const awardedSet = new Set();
+
+    // ── Build a slide ────────────────────────────────────────────────
+    function buildSlide(p) {
+        const slide = document.createElement('div');
+        slide.className = 'hc-slide';
+        slide.dataset.redditId = p.id;
+
+        let mediaHTML = '';
+        if (p.media_type === 'video') {
+            mediaHTML = `
+                <video class="hc-media" loop playsinline ${globalMuted ? 'muted' : ''} preload="metadata">
+                    <source src="${escHtml(p.media_url)}" type="video/mp4">
+                </video>
+                <button class="hc-mute-btn" onclick="toggleMuteAll(this)">
+                    <i class="bi bi-volume-${globalMuted ? 'mute' : 'up'}-fill"></i>
+                </button>`;
+        } else if (p.media_type === 'gif') {
+            mediaHTML = `<img class="hc-media" src="${escHtml(p.media_url)}" alt="" loading="lazy">`;
+        } else {
+            mediaHTML = `<div class="hc-placeholder"><i class="bi bi-hypnotize"></i></div>`;
+        }
+
+        // Watched badge (hidden until watched)
+        const watchedBadge = `
+            <div class="hc-watched-badge" id="badge-${escHtml(p.id)}">
+                <i class="bi bi-check" style="color:#fff; font-size:1.1rem;"></i>
+            </div>`;
+
+        slide.innerHTML = `
+            ${mediaHTML}
+            ${watchedBadge}
+            <div class="hc-info">
+                <div class="hc-subreddit"><i class="bi bi-reddit"></i> ${escHtml(p.subreddit)}</div>
+                <div class="hc-title">${escHtml(p.title)}</div>
+                <div class="hc-author">u/${escHtml(p.author)} &nbsp;·&nbsp; <i class="bi bi-arrow-up"></i> ${p.ups.toLocaleString()}</div>
+            </div>
+            <div class="hc-actions">
+                <a class="hc-action" href="${escHtml(p.permalink)}" target="_blank" rel="noopener noreferrer" title="Open on Reddit">
+                    <i class="bi bi-box-arrow-up-right"></i>
+                    <span>Reddit</span>
+                </a>
+                <div class="hc-action" onclick="shareSlide('${escHtml(p.permalink)}')" title="Share">
+                    <i class="bi bi-share"></i>
+                    <span>Share</span>
+                </div>
+            </div>`;
+
+        attachWatchTracking(slide, p);
+        return slide;
+    }
+
+    // ── XP watch tracking ─────────────────────────────────────────────
+    function attachWatchTracking(slide, p) {
+        const vid = slide.querySelector('video');
+        if (vid) {
+            vid.addEventListener('timeupdate', function onProgress() {
+                if (vid.duration && vid.currentTime / vid.duration >= 0.8) {
+                    vid.removeEventListener('timeupdate', onProgress);
+                    awardXp(p.id, slide);
+                }
+            });
+        } else {
+            // GIF / image: award after 4 seconds of being visible
+            let gifTimer = null;
+            const obs = new IntersectionObserver((entries) => {
+                entries.forEach(e => {
+                    if (e.isIntersecting) {
+                        gifTimer = setTimeout(() => awardXp(p.id, slide), 4000);
+                    } else {
+                        clearTimeout(gifTimer);
+                    }
+                });
+            }, { threshold: 0.8 });
+            obs.observe(slide);
+        }
+    }
+
+    async function awardXp(redditId, slide) {
+        if (awardedSet.has(redditId)) return;
+        if (watchedToday >= DAILY_LIMIT) {
+            showToast('Daily limit reached! Come back tomorrow.', '#9ca3af');
+            return;
+        }
+        awardedSet.add(redditId);
+
+        try {
+            const resp = await fetch('/api/hypno-chains/watched', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken,
+                },
+                body: JSON.stringify({ reddit_id: redditId }),
+            });
+            const data = await resp.json();
+
+            if (data.xp > 0) {
+                watchedToday = data.watched_today;
+                updateXpBar();
+                showToast(`+${data.xp} XP${data.levelled_up ? ' 🎉 Level Up!' : ''}`, '#a78bfa');
+                // Show watched badge on slide
+                const badge = slide.querySelector('.hc-watched-badge');
+                if (badge) badge.classList.add('visible');
+            } else if (data.limit_reached) {
+                showToast('Daily limit reached! Come back tomorrow.', '#9ca3af');
+            }
+        } catch (e) {
+            // Silent fail — don't disrupt the viewing experience
+        }
+    }
+
+    function updateXpBar() {
+        const pct = Math.min((watchedToday / DAILY_LIMIT) * 100, 100);
+        xpBarFill.style.width = pct + '%';
+        watchedCount.textContent = watchedToday;
+    }
+
+    // ── XP Toast ─────────────────────────────────────────────────────
+    let toastTimer = null;
+    function showToast(msg, color) {
+        xpToast.textContent = msg;
+        xpToast.style.background = color ? `${color}dd` : '';
+        xpToast.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => xpToast.classList.remove('show'), 2200);
+    }
+
+    // ── Load page ─────────────────────────────────────────────────────
+    async function loadPage() {
+        if (loading || !hasMore) return;
+        loading = true;
+
+        try {
+            const url = `/api/hypno-chains?sub=${encodeURIComponent(currentSub)}&after=${encodeURIComponent(afterToken)}`;
+            const resp = await fetch(url);
+            const data = await resp.json();
+
+            afterToken = data.after || '';
+            hasMore = !!data.after;
+
+            if (data.posts.length === 0 && viewport.querySelectorAll('.hc-slide').length === 0) {
+                // Show empty state
+                const empty = document.createElement('div');
+                empty.className = 'hc-empty';
+                empty.innerHTML = `
+                    <i class="bi bi-hypnotize" style="font-size:3rem; opacity:.3;"></i>
+                    <p>No video content found for r/${escHtml(currentSub)}.</p>
+                    <p class="small">Reddit may require authentication to access this subreddit's content.</p>`;
+                viewport.insertBefore(empty, loader);
+                loader.style.display = 'none';
+            } else {
+                data.posts.forEach(p => {
+                    const slide = buildSlide(p);
+                    viewport.insertBefore(slide, loader);
+                });
+                if (!hasMore) loader.style.display = 'none';
+            }
+        } catch (e) {
+            console.error('Hypno Chains load error', e);
+        }
+
+        loading = false;
+    }
+
+    // ── Infinite scroll ───────────────────────────────────────────────
+    viewport.addEventListener('scroll', () => {
+        if (viewport.scrollTop + viewport.clientHeight >= viewport.scrollHeight - window.innerHeight * 1.5) {
+            loadPage();
+        }
+        handleVisibility();
+    });
+
+    // ── Auto-play visible video, pause others ─────────────────────────
+    function handleVisibility() {
+        const slides = viewport.querySelectorAll('.hc-slide');
+        const vpMid  = viewport.scrollTop + viewport.clientHeight / 2;
+        slides.forEach(s => {
+            const vid = s.querySelector('video');
+            if (!vid) return;
+            const top = s.offsetTop;
+            const bot = top + s.offsetHeight;
+            if (top < vpMid && bot > vpMid) {
+                if (vid.paused) vid.play().catch(() => {});
+            } else {
+                if (!vid.paused) vid.pause();
+            }
+        });
+    }
+
+    // ── Global mute toggle ────────────────────────────────────────────
+    window.toggleMuteAll = function (btn) {
+        globalMuted = !globalMuted;
+        document.querySelectorAll('.hc-slide video').forEach(v => v.muted = globalMuted);
+        document.querySelectorAll('.hc-mute-btn i').forEach(i => {
+            i.className = 'bi bi-volume-' + (globalMuted ? 'mute' : 'up') + '-fill';
+        });
+    };
+
+    // ── Share ─────────────────────────────────────────────────────────
+    window.shareSlide = function (url) {
+        if (navigator.share) {
+            navigator.share({ url }).catch(() => {});
+        } else {
+            navigator.clipboard?.writeText(url).then(() => showToast('Link copied!', '#6b7280'));
+        }
+    };
+
+    // ── Subreddit switcher ────────────────────────────────────────────
+    document.getElementById('hcSubPills').addEventListener('click', (e) => {
+        const pill = e.target.closest('.hc-sub-pill');
+        if (!pill || pill.dataset.sub === currentSub) return;
+
+        document.querySelectorAll('.hc-sub-pill').forEach(p => p.classList.remove('active'));
+        pill.classList.add('active');
+        currentSub = pill.dataset.sub;
+
+        // Clear slides and reload
+        viewport.querySelectorAll('.hc-slide, .hc-empty').forEach(el => el.remove());
+        afterToken = '';
+        hasMore = true;
+        loader.style.display = '';
+        loadPage();
+        viewport.scrollTop = 0;
+    });
+
+    // ── Keyboard nav ──────────────────────────────────────────────────
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowDown' || e.key === 'j') {
+            e.preventDefault();
+            viewport.scrollBy({ top: window.innerHeight, behavior: 'smooth' });
+        } else if (e.key === 'ArrowUp' || e.key === 'k') {
+            e.preventDefault();
+            viewport.scrollBy({ top: -window.innerHeight, behavior: 'smooth' });
+        } else if (e.key === 'm') {
+            const btn = document.querySelector('.hc-mute-btn');
+            if (btn) toggleMuteAll(btn);
+        }
+    });
+
+    // ── HTML escape ───────────────────────────────────────────────────
+    function escHtml(s) {
+        const d = document.createElement('div');
+        d.textContent = String(s);
+        return d.innerHTML;
+    }
+
+    // ── Initial load ──────────────────────────────────────────────────
+    loadPage();
+})();
+</script>
+</body>
+</html>

@@ -786,3 +786,20 @@ class JournalPhoto(db.Model):
     caption = db.Column(db.Text, default="")
     lesson_title = db.Column(db.String(120), default="")
     created_at = db.Column(db.DateTime, default=utcnow)
+
+
+# ---------------------------------------------------------------------------
+# Hypno Chains – Reddit video watch tracking
+# ---------------------------------------------------------------------------
+
+class HypnoChainWatch(db.Model):
+    """Records each unique Reddit video watched by a user for XP deduplication."""
+    __tablename__ = "hypno_chain_watch"
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False, index=True)
+    reddit_id = db.Column(db.String(20), nullable=False)
+    watched_at = db.Column(db.DateTime, default=utcnow, index=True)
+    user = db.relationship("User", backref=db.backref("hypno_watches", lazy="dynamic"))
+    __table_args__ = (
+        db.UniqueConstraint("user_id", "reddit_id", name="uq_hypno_watch_user_post"),
+    )
