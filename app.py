@@ -3191,18 +3191,67 @@ HYPNO_CHAINS_SUBREDDITS    = ["sissyhypno", "sissification", "feminization", "cr
 
 
 def _fetch_reddit_videos(subreddit: str, after: str = "") -> dict:
-    """Fetch video/gif posts from a subreddit via Reddit's public JSON API."""
+    """Fetch video/gif posts from a subreddit via Reddit's API.
+
+    Uses OAuth2 client-credentials if REDDIT_CLIENT_ID / REDDIT_CLIENT_SECRET
+    are set in the environment (recommended — public API is frequently blocked).
+    Falls back to the unauthenticated JSON endpoint otherwise.
+    """
     import requests as _req
+
+    # ── Build auth headers ─────────────────────────────────────────────
+    reddit_client_id     = os.environ.get("REDDIT_CLIENT_ID", "")
+    reddit_client_secret = os.environ.get("REDDIT_CLIENT_SECRET", "")
+    user_agent = "goodgurl_gg/1.0 (by /u/goodgurl_gg)"
+
+    headers = {"User-Agent": user_agent}
+    base_url = "https://www.reddit.com"
+
+    if reddit_client_id and reddit_client_secret:
+        # OAuth2 client-credentials token (cached in app.config)
+        from flask import current_app
+        from datetime import datetime as _dt
+        now = _dt.utcnow().timestamp()
+        token_data = current_app.config.get("_reddit_token", {})
+        if not token_data or token_data.get("expires_at", 0) < now + 30:
+            try:
+                tok_resp = _req.post(
+                    "https://www.reddit.com/api/v1/access_token",
+                    auth=(reddit_client_id, reddit_client_secret),
+                    data={"grant_type": "client_credentials"},
+                    headers={"User-Agent": user_agent},
+                    timeout=8,
+                )
+                tok_resp.raise_for_status()
+                tok_json = tok_resp.json()
+                token_data = {
+                    "token": tok_json["access_token"],
+                    "expires_at": now + tok_json.get("expires_in", 3600),
+                }
+                current_app.config["_reddit_token"] = token_data
+            except Exception:
+                token_data = {}
+        if token_data.get("token"):
+            headers["Authorization"] = f"Bearer {token_data['token']}"
+            base_url = "https://oauth.reddit.com"
+
     url = (
-        f"https://www.reddit.com/r/{subreddit}/hot.json"
+        f"{base_url}/r/{subreddit}/hot.json"
         f"?limit=25&raw_json=1{'&after=' + after if after else ''}"
     )
+
     try:
-        resp = _req.get(url, headers={"User-Agent": "goodgurl_gg/1.0"}, timeout=8)
+        resp = _req.get(url, headers=headers, timeout=6)
         resp.raise_for_status()
+        content_type = resp.headers.get("Content-Type", "")
+        if "json" not in content_type and "javascript" not in content_type:
+            # Reddit returned HTML (login wall) — not JSON
+            return {"posts": [], "after": None,
+                    "error": "Reddit returned a non-JSON response (login wall or redirect). "
+                             "Set REDDIT_CLIENT_ID and REDDIT_CLIENT_SECRET to enable API access."}
         raw = resp.json()
-    except Exception:
-        return {"posts": [], "after": None}
+    except Exception as exc:
+        return {"posts": [], "after": None, "error": str(exc)[:120]}
 
     posts = []
     new_after = raw.get("data", {}).get("after")
@@ -3218,36 +3267,37 @@ def _fetch_reddit_videos(subreddit: str, after: str = "") -> dict:
         if d.get("is_video"):
             rv = d.get("media", {}).get("reddit_video", {})
             fallback = rv.get("fallback_url", "")
-            # Strip DASH query params for direct mp4 playback
+            # Strip query params — the base .mp4 path is a direct playable file
             media_url = fallback.split("?")[0] if fallback else None
             media_type = "video"
         elif d.get("url", "").lower().endswith((".gif", ".gifv")):
             media_url = d["url"].replace(".gifv", ".gif")
             media_type = "gif"
         elif d.get("post_hint") == "rich:video":
-            # e.g. redgifs embeds — grab preview gif if available
-            preview_gif = (
+            # redgifs / external embeds — grab preview mp4 if present
+            rv_preview = (
                 d.get("preview", {})
                  .get("reddit_video_preview", {})
-                 .get("fallback_url", "")
             )
-            if preview_gif:
-                media_url = preview_gif.split("?")[0]
+            fallback = rv_preview.get("fallback_url", "")
+            if fallback:
+                media_url = fallback.split("?")[0]
                 media_type = "video"
+        elif d.get("post_hint") == "image":
+            # Treat still images as valid slides too so the feed isn't empty
+            img_url = d.get("url", "")
+            if img_url.lower().endswith((".jpg", ".jpeg", ".png", ".webp")):
+                media_url = img_url
+                media_type = "image"
 
         if not media_url:
             continue
-
-        thumbnail = d.get("thumbnail", "")
-        if thumbnail in ("self", "nsfw", "default", "spoiler", ""):
-            thumbnail = ""
 
         posts.append({
             "id": d["id"],
             "title": d.get("title", "")[:200],
             "media_url": media_url,
             "media_type": media_type,
-            "thumbnail": thumbnail,
             "subreddit": d.get("subreddit_name_prefixed", f"r/{subreddit}"),
             "author": d.get("author", ""),
             "ups": d.get("ups", 0),

@@ -468,29 +468,55 @@
         toastTimer = setTimeout(() => xpToast.classList.remove('show'), 2200);
     }
 
+    // ── Show empty / error state ─────────────────────────────────────
+    function showEmptyState(msg, sub, isError) {
+        loader.style.display = 'none';
+        hasMore = false;
+        const empty = document.createElement('div');
+        empty.className = 'hc-empty';
+        const icon = isError ? 'bi-exclamation-circle' : 'bi-hypnotize';
+        const retryBtn = isError
+            ? `<button class="btn btn-sm mt-3" style="background:#a78bfa; color:#fff; border-radius:20px;"
+                       onclick="retryLoad()"><i class="bi bi-arrow-clockwise"></i> Retry</button>` : '';
+        empty.innerHTML = `
+            <i class="bi ${icon}" style="font-size:3rem; opacity:.4;"></i>
+            <p>${msg}</p>${retryBtn}`;
+        viewport.insertBefore(empty, loader);
+    }
+
     // ── Load page ─────────────────────────────────────────────────────
     async function loadPage() {
         if (loading || !hasMore) return;
         loading = true;
 
+        // 12-second client-side timeout
+        const ctrl = new AbortController();
+        const tid  = setTimeout(() => ctrl.abort(), 12000);
+
         try {
             const url = `/api/hypno-chains?sub=${encodeURIComponent(currentSub)}&after=${encodeURIComponent(afterToken)}`;
-            const resp = await fetch(url);
+            const resp = await fetch(url, { signal: ctrl.signal });
+            clearTimeout(tid);
+
+            if (!resp.ok) {
+                throw new Error(`HTTP ${resp.status}`);
+            }
+
             const data = await resp.json();
 
             afterToken = data.after || '';
-            hasMore = !!data.after;
+            hasMore    = !!data.after;
 
-            if (data.posts.length === 0 && viewport.querySelectorAll('.hc-slide').length === 0) {
-                // Show empty state
-                const empty = document.createElement('div');
-                empty.className = 'hc-empty';
-                empty.innerHTML = `
-                    <i class="bi bi-hypnotize" style="font-size:3rem; opacity:.3;"></i>
-                    <p>No video content found for r/${escHtml(currentSub)}.</p>
-                    <p class="small">Reddit may require authentication to access this subreddit's content.</p>`;
-                viewport.insertBefore(empty, loader);
-                loader.style.display = 'none';
+            const existingSlides = viewport.querySelectorAll('.hc-slide').length;
+
+            if (data.posts.length === 0 && existingSlides === 0) {
+                showEmptyState(
+                    data.error
+                        ? `Could not load content: ${escHtml(data.error)}`
+                        : `No video content found for r/${escHtml(currentSub)}.`,
+                    currentSub,
+                    !!data.error
+                );
             } else {
                 data.posts.forEach(p => {
                     const slide = buildSlide(p);
@@ -499,11 +525,31 @@
                 if (!hasMore) loader.style.display = 'none';
             }
         } catch (e) {
+            clearTimeout(tid);
             console.error('Hypno Chains load error', e);
+            // Only show error state if we have no slides yet
+            if (viewport.querySelectorAll('.hc-slide, .hc-empty').length === 0) {
+                showEmptyState(
+                    e.name === 'AbortError'
+                        ? 'Connection timed out. Reddit may be unavailable.'
+                        : 'Could not reach Reddit. Check your connection.',
+                    currentSub,
+                    true
+                );
+            } else {
+                loader.style.display = 'none';
+            }
         }
 
         loading = false;
     }
+
+    window.retryLoad = function () {
+        viewport.querySelectorAll('.hc-empty').forEach(el => el.remove());
+        loader.style.display = '';
+        hasMore = true;
+        loadPage();
+    };
 
     // ── Infinite scroll ───────────────────────────────────────────────
     viewport.addEventListener('scroll', () => {
