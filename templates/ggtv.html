@@ -1,10 +1,1088 @@
 {% extends "base.html" %}
 {% block title %}GG TV – goodgurl.gg{% endblock %}
 {% block head_extra %}
-<!-- hls.js — HLS playback in browsers that don't natively support it -->
 <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js"></script>
 {% endblock %}
 {% block content %}
+
+<!-- GG TV — break out of container padding -->
+<div class="ggtv-page">
+
+    <!-- ═══════════════════════════════════════════════════════════
+         LEFT SIDEBAR
+    ════════════════════════════════════════════════════════════════ -->
+    <aside class="ggtv-sidebar" id="ggtv-sidebar">
+
+        <!-- Nav section -->
+        <nav class="ggtv-nav">
+            <a class="ggtv-nav-item active" href="#">
+                <i class="bi bi-house-fill ggtv-nav-icon"></i>
+                <span class="ggtv-nav-label">Home</span>
+            </a>
+            <a class="ggtv-nav-item" href="#">
+                <i class="bi bi-compass ggtv-nav-icon"></i>
+                <span class="ggtv-nav-label">Browse</span>
+            </a>
+            {% if current_user.is_authenticated %}
+            <a class="ggtv-nav-item" href="#">
+                <i class="bi bi-heart ggtv-nav-icon"></i>
+                <span class="ggtv-nav-label">Following</span>
+            </a>
+            {% endif %}
+        </nav>
+
+        <div class="ggtv-sidebar-divider"></div>
+
+        <!-- Recommended channels -->
+        <div class="ggtv-sidebar-section-header">Recommended</div>
+        <div id="sidebarChannelList">
+            <div class="ggtv-sidebar-empty" id="sidebarEmpty">
+                <i class="bi bi-broadcast"></i>
+                <span>No channels live</span>
+            </div>
+        </div>
+        <button class="ggtv-show-more" id="sidebarShowMore" style="display:none">
+            Show More
+        </button>
+
+        <!-- Go Live -->
+        {% if current_user.is_authenticated %}
+        <div class="ggtv-sidebar-golive">
+            <button class="btn btn-pink w-100" id="goLiveBtn">
+                <i class="bi bi-camera-video-fill me-2"></i>Go Live
+            </button>
+        </div>
+        {% endif %}
+    </aside>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         MAIN CONTENT
+    ════════════════════════════════════════════════════════════════ -->
+    <div class="ggtv-main" id="ggtv-main">
+
+        <!-- ── Featured / spotlight section ────────────────── -->
+        <section class="ggtv-featured">
+
+            <!-- Player -->
+            <div class="ggtv-player-wrap" id="spotlightPlayer">
+                {% if not current_user.is_authenticated %}
+                <div class="ggtv-player-placeholder ggtv-blurred">
+                    <i class="bi bi-broadcast"></i>
+                </div>
+                <div class="ggtv-login-wall">
+                    <div class="ggtv-login-box">
+                        <i class="bi bi-lock-fill"></i>
+                        <p>Login to watch live streams</p>
+                        <a href="{{ url_for('login') }}" class="btn btn-pink">Login</a>
+                    </div>
+                </div>
+                {% else %}
+                <div class="ggtv-player-placeholder" id="spotlightPlaceholder">
+                    <i class="bi bi-broadcast ggtv-placeholder-icon"></i>
+                    <p class="ggtv-placeholder-title">No stream selected</p>
+                    <p class="ggtv-placeholder-sub">Pick a channel from the sidebar or go live yourself</p>
+                </div>
+                <video id="spotlightVideo" class="ggtv-video" autoplay playsinline style="display:none"></video>
+                <!-- Mute overlay -->
+                <button class="ggtv-mute-btn" id="muteBtn" style="display:none" title="Toggle mute">
+                    <i class="bi bi-volume-mute-fill" id="muteIcon"></i>
+                </button>
+                <!-- Live badge overlay -->
+                <div class="ggtv-player-live-badge" id="playerLiveBadge" style="display:none">
+                    <span class="ggtv-live-dot"></span> LIVE
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Thumbnail strip + stream meta (below video) -->
+            <div class="ggtv-featured-meta" id="featuredMeta">
+                <div class="ggtv-featured-info">
+                    <div class="ggtv-channel-avatar ggtv-channel-avatar--md" id="infoAvatar">
+                        <i class="bi bi-person-fill"></i>
+                    </div>
+                    <div class="ggtv-featured-text">
+                        <div class="ggtv-featured-streamer">
+                            <span id="infoChannelName" class="ggtv-featured-name">—</span>
+                            <span class="ggtv-featured-viewers" id="featuredViewerBadge" style="display:none">
+                                <i class="bi bi-people-fill"></i>
+                                <span id="infoViewers">0</span> watching
+                            </span>
+                        </div>
+                        <div class="ggtv-featured-title" id="infoTitle">No one is live right now</div>
+                        <div class="ggtv-featured-category">
+                            <span id="infoCategory" class="ggtv-cat-tag" style="display:none"></span>
+                            <span class="ggtv-cat-tag" id="infoTagExtra" style="display:none"></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="ggtv-featured-actions">
+                    <button class="btn ggtv-btn-follow" id="followStreamBtn" disabled>
+                        <i class="bi bi-heart-fill me-1"></i> Follow
+                    </button>
+                    <button class="btn ggtv-btn-share" id="shareStreamBtn" disabled>
+                        <i class="bi bi-share-fill"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Thumbnail strip carousel (only shows when ≥2 streams) -->
+            <div class="ggtv-thumb-strip" id="thumbStrip" style="display:none">
+                <button class="ggtv-thumb-nav" id="thumbPrev"><i class="bi bi-chevron-left"></i></button>
+                <div class="ggtv-thumb-track" id="thumbTrack"></div>
+                <button class="ggtv-thumb-nav" id="thumbNext"><i class="bi bi-chevron-right"></i></button>
+                <!-- dot pagination -->
+                <div class="ggtv-thumb-dots" id="thumbDots"></div>
+            </div>
+
+        </section>
+
+        <!-- ── Top Live Channels grid ────────────────────────── -->
+        <section class="ggtv-channels-section">
+            <div class="ggtv-section-header">
+                <h2 class="ggtv-section-title">
+                    <span class="ggtv-live-dot blink"></span>
+                    Top Live Channels
+                </h2>
+                <span class="ggtv-section-count" id="gridCountLabel">0 live</span>
+            </div>
+
+            <div id="liveStreamsGrid" class="ggtv-channels-grid position-relative">
+                {% if not current_user.is_authenticated %}
+                <div class="ggtv-login-wall ggtv-login-wall--grid">
+                    <div class="ggtv-login-box">
+                        <i class="bi bi-lock-fill"></i>
+                        <p>Login to browse live channels</p>
+                        <a href="{{ url_for('login') }}" class="btn btn-pink">Login</a>
+                    </div>
+                </div>
+                {% endif %}
+                <div class="ggtv-grid-empty {% if not current_user.is_authenticated %}ggtv-blurred{% endif %}" id="gridEmpty">
+                    <i class="bi bi-broadcast"></i>
+                    <p>No one is live right now.</p>
+                    <small>Be the first to go live!</small>
+                </div>
+            </div>
+        </section>
+
+    </div><!-- /.ggtv-main -->
+</div><!-- /.ggtv-page -->
+
+
+<!-- ══════════════════════════════════════════════════════════════
+     GO LIVE MODAL
+══════════════════════════════════════════════════════════════════ -->
+<div class="modal fade" id="goLiveModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content glass-card">
+            <div class="modal-header border-0">
+                <h5 class="modal-title"><i class="bi bi-broadcast me-2"></i>Start a Live Stream</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3 mb-3">
+                    <div class="col-sm-7">
+                        <label for="streamTitle" class="form-label">Stream Title</label>
+                        <input type="text" class="form-control" id="streamTitle" placeholder="What are you streaming?" maxlength="100">
+                    </div>
+                    <div class="col-sm-5">
+                        <label for="streamCategory" class="form-label">Category</label>
+                        <input type="text" class="form-control" id="streamCategory" placeholder="e.g. Just Chatting, Gaming…" maxlength="60">
+                    </div>
+                </div>
+                <ul class="nav nav-pills mb-3 gap-2" id="goLiveTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="tab-browser-btn" data-bs-toggle="pill"
+                                data-bs-target="#tab-browser" type="button" role="tab">
+                            <i class="bi bi-camera-video me-1"></i> Browser
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="tab-obs-btn" data-bs-toggle="pill"
+                                data-bs-target="#tab-obs" type="button" role="tab">
+                            <i class="bi bi-cast me-1"></i> OBS / External App
+                        </button>
+                    </li>
+                </ul>
+                <div class="tab-content">
+                    <div class="tab-pane fade show active" id="tab-browser" role="tabpanel">
+                        <label class="form-label">Camera Preview</label>
+                        <div class="ratio ratio-16x9 bg-dark rounded overflow-hidden">
+                            <video id="localPreview" autoplay muted playsinline></video>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="tab-obs" role="tabpanel">
+                        <p class="text-muted mb-3" style="font-size:.85rem">
+                            Copy the settings below into OBS Studio (or any RTMP-compatible software)
+                            under <strong>Settings → Stream → Custom…</strong>
+                        </p>
+                        <div class="mb-3">
+                            <label class="form-label">RTMP Server URL</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control font-monospace" id="obsRtmpUrl" readonly>
+                                <button class="btn btn-outline-secondary" type="button" id="copyRtmpBtn" title="Copy RTMP URL"><i class="bi bi-clipboard"></i></button>
+                            </div>
+                            <div class="form-text">Paste this as the <em>Server</em> in OBS.</div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Stream Key</label>
+                            <div class="input-group">
+                                <input type="password" class="form-control font-monospace" id="obsStreamKey" readonly>
+                                <button class="btn btn-outline-secondary" type="button" id="revealKeyBtn" title="Show / hide stream key"><i class="bi bi-eye"></i></button>
+                                <button class="btn btn-outline-secondary" type="button" id="copyKeyBtn" title="Copy stream key"><i class="bi bi-clipboard"></i></button>
+                            </div>
+                            <div class="form-text text-warning"><i class="bi bi-shield-exclamation me-1"></i>Keep your stream key private.</div>
+                        </div>
+                        <div class="d-flex gap-2 align-items-center mb-1">
+                            <button class="btn btn-sm btn-outline-danger" id="regenKeyBtn"><i class="bi bi-arrow-clockwise me-1"></i> Regenerate Key</button>
+                            <span class="text-muted" style="font-size:.8rem">Invalidates the old key immediately.</span>
+                        </div>
+                        <hr style="border-color:rgba(255,255,255,.1)">
+                        <button class="btn btn-pink" id="saveStreamInfoBtn"><i class="bi bi-check-circle me-1"></i> Save Stream Info</button>
+                        <span id="saveStreamInfoStatus" class="ms-2 text-muted" style="font-size:.82rem"></span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-0 gap-2" id="goLiveFooter">
+                <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-pink" id="startStreamBtn" disabled>
+                    <i class="bi bi-broadcast me-1"></i> Start Streaming
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════
+     STYLES
+══════════════════════════════════════════════════════════════════ -->
+<style>
+/* ── Break out of the base container's padding ── */
+.ggtv-page {
+    display: flex;
+    min-height: calc(100vh - 62px);
+    margin: -1.5rem -1.5rem 0;   /* undo container-fluid my-4 px-4 */
+    background: #0d0d12;
+    overflow: hidden;
+}
+
+/* ══════ SIDEBAR ══════ */
+.ggtv-sidebar {
+    width: 240px;
+    min-width: 240px;
+    background: #0d0d12;
+    border-right: 1px solid rgba(255,255,255,.06);
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 62px);
+    position: sticky;
+    top: 62px;
+    overflow-y: auto;
+    flex-shrink: 0;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,.08) transparent;
+}
+
+/* Sidebar nav */
+.ggtv-nav { padding: 12px 8px 4px; }
+.ggtv-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 9px 12px;
+    border-radius: 6px;
+    color: rgba(255,255,255,.65);
+    text-decoration: none;
+    font-size: .9rem;
+    font-weight: 500;
+    transition: background .13s, color .13s;
+    margin-bottom: 2px;
+}
+.ggtv-nav-item:hover { background: rgba(255,255,255,.07); color: #fff; }
+.ggtv-nav-item.active { background: rgba(255,77,166,.12); color: #fff; }
+.ggtv-nav-icon { font-size: 1rem; width: 20px; text-align: center; flex-shrink: 0; }
+.ggtv-nav-label { line-height: 1; }
+
+.ggtv-sidebar-divider {
+    height: 1px;
+    background: rgba(255,255,255,.06);
+    margin: 8px 0;
+}
+
+/* Recommended section */
+.ggtv-sidebar-section-header {
+    padding: 6px 20px 6px;
+    font-size: .7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    color: rgba(255,255,255,.35);
+}
+.ggtv-sidebar-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 20px 12px;
+    color: rgba(255,255,255,.25);
+    font-size: .8rem;
+    text-align: center;
+}
+.ggtv-sidebar-empty i { font-size: 1.4rem; }
+
+/* Sidebar channel item */
+.ggtv-channel-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 12px;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: background .12s;
+    margin: 1px 8px;
+    text-decoration: none;
+    color: inherit;
+}
+.ggtv-channel-item:hover { background: rgba(255,255,255,.07); color: inherit; }
+.ggtv-channel-item.active { background: rgba(255,77,166,.13); }
+.ggtv-channel-meta { flex: 1; min-width: 0; }
+.ggtv-channel-name { font-size: .84rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #fff; }
+.ggtv-channel-cat  { font-size: .73rem; color: rgba(255,255,255,.42); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
+.ggtv-channel-right { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex-shrink: 0; }
+.ggtv-viewer-live { display: flex; align-items: center; gap: 4px; font-size: .72rem; color: rgba(255,255,255,.5); }
+.ggtv-live-dot {
+    display: inline-block;
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--pink);
+    flex-shrink: 0;
+}
+
+/* Show more */
+.ggtv-show-more {
+    background: none;
+    border: none;
+    color: rgba(255,255,255,.4);
+    font-size: .8rem;
+    padding: 6px 20px;
+    cursor: pointer;
+    text-align: left;
+    transition: color .13s;
+}
+.ggtv-show-more:hover { color: rgba(255,255,255,.75); }
+
+/* Go Live button area */
+.ggtv-sidebar-golive {
+    margin-top: auto;
+    padding: 16px 12px;
+    border-top: 1px solid rgba(255,255,255,.06);
+}
+
+/* ══════ CHANNEL AVATAR ══════ */
+.ggtv-channel-avatar {
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--pink), var(--purple));
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    overflow: hidden;
+    color: #fff;
+}
+.ggtv-channel-avatar--sm  { width: 32px; height: 32px; font-size: .85rem; }
+.ggtv-channel-avatar--md  { width: 40px; height: 40px; font-size: 1rem; }
+.ggtv-channel-avatar img  { width: 100%; height: 100%; object-fit: cover; }
+
+/* ══════ MAIN AREA ══════ */
+.ggtv-main {
+    flex: 1;
+    min-width: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+/* ══════ FEATURED SECTION ══════ */
+.ggtv-featured { background: #000; }
+
+/* Player wrapper — 16:9 */
+.ggtv-player-wrap {
+    position: relative;
+    width: 100%;
+    padding-top: 52%;   /* slightly shorter than strict 16:9 for better feel */
+    background: #000;
+    overflow: hidden;
+}
+.ggtv-player-wrap > * {
+    position: absolute;
+    inset: 0;
+}
+.ggtv-video {
+    width: 100%; height: 100%;
+    object-fit: contain;
+    background: #000;
+}
+
+/* Player placeholder */
+.ggtv-player-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(ellipse at 50% 60%, rgba(168,85,247,.1) 0%, #050310 70%);
+    color: rgba(255,255,255,.18);
+    gap: 10px;
+}
+.ggtv-placeholder-icon { font-size: 4rem; }
+.ggtv-placeholder-title { font-size: 1rem; color: rgba(255,255,255,.4); margin: 0; }
+.ggtv-placeholder-sub   { font-size: .82rem; color: rgba(255,255,255,.25); margin: 0; }
+
+/* Overlays */
+.ggtv-mute-btn {
+    position: absolute;
+    bottom: 14px; right: 14px;
+    background: rgba(0,0,0,.6);
+    border: none;
+    border-radius: 50%;
+    width: 40px; height: 40px;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: background .15s;
+    z-index: 5;
+}
+.ggtv-mute-btn:hover { background: rgba(0,0,0,.85); }
+
+.ggtv-player-live-badge {
+    position: absolute;
+    top: 12px; left: 12px;
+    background: #e91916;
+    color: #fff;
+    font-size: .68rem;
+    font-weight: 800;
+    letter-spacing: .06em;
+    padding: 3px 8px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    text-transform: uppercase;
+    z-index: 5;
+}
+
+/* Login walls */
+.ggtv-login-wall {
+    position: absolute; inset: 0; z-index: 10;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(5,3,16,.55);
+    backdrop-filter: blur(3px);
+}
+.ggtv-login-wall--grid {
+    position: absolute; inset: 0; z-index: 10; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(5,3,16,.65); backdrop-filter: blur(5px);
+}
+.ggtv-login-box {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 14px;
+    padding: 32px 36px;
+    text-align: center;
+    max-width: 260px;
+}
+.ggtv-login-box i  { font-size: 2rem; color: var(--pink); display: block; margin-bottom: 10px; }
+.ggtv-login-box p  { font-weight: 600; margin-bottom: 14px; font-size: .95rem; }
+
+/* Stream meta bar */
+.ggtv-featured-meta {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 14px 20px 10px;
+    background: #0d0d12;
+    border-bottom: 1px solid rgba(255,255,255,.06);
+    flex-wrap: wrap;
+}
+.ggtv-featured-info { display: flex; align-items: flex-start; gap: 12px; flex: 1; min-width: 0; }
+.ggtv-featured-text { min-width: 0; }
+.ggtv-featured-streamer {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 3px;
+}
+.ggtv-featured-name { font-size: 1rem; font-weight: 700; color: #fff; }
+.ggtv-featured-viewers {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: .8rem;
+    color: rgba(255,255,255,.5);
+    background: rgba(255,255,255,.07);
+    padding: 2px 9px;
+    border-radius: 20px;
+}
+.ggtv-featured-title { font-size: .92rem; color: rgba(255,255,255,.8); margin-bottom: 5px; line-height: 1.3; }
+.ggtv-featured-category { display: flex; gap: 6px; flex-wrap: wrap; }
+.ggtv-cat-tag {
+    font-size: .73rem;
+    font-weight: 600;
+    padding: 2px 10px;
+    border-radius: 20px;
+    background: rgba(255,77,166,.15);
+    color: var(--pink);
+    border: 1px solid rgba(255,77,166,.25);
+}
+.ggtv-featured-actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
+.ggtv-btn-follow {
+    background: var(--pink);
+    color: #fff;
+    border: none;
+    font-size: .83rem;
+    font-weight: 600;
+    padding: 6px 18px;
+    border-radius: 6px;
+    transition: background .15s, opacity .15s;
+}
+.ggtv-btn-follow:hover:not(:disabled) { background: var(--pink-dark); color: #fff; }
+.ggtv-btn-follow:disabled { opacity: .4; }
+.ggtv-btn-share {
+    background: rgba(255,255,255,.08);
+    color: rgba(255,255,255,.7);
+    border: 1px solid rgba(255,255,255,.12);
+    font-size: .83rem;
+    padding: 6px 12px;
+    border-radius: 6px;
+    transition: background .15s;
+}
+.ggtv-btn-share:hover:not(:disabled) { background: rgba(255,255,255,.14); color: #fff; }
+.ggtv-btn-share:disabled { opacity: .4; }
+
+/* Thumbnail strip */
+.ggtv-thumb-strip {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 20px;
+    background: #0d0d12;
+    border-bottom: 1px solid rgba(255,255,255,.06);
+}
+.ggtv-thumb-track {
+    display: flex;
+    gap: 10px;
+    overflow: hidden;
+    flex: 1;
+}
+.ggtv-thumb {
+    flex-shrink: 0;
+    width: 160px;
+    cursor: pointer;
+    border-radius: 6px;
+    overflow: hidden;
+    border: 2px solid transparent;
+    transition: border-color .15s, opacity .15s;
+    opacity: .7;
+    position: relative;
+    background: #050310;
+}
+.ggtv-thumb:hover { opacity: 1; }
+.ggtv-thumb.active { border-color: var(--pink); opacity: 1; }
+.ggtv-thumb-img {
+    width: 100%;
+    padding-top: 56.25%;
+    position: relative;
+    background: radial-gradient(ellipse at center, rgba(168,85,247,.15) 0%, #050310 80%);
+    overflow: hidden;
+}
+.ggtv-thumb-img img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.ggtv-thumb-img-ph { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; color: rgba(255,255,255,.2); }
+.ggtv-thumb-label { padding: 5px 7px; }
+.ggtv-thumb-label-name { font-size: .72rem; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ggtv-thumb-label-cat  { font-size: .67rem; color: rgba(255,255,255,.4); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ggtv-thumb-nav {
+    background: rgba(255,255,255,.08);
+    border: none;
+    color: rgba(255,255,255,.6);
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    cursor: pointer;
+    transition: background .13s, color .13s;
+    font-size: .85rem;
+}
+.ggtv-thumb-nav:hover { background: rgba(255,255,255,.16); color: #fff; }
+.ggtv-thumb-dots {
+    display: flex; gap: 5px; align-items: center; flex-shrink: 0;
+}
+.ggtv-thumb-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: rgba(255,255,255,.2);
+    transition: background .15s;
+    cursor: pointer;
+}
+.ggtv-thumb-dot.active { background: var(--pink); }
+
+/* ══════ CHANNELS GRID SECTION ══════ */
+.ggtv-channels-section {
+    padding: 24px 20px 36px;
+    flex: 1;
+}
+.ggtv-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+}
+.ggtv-section-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+}
+.ggtv-section-count { font-size: .8rem; color: rgba(255,255,255,.4); }
+
+.ggtv-channels-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 16px;
+}
+.ggtv-grid-empty {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 64px 20px;
+    color: rgba(255,255,255,.2);
+    text-align: center;
+}
+.ggtv-grid-empty i   { font-size: 3rem; }
+.ggtv-grid-empty p   { margin: 0; font-size: .95rem; }
+.ggtv-grid-empty small { font-size: .82rem; color: rgba(255,255,255,.15); }
+
+/* Channel card */
+.ggtv-card {
+    cursor: pointer;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #17171f;
+    border: 1px solid rgba(255,255,255,.07);
+    transition: transform .18s, box-shadow .18s, border-color .18s;
+}
+.ggtv-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 32px rgba(168,85,247,.2);
+    border-color: rgba(255,77,166,.25);
+}
+.ggtv-card-thumb {
+    position: relative;
+    width: 100%;
+    padding-top: 56.25%;
+    background: radial-gradient(ellipse at center, rgba(168,85,247,.15) 0%, #050310 80%);
+    overflow: hidden;
+}
+.ggtv-card-thumb img  { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.ggtv-card-ph { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; color: rgba(255,255,255,.12); }
+.ggtv-card-live {
+    position: absolute; top: 8px; left: 8px;
+    background: #e91916; color: #fff;
+    font-size: .62rem; font-weight: 800; letter-spacing: .06em;
+    padding: 2px 6px; border-radius: 3px;
+    text-transform: uppercase;
+}
+.ggtv-card-viewers {
+    position: absolute; bottom: 8px; left: 8px;
+    background: rgba(0,0,0,.72); color: #fff;
+    font-size: .7rem; padding: 2px 8px; border-radius: 3px;
+    display: flex; align-items: center; gap: 4px;
+}
+.ggtv-card-body  { padding: 10px 12px 12px; }
+.ggtv-card-row   { display: flex; align-items: flex-start; gap: 8px; }
+.ggtv-card-text  { flex: 1; min-width: 0; }
+.ggtv-card-title { font-size: .84rem; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 3px; }
+.ggtv-card-sub   { font-size: .75rem; color: rgba(255,255,255,.45); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ggtv-card-badge { display: inline-block; margin-top: 6px; font-size: .67rem; padding: 2px 8px; border-radius: 20px; background: rgba(255,255,255,.08); color: rgba(255,255,255,.6); }
+
+/* ══════ UTILITIES ══════ */
+.ggtv-blurred    { filter: blur(7px); pointer-events: none; user-select: none; }
+.blink           { animation: ggtv-blink 1.3s infinite; }
+@keyframes ggtv-blink { 0%,100%{opacity:1} 50%{opacity:.25} }
+
+/* ══════ RESPONSIVE ══════ */
+@media (max-width: 1100px) {
+    .ggtv-sidebar { width: 200px; min-width: 200px; }
+}
+@media (max-width: 860px) {
+    .ggtv-sidebar { display: none; }
+    .ggtv-page    { margin: -1.5rem -1.5rem 0; }
+}
+@media (max-width: 600px) {
+    .ggtv-channels-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
+    .ggtv-channels-section { padding: 16px 12px 28px; }
+    .ggtv-featured-meta { padding: 10px 12px 8px; }
+    .ggtv-thumb-strip   { padding: 10px 12px; }
+    .ggtv-thumb { width: 130px; }
+}
+</style>
+
+
+<!-- ══════════════════════════════════════════════════════════════
+     SCRIPTS
+══════════════════════════════════════════════════════════════════ -->
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+    /* ══ Go Live modal ════════════════════════════════════════ */
+    const goLiveBtn = document.getElementById('goLiveBtn');
+    if (goLiveBtn) {
+        const goLiveModal  = new bootstrap.Modal(document.getElementById('goLiveModal'));
+        const localPreview = document.getElementById('localPreview');
+        const startBtn     = document.getElementById('startStreamBtn');
+        let localStream    = null;
+
+        async function loadObsKeys() {
+            try {
+                const res  = await fetch('/api/ggtv/my_stream_key', { credentials: 'same-origin' });
+                const data = await res.json();
+                document.getElementById('obsRtmpUrl').value   = data.rtmp_url   || '';
+                document.getElementById('obsStreamKey').value = data.stream_key || '';
+            } catch (e) { console.error('Could not load stream key', e); }
+        }
+
+        goLiveBtn.addEventListener('click', async function () {
+            goLiveModal.show();
+            loadObsKeys();
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                localPreview.srcObject = localStream;
+                startBtn.disabled = false;
+            } catch { startBtn.disabled = true; }
+        });
+
+        document.getElementById('tab-obs-btn').addEventListener('click', function () { startBtn.style.display = 'none'; });
+        document.getElementById('tab-browser-btn').addEventListener('click', function () { startBtn.style.display = ''; });
+
+        document.getElementById('goLiveModal').addEventListener('hidden.bs.modal', function () {
+            if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; localPreview.srcObject = null; startBtn.disabled = true; }
+            startBtn.style.display = '';
+            document.getElementById('saveStreamInfoStatus').textContent = '';
+        });
+
+        startBtn.addEventListener('click', function () {
+            const title = document.getElementById('streamTitle').value.trim();
+            if (!title) { document.getElementById('streamTitle').focus(); return; }
+            alert('Browser streaming coming soon! Your camera is working though 🎬');
+        });
+
+        /* OBS helpers */
+        document.getElementById('revealKeyBtn').addEventListener('click', function () {
+            const inp = document.getElementById('obsStreamKey');
+            const show = inp.type === 'text';
+            inp.type = show ? 'password' : 'text';
+            this.querySelector('i').className = show ? 'bi bi-eye' : 'bi bi-eye-slash';
+        });
+        document.getElementById('copyRtmpBtn').addEventListener('click', function () { navigator.clipboard.writeText(document.getElementById('obsRtmpUrl').value); flashCopied(this); });
+        document.getElementById('copyKeyBtn').addEventListener('click', function () { navigator.clipboard.writeText(document.getElementById('obsStreamKey').value); flashCopied(this); });
+
+        function flashCopied(btn) {
+            const icon = btn.querySelector('i'); icon.className = 'bi bi-check2';
+            setTimeout(() => { icon.className = 'bi bi-clipboard'; }, 1500);
+        }
+
+        document.getElementById('regenKeyBtn').addEventListener('click', async function () {
+            if (!confirm('Regenerate your stream key? Your current OBS config will stop working.')) return;
+            try {
+                const res  = await fetch('/api/ggtv/my_stream_key/regenerate', { method: 'POST', credentials: 'same-origin', headers: { 'X-CSRFToken': getCsrf() } });
+                const data = await res.json();
+                document.getElementById('obsRtmpUrl').value   = data.rtmp_url   || '';
+                document.getElementById('obsStreamKey').value = data.stream_key || '';
+                document.getElementById('obsStreamKey').type  = 'password';
+                document.getElementById('revealKeyBtn').querySelector('i').className = 'bi bi-eye';
+            } catch { alert('Could not regenerate key. Try again.'); }
+        });
+
+        document.getElementById('saveStreamInfoBtn').addEventListener('click', async function () {
+            const title = document.getElementById('streamTitle').value.trim();
+            const category = document.getElementById('streamCategory').value.trim();
+            if (!title) { document.getElementById('streamTitle').focus(); return; }
+            const st = document.getElementById('saveStreamInfoStatus');
+            st.textContent = 'Saving…';
+            try {
+                const res = await fetch('/api/ggtv/user_stream/set_info', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrf() }, body: JSON.stringify({ title, category }) });
+                if (res.ok) { st.textContent = '✓ Saved! Now start streaming in OBS.'; st.style.color = '#4ade80'; }
+                else        { st.textContent = 'Failed to save. Try again.';          st.style.color = 'var(--pink)'; }
+            } catch { st.textContent = 'Network error.'; st.style.color = 'var(--pink)'; }
+        });
+
+        function getCsrf() { const m = document.cookie.match(/csrf_token=([^;]+)/); return m ? decodeURIComponent(m[1]) : ''; }
+    }
+
+    /* ══ HLS helper ══════════════════════════════════════════ */
+    let _hlsInstance = null;
+    function playHls(videoEl, hlsUrl) {
+        if (_hlsInstance) { _hlsInstance.destroy(); _hlsInstance = null; }
+        videoEl.style.display = 'block';
+        const muteBtn = document.getElementById('muteBtn');
+        if (muteBtn) { muteBtn.style.display = 'flex'; videoEl.muted = true; updateMuteIcon(); }
+        if (Hls.isSupported()) {
+            _hlsInstance = new Hls({ lowLatencyMode: true });
+            _hlsInstance.loadSource(hlsUrl);
+            _hlsInstance.attachMedia(videoEl);
+            _hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => videoEl.play());
+        } else if (videoEl.canPlayType('application/vnd.apple.mpegurl')) {
+            videoEl.src = hlsUrl; videoEl.play();
+        }
+    }
+
+    const muteBtn = document.getElementById('muteBtn');
+    if (muteBtn) {
+        muteBtn.addEventListener('click', function () {
+            const v = document.getElementById('spotlightVideo');
+            if (v) { v.muted = !v.muted; updateMuteIcon(); }
+        });
+    }
+    function updateMuteIcon() {
+        const v = document.getElementById('spotlightVideo');
+        const ic = document.getElementById('muteIcon');
+        if (!v || !ic) return;
+        ic.className = v.muted ? 'bi bi-volume-mute-fill' : 'bi bi-volume-up-fill';
+    }
+
+    /* ══ Thumbnail strip ═════════════════════════════════════ */
+    let _thumbOffset = 0;
+    const THUMB_VISIBLE = 4;
+
+    function rebuildThumbs(streams) {
+        const strip = document.getElementById('thumbStrip');
+        const track = document.getElementById('thumbTrack');
+        const dots  = document.getElementById('thumbDots');
+        if (!strip || !track) return;
+        if (streams.length < 2) { strip.style.display = 'none'; return; }
+        strip.style.display = 'flex';
+        track.innerHTML = '';
+        dots.innerHTML  = '';
+        _thumbOffset = 0;
+        streams.forEach((s, i) => {
+            const img = s.thumbnail
+                ? `<img src="${escHtml(s.thumbnail)}" alt="" loading="lazy">`
+                : `<div class="ggtv-thumb-img-ph"><i class="bi bi-broadcast"></i></div>`;
+            const el = document.createElement('div');
+            el.className = `ggtv-thumb${_currentStreamKey === s.stream_key ? ' active' : ''}`;
+            el.dataset.stream = JSON.stringify(s);
+            el.dataset.uid    = s.stream_key;
+            el.innerHTML = `<div class="ggtv-thumb-img">${img}</div>
+                <div class="ggtv-thumb-label">
+                    <div class="ggtv-thumb-label-name">${escHtml(s.username)}</div>
+                    <div class="ggtv-thumb-label-cat">${escHtml(s.category)}</div>
+                </div>`;
+            track.appendChild(el);
+
+            const dot = document.createElement('div');
+            dot.className = 'ggtv-thumb-dot' + (i === 0 ? ' active' : '');
+            dot.dataset.idx = i;
+            dots.appendChild(dot);
+        });
+        applyThumbScroll();
+    }
+
+    function applyThumbScroll() {
+        const track = document.getElementById('thumbTrack');
+        if (!track) return;
+        const thumbs = track.querySelectorAll('.ggtv-thumb');
+        thumbs.forEach((el, i) => { el.style.display = (i >= _thumbOffset && i < _thumbOffset + THUMB_VISIBLE) ? '' : 'none'; });
+        document.querySelectorAll('.ggtv-thumb-dot').forEach((d, i) => d.classList.toggle('active', i === _thumbOffset));
+    }
+
+    document.getElementById('thumbPrev')?.addEventListener('click', function () {
+        _thumbOffset = Math.max(0, _thumbOffset - 1); applyThumbScroll();
+    });
+    document.getElementById('thumbNext')?.addEventListener('click', function () {
+        const n = document.querySelectorAll('.ggtv-thumb').length;
+        _thumbOffset = Math.min(n - THUMB_VISIBLE, _thumbOffset + 1); applyThumbScroll();
+    });
+
+    /* ══ Stream rendering ════════════════════════════════════ */
+    function escHtml(str) {
+        return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function renderSidebarItem(s) {
+        const av = s.thumbnail
+            ? `<img src="${escHtml(s.thumbnail)}" alt="">`
+            : s.username.charAt(0).toUpperCase();
+        return `<a class="ggtv-channel-item${_currentStreamKey === s.stream_key ? ' active' : ''}"
+                   data-uid="${s.stream_key}" data-stream='${JSON.stringify(s)}'>
+            <div class="ggtv-channel-avatar ggtv-channel-avatar--sm">${av}</div>
+            <div class="ggtv-channel-meta">
+                <div class="ggtv-channel-name">${escHtml(s.username)}</div>
+                <div class="ggtv-channel-cat">${escHtml(s.category)}</div>
+            </div>
+            <div class="ggtv-channel-right">
+                <div class="ggtv-viewer-live">
+                    <span class="ggtv-live-dot"></span>
+                    ${s.viewers.toLocaleString()}
+                </div>
+            </div>
+        </a>`;
+    }
+
+    function renderGridCard(s) {
+        const av = s.thumbnail
+            ? `<img src="${escHtml(s.thumbnail)}" alt="">`
+            : s.username.charAt(0).toUpperCase();
+        const th = s.thumbnail
+            ? `<img src="${escHtml(s.thumbnail)}" alt="" loading="lazy">`
+            : `<div class="ggtv-card-ph"><i class="bi bi-broadcast"></i></div>`;
+        return `<div class="ggtv-card" data-uid="${s.stream_key}" data-stream='${JSON.stringify(s)}'>
+            <div class="ggtv-card-thumb">${th}
+                <span class="ggtv-card-live">LIVE</span>
+                <span class="ggtv-card-viewers"><i class="bi bi-eye-fill"></i> ${s.viewers.toLocaleString()}</span>
+            </div>
+            <div class="ggtv-card-body">
+                <div class="ggtv-card-row">
+                    <div class="ggtv-channel-avatar ggtv-channel-avatar--sm">${av}</div>
+                    <div class="ggtv-card-text">
+                        <div class="ggtv-card-title">${escHtml(s.title)}</div>
+                        <div class="ggtv-card-sub">${escHtml(s.username)}</div>
+                        <span class="ggtv-card-badge">${escHtml(s.category)}</span>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+    }
+
+    let _currentStreamKey = null;
+
+    /* ══ Polling ═════════════════════════════════════════════ */
+    function pollStreams() {
+        fetch('/api/ggtv/streams', { credentials: 'same-origin' })
+            .then(r => r.json())
+            .then(streams => {
+
+                /* — Sidebar — */
+                const list    = document.getElementById('sidebarChannelList');
+                const empty   = document.getElementById('sidebarEmpty');
+                const showMore = document.getElementById('sidebarShowMore');
+                if (list) {
+                    list.querySelectorAll('.ggtv-channel-item').forEach(e => e.remove());
+                    if (streams.length) {
+                        if (empty) empty.style.display = 'none';
+                        const visible = streams.slice(0, 8);
+                        visible.forEach(s => list.insertAdjacentHTML('beforeend', renderSidebarItem(s)));
+                        if (showMore) showMore.style.display = streams.length > 8 ? '' : 'none';
+                    } else {
+                        if (empty)   empty.style.display   = '';
+                        if (showMore) showMore.style.display = 'none';
+                    }
+                }
+
+                /* — Grid — */
+                const grid  = document.getElementById('liveStreamsGrid');
+                const ge    = document.getElementById('gridEmpty');
+                const label = document.getElementById('gridCountLabel');
+                if (grid) {
+                    grid.querySelectorAll('.ggtv-card').forEach(e => e.remove());
+                    if (streams.length) {
+                        if (ge)    ge.style.display    = 'none';
+                        if (label) label.textContent   = `${streams.length} live`;
+                        streams.forEach(s => grid.insertAdjacentHTML('beforeend', renderGridCard(s)));
+                    } else {
+                        if (ge)    ge.style.display    = '';
+                        if (label) label.textContent   = '0 live';
+                    }
+                }
+
+                /* — Thumbnails — */
+                rebuildThumbs(streams);
+
+                /* — If spotlight stream ended — */
+                if (_currentStreamKey && !streams.find(s => s.stream_key === _currentStreamKey)) {
+                    _currentStreamKey = null;
+                    if (_hlsInstance) { _hlsInstance.destroy(); _hlsInstance = null; }
+                    const vid = document.getElementById('spotlightVideo');
+                    const ph  = document.getElementById('spotlightPlaceholder');
+                    const mb  = document.getElementById('muteBtn');
+                    const lb  = document.getElementById('playerLiveBadge');
+                    if (vid) { vid.pause(); vid.style.display = 'none'; }
+                    if (ph)  ph.style.display  = '';
+                    if (mb)  mb.style.display  = 'none';
+                    if (lb)  lb.style.display  = 'none';
+                    resetMetaBar();
+                }
+            })
+            .catch(() => {});
+    }
+
+    function resetMetaBar() {
+        const el = id => document.getElementById(id);
+        if (el('infoChannelName'))    el('infoChannelName').textContent  = '—';
+        if (el('infoTitle'))          el('infoTitle').textContent         = 'No one is live right now';
+        if (el('infoCategory'))       el('infoCategory').style.display    = 'none';
+        if (el('infoTagExtra'))       el('infoTagExtra').style.display    = 'none';
+        if (el('featuredViewerBadge')) el('featuredViewerBadge').style.display = 'none';
+        const fBtn = el('followStreamBtn');
+        const sBtn = el('shareStreamBtn');
+        if (fBtn) fBtn.disabled = true;
+        if (sBtn) sBtn.disabled = true;
+    }
+
+    pollStreams();
+    setInterval(pollStreams, 6000);
+
+    /* ══ Click: select stream ════════════════════════════════ */
+    document.addEventListener('click', function (e) {
+        const target = e.target.closest('[data-stream]');
+        if (!target) return;
+        let stream;
+        try { stream = JSON.parse(target.dataset.stream); } catch { return; }
+        selectStream(stream);
+        const videoEl = document.getElementById('spotlightVideo');
+        if (videoEl && stream.hls_url) playHls(videoEl, stream.hls_url);
+        document.querySelectorAll('.ggtv-channel-item, .ggtv-thumb, .ggtv-card').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll(`[data-uid="${stream.stream_key}"]`).forEach(el => el.classList.add('active'));
+    });
+
+    function selectStream(stream) {
+        _currentStreamKey = stream.stream_key;
+        const el = id => document.getElementById(id);
+
+        if (el('infoChannelName'))  el('infoChannelName').textContent  = stream.username || '—';
+        if (el('infoTitle'))        el('infoTitle').textContent         = stream.title    || 'Untitled stream';
+        if (el('infoViewers'))      el('infoViewers').textContent       = (stream.viewers || 0).toLocaleString();
+
+        if (el('infoCategory')) {
+            el('infoCategory').textContent  = stream.category || '';
+            el('infoCategory').style.display = stream.category ? '' : 'none';
+        }
+        if (el('featuredViewerBadge')) el('featuredViewerBadge').style.display = '';
+
+        const av = el('infoAvatar');
+        if (av) {
+            if (stream.thumbnail) { av.innerHTML = `<img src="${escHtml(stream.thumbnail)}" alt="">`; }
+            else { av.innerHTML = stream.username ? stream.username.charAt(0).toUpperCase() : '<i class="bi bi-person-fill"></i>'; }
+        }
+
+        const lb = el('playerLiveBadge');
+        if (lb) lb.style.display = 'flex';
+
+        const ph = el('spotlightPlaceholder');
+        if (ph) ph.style.display = 'none';
+
+        const fBtn = el('followStreamBtn');
+        const sBtn = el('shareStreamBtn');
+        if (fBtn) fBtn.disabled = false;
+        if (sBtn) sBtn.disabled = false;
+    }
+});
+</script>
+{% endblock %}
+
 
 <!-- GG TV full-width layout (sidebar + main + info panel) -->
 <div class="ggtv-layout">
