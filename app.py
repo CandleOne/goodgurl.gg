@@ -3188,14 +3188,12 @@ def academy_complete_day():
 
 HYPNO_CHAINS_XP_PER_VIDEO = 5
 HYPNO_CHAINS_DAILY_LIMIT   = 20   # max XP-earning videos per user per day
-HYPNO_CHAINS_SUBREDDITS    = ["sissyhypno", "sissification", "feminization", "crossdressing"]
+# Redgifs niche slugs — validated against /v2/niches/{slug}/gifs
+HYPNO_CHAINS_SUBREDDITS = ["sissy-training", "sissy-hypnosis"]
 
-# Each subreddit pill maps to a Redgifs search query
-_REDGIFS_QUERY_MAP = {
-    "sissyhypno":    "sissy hypno",
-    "sissification": "sissification",
-    "feminization":  "feminized crossdress",
-    "crossdressing": "crossdressing",
+_NICHE_DISPLAY = {
+    "sissy-training":  "Sissy Training",
+    "sissy-hypnosis":  "Sissy Hypnosis",
 }
 
 # YARS session (random UA rotation + retry backoff) — created once at module load
@@ -3230,12 +3228,11 @@ def _get_redgifs_token() -> str:
 
 
 def _fetch_reddit_videos(subreddit: str, after: str = "") -> dict:
-    """Fetch hypno content from Redgifs for the given subreddit channel.
+    """Fetch hypno content from a Redgifs niche.
 
-    Uses YARS for random user-agent rotation and automatic retry on 429/5xx.
     Pagination via `after` is an integer offset string (e.g. "25", "50").
     """
-    query = _REDGIFS_QUERY_MAP.get(subreddit, subreddit.replace("_", " "))
+    niche = subreddit  # subreddit arg is now a Redgifs niche slug
     count = 25
     start = int(after) if after and after.isdigit() else 0
 
@@ -3245,8 +3242,8 @@ def _fetch_reddit_videos(subreddit: str, after: str = "") -> dict:
 
     try:
         resp = requests.get(
-            "https://api.redgifs.com/v2/gifs/search",
-            params={"search_text": query, "order": "trending", "count": count, "start": start},
+            f"https://api.redgifs.com/v2/niches/{niche}/gifs",
+            params={"order": "trending", "count": count, "start": start},
             headers={"Authorization": f"Bearer {token}", "User-Agent": "goodgurl_gg/1.0"},
             timeout=8,
         )
@@ -3264,10 +3261,10 @@ def _fetch_reddit_videos(subreddit: str, after: str = "") -> dict:
             continue
         posts.append({
             "id": g["id"],
-            "title": (g.get("title") or g.get("description") or query.title())[:200],
+            "title": (g.get("description") or _NICHE_DISPLAY.get(niche, niche.replace("-", " ").title()))[:200],
             "media_url": media_url,
             "media_type": "video",
-            "subreddit": f"r/{subreddit}",
+            "subreddit": _NICHE_DISPLAY.get(niche, niche.replace("-", " ").title()),
             "author": g.get("userName", ""),
             "ups": g.get("likes", 0),
             "permalink": f"https://redgifs.com/watch/{g['id']}",

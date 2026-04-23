@@ -300,7 +300,7 @@
 <!-- Subreddit selector pills -->
 <div class="hc-sub-pills" id="hcSubPills">
     {% for sub in subreddits %}
-    <span class="hc-sub-pill {% if loop.first %}active{% endif %}" data-sub="{{ sub }}">r/{{ sub }}</span>
+    <span class="hc-sub-pill {% if loop.first %}active{% endif %}" data-sub="{{ sub }}">{{ sub | replace('-', ' ') | title }}</span>
     {% endfor %}
 </div>
 
