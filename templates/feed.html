@@ -260,12 +260,14 @@
     <div class="alert alert-success shadow-lg"><i class="bi bi-trophy"></i> <span id="achievement-text"></span></div>
 </div>
 {% if session.get('show_achievement_popup') %}
+<script type="application/json" id="achievement-data">{{ session['show_achievement_popup']|tojson }}</script>
 <script>
 document.addEventListener('DOMContentLoaded', function(){
     var popup = document.getElementById('achievement-popup');
     var text = document.getElementById('achievement-text');
-    if(popup && text){
-        text.textContent = {{ session['show_achievement_popup']|tojson }};
+    var dataEl = document.getElementById('achievement-data');
+    if(popup && text && dataEl){
+        text.textContent = JSON.parse(dataEl.textContent);
         popup.style.display = 'block';
         setTimeout(function(){ popup.style.display = 'none'; }, 4000);
     }
@@ -444,6 +446,7 @@ document.addEventListener('DOMContentLoaded', function(){
 .feed-body-text {
     display: -webkit-box;
     -webkit-line-clamp: 2;
+    line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
     font-size: 0.78rem;
