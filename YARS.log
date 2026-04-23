@@ -22,3 +22,24 @@
 2026-04-23 00:19:17,951 - INFO -  * Detected change in '/workspaces/goodgurl.gg/app.py', reloading
 2026-04-23 00:19:20,401 - WARNING -  * Debugger is active!
 2026-04-23 00:19:20,401 - INFO -  * Debugger PIN: 580-875-515
+2026-04-23 00:19:36,049 - INFO - 127.0.0.1 - - [23/Apr/2026 00:19:36] "GET /academy/hypno-chains HTTP/1.1" 200 -
+2026-04-23 00:19:36,173 - INFO - 127.0.0.1 - - [23/Apr/2026 00:19:36] "GET /static/style.css HTTP/1.1" 200 -
+2026-04-23 00:19:36,391 - INFO - 127.0.0.1 - - [23/Apr/2026 00:19:36] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2026-04-23 00:19:36,407 - INFO - 127.0.0.1 - - [23/Apr/2026 00:19:36] "GET /api/hypno-chains?sub=sissyhypno&after= HTTP/1.1" 200 -
+2026-04-23 00:19:37,220 - INFO - 127.0.0.1 - - [23/Apr/2026 00:19:37] "GET /academy/hypno-chains HTTP/1.1" 200 -
+2026-04-23 00:19:37,276 - INFO - 127.0.0.1 - - [23/Apr/2026 00:19:37] "GET /static/style.css HTTP/1.1" 200 -
+2026-04-23 00:19:37,539 - INFO - 127.0.0.1 - - [23/Apr/2026 00:19:37] "GET /api/hypno-chains?sub=sissyhypno&after= HTTP/1.1" 200 -
+2026-04-23 00:19:37,547 - INFO - 127.0.0.1 - - [23/Apr/2026 00:19:37] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2026-04-23 00:19:38,096 - INFO - 127.0.0.1 - - [23/Apr/2026 00:19:38] "GET /academy/hypno-chains HTTP/1.1" 200 -
+2026-04-23 00:19:38,157 - INFO - 127.0.0.1 - - [23/Apr/2026 00:19:38] "GET /static/style.css HTTP/1.1" 200 -
+2026-04-23 00:19:38,253 - INFO - 127.0.0.1 - - [23/Apr/2026 00:19:38] "GET /academy/hypno-chains HTTP/1.1" 200 -
+2026-04-23 00:19:38,256 - INFO - 127.0.0.1 - - [23/Apr/2026 00:19:38] "GET /api/hypno-chains?sub=sissyhypno&after= HTTP/1.1" 200 -
+2026-04-23 00:19:38,332 - INFO - 127.0.0.1 - - [23/Apr/2026 00:19:38] "GET /static/style.css HTTP/1.1" 200 -
+2026-04-23 00:19:38,416 - INFO - 127.0.0.1 - - [23/Apr/2026 00:19:38] "GET /api/hypno-chains?sub=sissyhypno&after= HTTP/1.1" 200 -
+2026-04-23 00:19:38,429 - INFO - 127.0.0.1 - - [23/Apr/2026 00:19:38] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2026-04-23 00:21:02,904 - INFO -  * Detected change in '/workspaces/goodgurl.gg/app.py', reloading
+2026-04-23 00:21:08,898 - WARNING -  * Debugger is active!
+2026-04-23 00:21:08,898 - INFO -  * Debugger PIN: 580-875-515
+2026-04-23 00:22:56,995 - INFO -  * Detected change in '/workspaces/goodgurl.gg/app.py', reloading
+2026-04-23 00:22:59,242 - WARNING -  * Debugger is active!
+2026-04-23 00:22:59,243 - INFO -  * Debugger PIN: 580-875-515

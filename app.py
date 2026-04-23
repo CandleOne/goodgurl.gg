@@ -3212,7 +3212,11 @@ def _get_redgifs_token() -> str:
     if cached and cached.get("expires_at", 0) > now + 60:
         return cached["token"]
     try:
-        resp = _yars.session.get("https://api.redgifs.com/v2/auth/temporary", timeout=8)
+        resp = requests.get(
+            "https://api.redgifs.com/v2/auth/temporary",
+            headers={"User-Agent": "goodgurl_gg/1.0"},
+            timeout=8,
+        )
         resp.raise_for_status()
         data = resp.json()
         token = data["token"]
@@ -3240,10 +3244,10 @@ def _fetch_reddit_videos(subreddit: str, after: str = "") -> dict:
         return {"posts": [], "after": None, "error": "Could not authenticate with content provider."}
 
     try:
-        resp = _yars.session.get(
+        resp = requests.get(
             "https://api.redgifs.com/v2/gifs/search",
             params={"search_text": query, "order": "trending", "count": count, "start": start},
-            headers={"Authorization": f"Bearer {token}"},
+            headers={"Authorization": f"Bearer {token}", "User-Agent": "goodgurl_gg/1.0"},
             timeout=8,
         )
         resp.raise_for_status()
