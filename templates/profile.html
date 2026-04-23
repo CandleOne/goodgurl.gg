@@ -298,30 +298,16 @@
                 <button class="btn btn-outline-light" onclick="copyShareCard(event)">
                     <i class="bi bi-clipboard"></i> Copy Image
                 </button>
-                <button id="nativeShareBtn" class="btn btn-outline-pink d-none" onclick="nativeShare()">
-                    <i class="bi bi-share"></i> Share
-                </button>
-                {% if current_user.social_x %}
                 <button class="btn btn-outline-light d-flex align-items-center gap-1"
                         onclick="shareToX(this)">
                     <img src="{{ url_for('static', filename='assets/socialmediaicons/x.png') }}" width="16" height="16" alt="X" style="object-fit:contain; filter:invert(1);">
                     Post to X
                 </button>
-                {% endif %}
-                {% if current_user.social_reddit %}
                 <button class="btn btn-outline-light d-flex align-items-center gap-1"
                         onclick="shareToReddit(this)">
                     <img src="{{ url_for('static', filename='assets/socialmediaicons/reddit.png') }}" width="16" height="16" alt="Reddit" style="object-fit:contain;">
                     Post to Reddit
                 </button>
-                {% endif %}
-                {% if current_user.social_onlyfans %}
-                <button class="btn btn-outline-light d-flex align-items-center gap-1"
-                        onclick="shareToOnlyFans(this)">
-                    <img src="{{ url_for('static', filename='assets/socialmediaicons/onlyfans.png') }}" width="16" height="16" alt="OnlyFans" style="object-fit:contain;">
-                    Post to OnlyFans
-                </button>
-                {% endif %}
             </div>
         </div>
     </div>
@@ -330,12 +316,6 @@
 const _profileUrl  = '{{ url_for("profile", username=user.username, _external=True) }}';
 const _shareText   = 'Check out my daily stats on goodgurl.gg! 💅';
 
-// Show native share button only when Web Share API supports files
-document.addEventListener('DOMContentLoaded', function () {
-    if (navigator.canShare && navigator.canShare({ files: [new File([], 'test.png', { type: 'image/png' })] })) {
-        document.getElementById('nativeShareBtn').classList.remove('d-none');
-    }
-});
 
 async function _getCardBlob() {
     const img = document.getElementById('shareCardImg');
@@ -372,22 +352,6 @@ async function copyShareCard(event) {
     }
 }
 
-async function nativeShare() {
-    try {
-        const blob = await _getCardBlob();
-        const file = new File([blob], 'goodgurl-stats.png', { type: 'image/png' });
-        await navigator.share({
-            title: 'My goodgurl.gg Stats',
-            text: _shareText,
-            url: _profileUrl,
-            files: [file],
-        });
-    } catch(e) {
-        if (e.name !== 'AbortError') {
-            alert('Share failed — try Download instead.');
-        }
-    }
-}
 
 async function shareToX(btn) {
     // X intent only accepts text; copy image to clipboard so user can paste it in
@@ -404,11 +368,6 @@ async function shareToReddit(btn) {
     await _copyThenOpen(url);
 }
 
-async function shareToOnlyFans(btn) {
-    // OnlyFans has no web intent — copy card to clipboard and open the creator's post page
-    const url = '{{ current_user.social_urls.onlyfans }}' + '?intent=post';
-    await _copyThenOpen(url);
-}
 </script>
 {% endif %}
 
