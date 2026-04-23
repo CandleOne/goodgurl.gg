@@ -73,8 +73,7 @@
     <img src="{{ url_for('static', filename='assets/goodgurlgglogopixel.png') }}" alt="goodgurl.gg" class="img-fluid" style="max-height:55px;">
 </div>
 
-<!-- Gamification Dashboard Overhaul -->
-{% if current_user.is_authenticated %}
+{% if false %}
 <div class="gamification-dashboard mb-4">
     <div class="gamification-row">
         <!-- Streak & Daily Reward — Swiper.js carousel -->
@@ -309,29 +308,6 @@
     }
 }
 </style>
-{% endif %}
-
-<!-- Daily Challenge Card -->
-{% if current_user.is_authenticated and daily_challenge %}
-<div class="card glass-card p-3 mb-4">
-    <div class="d-flex align-items-center gap-3">
-        <div class="fs-2 text-info"><i class="bi bi-lightning-charge"></i></div>
-        <div>
-            <div class="fw-bold">Daily Challenge: {{ daily_challenge.title }}</div>
-            <div class="small text-muted">{{ daily_challenge.description }}</div>
-            <div class="progress my-2" style="height: 10px;">
-                <div class="progress-bar bg-info" role="progressbar" style="width: {{ daily_challenge.progress_pct|default(0) }}%;"></div>
-            </div>
-            {% if not daily_challenge.completed %}
-            <form method="POST" action="{{ url_for('claim_challenge', challenge_id=daily_challenge.id) }}">
-                <button class="btn btn-sm btn-info">Claim Reward</button>
-            </form>
-            {% else %}
-            <span class="badge bg-success">Completed</span>
-            {% endif %}
-        </div>
-    </div>
-</div>
 {% endif %}
 
 <!-- Achievement Popup Placeholder -->
