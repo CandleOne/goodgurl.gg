@@ -10,8 +10,6 @@
 {% endif %}
 {% endif %}
 {% endfor %}
-<!-- Swiper.js (https://github.com/nolimits4web/swiper) -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css">
 {% endblock %}
 {% block content %}
 <!-- Welcome Banner -->
@@ -468,60 +466,5 @@ document.querySelectorAll('.feed-thumb[preload="metadata"]').forEach(function(v)
     v.addEventListener('loadedmetadata',function(){this.currentTime=0.1;},{once:true});
 });
 </script>
-<!-- Swiper.js (https://github.com/nolimits4web/swiper) -->
-<script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
-<!-- ProgressBar.js (https://github.com/kimmobrunfeldt/progressbar.js) -->
-<script src="https://cdn.jsdelivr.net/npm/progressbar.js@1.1.1/dist/progressbar.min.js"></script>
-<!-- List.js (https://github.com/javve/list.js) -->
-<script src="https://cdn.jsdelivr.net/npm/list.js@2.3.1/dist/list.min.js"></script>
-{% if current_user.is_authenticated %}
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // --- Swiper.js: Roadmap carousel ---
-    new Swiper('.roadmap-swiper', {
-        slidesPerView: 3,
-        spaceBetween: 12,
-        centeredSlides: true,
-        initialSlide: Math.max(0, {{ (current_user.get_current_streak_count('login') or 1) }} - 1),
-        grabCursor: true,
-        pagination: {
-            el: '.swiper-pagination',
-            clickable: true
-        },
-        breakpoints: {
-            0:   { slidesPerView: 2, spaceBetween: 8 },
-            480: { slidesPerView: 3, spaceBetween: 10 },
-            768: { slidesPerView: 4, spaceBetween: 12 }
-        }
-    });
-
-    // --- ProgressBar.js: Level semicircle ---
-    var levelContainer = document.getElementById('level-progress-container');
-    if (levelContainer) {
-        var bar = new ProgressBar.SemiCircle(levelContainer, {
-            strokeWidth: 8,
-            trailWidth: 4,
-            color: '#ff4da6',
-            trailColor: 'rgba(255,255,255,0.12)',
-            easing: 'easeInOut',
-            duration: 1200,
-            svgStyle: null,
-            from: { color: '#ff4da6' },
-            to:   { color: '#a855f7' },
-            step: function(state, shape) {
-                shape.path.setAttribute('stroke', state.color);
-            }
-        });
-        bar.animate(parseFloat(levelContainer.dataset.pct || 0) / 100);
-    }
-
-    // --- List.js: Sortable leaderboard ---
-    new List('leaderboard-widget', {
-        valueNames: ['rank', 'name', 'xp']
-    });
-});
-</script>
-{% endif %}
-
 
 {% endblock %}
