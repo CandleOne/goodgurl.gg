@@ -560,13 +560,20 @@
         loadPage();
     };
 
-    // ── Infinite scroll ───────────────────────────────────────────────
+    // ── Infinite scroll + visibility ─────────────────────────────────
+    let _scrollEndTimer;
     viewport.addEventListener('scroll', () => {
         if (viewport.scrollTop + viewport.clientHeight >= viewport.scrollHeight - window.innerHeight * 1.5) {
             loadPage();
         }
         handleVisibility();
+        // Snap animations from scrollbar/touch finish after the last scroll event —
+        // debounce a re-check so the snapped slide is always activated.
+        clearTimeout(_scrollEndTimer);
+        _scrollEndTimer = setTimeout(handleVisibility, 150);
     });
+    // scrollend fires once the snap animation is fully settled (Chrome 114+, FF 109+, Safari 17.4+)
+    viewport.addEventListener('scrollend', handleVisibility);
 
     // ── Auto-play visible video, pause others ─────────────────────────
     function handleVisibility() {
