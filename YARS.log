@@ -1807,3 +1807,5 @@
 2026-04-23 21:18:22,970 - INFO - 127.0.0.1 - - [23/Apr/2026 21:18:22] "GET /messages/unread_count HTTP/1.1" 200 -
 2026-04-23 21:18:42,691 - INFO -  * Detected change in '/workspaces/goodgurl.gg/app.py', reloading
 2026-04-23 21:18:42,980 - INFO -  * Restarting with stat
+2026-04-23 21:18:46,652 - WARNING -  * Debugger is active!
+2026-04-23 21:18:46,654 - INFO -  * Debugger PIN: 711-190-077
