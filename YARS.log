@@ -2559,3 +2559,19 @@
 2026-04-23 23:29:37,975 - INFO -  * Restarting with stat
 2026-04-23 23:29:40,151 - WARNING -  * Debugger is active!
 2026-04-23 23:29:40,151 - INFO -  * Debugger PIN: 136-627-038
+2026-04-23 23:29:51,103 - INFO - 127.0.0.1 - - [23/Apr/2026 23:29:51] "GET /account HTTP/1.1" 200 -
+2026-04-23 23:29:51,319 - INFO - 127.0.0.1 - - [23/Apr/2026 23:29:51] "GET /static/style.css HTTP/1.1" 200 -
+2026-04-23 23:29:51,325 - INFO - 127.0.0.1 - - [23/Apr/2026 23:29:51] "GET /static/assets/gg.png HTTP/1.1" 200 -
+2026-04-23 23:29:51,385 - INFO - 127.0.0.1 - - [23/Apr/2026 23:29:51] "GET /static/avatars/LaceyDream.svg HTTP/1.1" 200 -
+2026-04-23 23:29:51,516 - INFO - 127.0.0.1 - - [23/Apr/2026 23:29:51] "GET /static/assets/laboratory.png HTTP/1.1" 200 -
+2026-04-23 23:29:51,525 - INFO - 127.0.0.1 - - [23/Apr/2026 23:29:51] "GET /static/assets/checticon.png HTTP/1.1" 200 -
+2026-04-23 23:29:53,234 - INFO - 127.0.0.1 - - [23/Apr/2026 23:29:53] "GET /static/assets/sissyloving/slsponsorbanner.png HTTP/1.1" 200 -
+2026-04-23 23:29:53,623 - INFO - 127.0.0.1 - - [23/Apr/2026 23:29:53] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2026-04-23 23:30:22,399 - INFO - 127.0.0.1 - - [23/Apr/2026 23:30:22] "GET /notifications/count HTTP/1.1" 200 -
+2026-04-23 23:30:22,403 - INFO - 127.0.0.1 - - [23/Apr/2026 23:30:22] "GET /messages/unread_count HTTP/1.1" 200 -
+2026-04-23 23:30:52,411 - INFO - 127.0.0.1 - - [23/Apr/2026 23:30:52] "GET /notifications/count HTTP/1.1" 200 -
+2026-04-23 23:30:52,414 - INFO - 127.0.0.1 - - [23/Apr/2026 23:30:52] "GET /messages/unread_count HTTP/1.1" 200 -
+2026-04-23 23:31:22,402 - INFO - 127.0.0.1 - - [23/Apr/2026 23:31:22] "GET /messages/unread_count HTTP/1.1" 200 -
+2026-04-23 23:31:22,409 - INFO - 127.0.0.1 - - [23/Apr/2026 23:31:22] "GET /notifications/count HTTP/1.1" 200 -
+2026-04-23 23:31:52,491 - INFO - 127.0.0.1 - - [23/Apr/2026 23:31:52] "GET /notifications/count HTTP/1.1" 200 -
+2026-04-23 23:31:52,497 - INFO - 127.0.0.1 - - [23/Apr/2026 23:31:52] "GET /messages/unread_count HTTP/1.1" 200 -
