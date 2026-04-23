@@ -414,6 +414,89 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- X Import Tab -->
+                <div class="tab-pane fade" id="ximport" role="tabpanel">
+                    <div class="row g-4">
+                        <!-- Step 1: Scrape -->
+                        <div class="col-lg-5">
+                            <div class="card glass-card p-4">
+                                <h5 class="mb-3"><i class="bi bi-twitter-x me-2"></i>Scrape X Profile</h5>
+                                <div class="mb-3">
+                                    <label class="form-label small">X Handle (without @)</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">@</span>
+                                        <input type="text" class="form-control" id="xiHandle" placeholder="username" maxlength="50">
+                                        <button class="btn btn-outline-info" id="xiScrapeBtn">
+                                            <i class="bi bi-search me-1"></i> Scrape
+                                        </button>
+                                    </div>
+                                </div>
+                                <div id="xiScrapeErr" class="alert alert-danger py-2 small" style="display:none"></div>
+
+                                <!-- Profile preview (hidden until scraped) -->
+                                <div id="xiPreview" style="display:none">
+                                    <hr class="my-3">
+                                    <div class="d-flex align-items-center gap-3 mb-3">
+                                        <img id="xiAvatar" src="" alt="avatar" class="rounded-circle" style="width:56px;height:56px;object-fit:cover;" onerror="this.style.display='none'">
+                                        <div>
+                                            <div class="fw-semibold" id="xiDispName"></div>
+                                            <div class="text-muted small" id="xiHandleLabel"></div>
+                                            <div class="text-muted small" id="xiFollowers"></div>
+                                        </div>
+                                    </div>
+                                    <p class="small text-muted mb-2" id="xiBio" style="white-space:pre-wrap;max-height:80px;overflow:auto"></p>
+                                    <h6 class="small text-muted mb-1">Recent tweets</h6>
+                                    <ul id="xiTweetList" class="list-unstyled small" style="max-height:140px;overflow:auto"></ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 2: Create account form (hidden until scraped) -->
+                        <div class="col-lg-7" id="xiCreateCol" style="display:none">
+                            <div class="card glass-card p-4">
+                                <h5 class="mb-3"><i class="bi bi-person-plus me-2"></i>Create Account</h5>
+                                <div class="row g-2 mb-2">
+                                    <div class="col-md-6">
+                                        <label class="form-label small">Username</label>
+                                        <input type="text" class="form-control" id="xiUsername" maxlength="64">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small">Role</label>
+                                        <select class="form-select" id="xiRole">
+                                            <option value="sissy" selected>sissy</option>
+                                            <option value="master">master</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="row g-2 mb-2">
+                                    <div class="col-md-6">
+                                        <label class="form-label small">Email</label>
+                                        <input type="email" class="form-control" id="xiEmail" placeholder="user@example.com">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small">Password</label>
+                                        <input type="password" class="form-control" id="xiPassword" placeholder="Min 8 chars">
+                                    </div>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label small">Bio <span class="text-muted">(pre-filled from X)</span></label>
+                                    <textarea class="form-control" id="xiBioField" rows="3" maxlength="500"></textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label small">Avatar URL <span class="text-muted">(pre-filled from X)</span></label>
+                                    <input type="text" class="form-control" id="xiAvatarUrl">
+                                </div>
+                                <div id="xiCreateErr" class="alert alert-danger py-2 small mb-2" style="display:none"></div>
+                                <div id="xiCreateOk" class="alert alert-success py-2 small mb-2" style="display:none"></div>
+                                <button class="btn btn-pink w-100" id="xiCreateBtn">
+                                    <i class="bi bi-person-check me-1"></i> Create Account
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
             </div><!-- /.tab-content -->
 
             <script>
@@ -517,6 +600,129 @@
                     /* Auto-refresh every 8s while tab is visible */
                     document.getElementById('ggtv-tab')?.addEventListener('shown.bs.tab', function () {
                         loadStreams();
+                    });
+                });
+            })();
+            </script>
+
+            <script>
+            /* ── Admin X Import ──────────────────────────────────────── */
+            (function () {
+                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
+
+                function esc(s) {
+                    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+                }
+
+                function xiSetErr(el, msg) {
+                    el.textContent = msg;
+                    el.style.display = msg ? '' : 'none';
+                }
+
+                document.getElementById('xiScrapeBtn')?.addEventListener('click', function () {
+                    const handle = (document.getElementById('xiHandle').value || '').trim().replace(/^@/, '');
+                    const errEl  = document.getElementById('xiScrapeErr');
+                    xiSetErr(errEl, '');
+                    if (!handle) { xiSetErr(errEl, 'Enter an X handle.'); return; }
+
+                    const btn = this;
+                    btn.disabled = true;
+                    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>';
+
+                    fetch('/admin/x-import/scrape', {
+                        method: 'POST',
+                        credentials: 'same-origin',
+                        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                        body: JSON.stringify({ handle }),
+                    })
+                    .then(r => r.json().then(d => ({ ok: r.ok, d })))
+                    .then(({ ok, d }) => {
+                        if (!ok) { xiSetErr(errEl, d.error || 'Scrape failed'); return; }
+
+                        const p = d.profile;
+                        document.getElementById('xiAvatar').src      = p.avatar_url || '';
+                        document.getElementById('xiDispName').textContent  = p.display_name || p.x_handle;
+                        document.getElementById('xiHandleLabel').textContent = '@' + p.x_handle;
+                        document.getElementById('xiFollowers').textContent  =
+                            `${(p.followers||0).toLocaleString()} followers · ${(p.following||0).toLocaleString()} following`;
+                        document.getElementById('xiBio').textContent = p.bio || '';
+
+                        const ul = document.getElementById('xiTweetList');
+                        ul.innerHTML = '';
+                        (d.tweets || []).forEach(t => {
+                            const li = document.createElement('li');
+                            li.className = 'mb-1 text-muted';
+                            li.style.borderLeft = '2px solid rgba(255,255,255,.15)';
+                            li.style.paddingLeft = '.5rem';
+                            li.textContent = t.length > 140 ? t.slice(0, 140) + '…' : t;
+                            ul.appendChild(li);
+                        });
+
+                        document.getElementById('xiPreview').style.display = '';
+
+                        // Pre-fill create form
+                        document.getElementById('xiUsername').value   = d.suggested_username || p.x_handle;
+                        document.getElementById('xiBioField').value   = p.bio || '';
+                        document.getElementById('xiAvatarUrl').value  = p.avatar_url || '';
+                        document.getElementById('xiEmail').value      = '';
+                        document.getElementById('xiPassword').value   = '';
+                        xiSetErr(document.getElementById('xiCreateErr'), '');
+                        xiSetErr(document.getElementById('xiCreateOk'), '');
+                        document.getElementById('xiCreateCol').style.display = '';
+                    })
+                    .catch(() => xiSetErr(errEl, 'Network error'))
+                    .finally(() => {
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="bi bi-search me-1"></i> Scrape';
+                    });
+                });
+
+                document.getElementById('xiCreateBtn')?.addEventListener('click', function () {
+                    const errEl = document.getElementById('xiCreateErr');
+                    const okEl  = document.getElementById('xiCreateOk');
+                    xiSetErr(errEl, '');
+                    xiSetErr(okEl, '');
+
+                    const payload = {
+                        username:   (document.getElementById('xiUsername').value  || '').trim(),
+                        email:      (document.getElementById('xiEmail').value     || '').trim(),
+                        password:    document.getElementById('xiPassword').value  || '',
+                        role:        document.getElementById('xiRole').value,
+                        bio:        (document.getElementById('xiBioField').value  || '').trim(),
+                        avatar_url: (document.getElementById('xiAvatarUrl').value || '').trim(),
+                        x_handle:   (document.getElementById('xiHandleLabel').textContent || '').replace(/^@/, ''),
+                    };
+
+                    if (!payload.username) { xiSetErr(errEl, 'Username is required'); return; }
+                    if (!payload.email)    { xiSetErr(errEl, 'Email is required');    return; }
+                    if (!payload.password) { xiSetErr(errEl, 'Password is required'); return; }
+
+                    const btn = this;
+                    btn.disabled = true;
+                    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Creating…';
+
+                    fetch('/admin/x-import/create', {
+                        method: 'POST',
+                        credentials: 'same-origin',
+                        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                        body: JSON.stringify(payload),
+                    })
+                    .then(r => r.json().then(d => ({ ok: r.ok, d })))
+                    .then(({ ok, d }) => {
+                        if (!ok) { xiSetErr(errEl, d.error || 'Create failed'); return; }
+                        xiSetErr(okEl, `✓ Account created: @${esc(d.username)} — `
+                            + `<a href="${esc(d.profile_url)}" target="_blank">View profile</a>`);
+                        okEl.innerHTML = `✓ Account created: <strong>@${esc(d.username)}</strong> — <a href="${esc(d.profile_url)}" target="_blank" class="alert-link">View profile</a>`;
+                        okEl.style.display = '';
+                        // Reset form for next import
+                        document.getElementById('xiHandle').value   = '';
+                        document.getElementById('xiPreview').style.display = 'none';
+                        document.getElementById('xiCreateCol').style.display = 'none';
+                    })
+                    .catch(() => xiSetErr(errEl, 'Network error'))
+                    .finally(() => {
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="bi bi-person-check me-1"></i> Create Account';
                     });
                 });
             })();
