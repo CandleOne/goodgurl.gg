@@ -1,0 +1,37 @@
+# Environment / secrets — NEVER commit
+.env
+*.env
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Flask / SQLite
+instance/
+*.db
+*.sqlite3
+
+# Uploads & user content
+uploads/
+static/avatars/
+static/assets/bot_post_gif_bank/
+static/assets/bot_post_video_bank/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
