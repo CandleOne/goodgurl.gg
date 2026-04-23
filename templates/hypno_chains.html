@@ -88,6 +88,7 @@
     margin-bottom: 4px;
     display: -webkit-box;
     -webkit-line-clamp: 2;
+    line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
 }
@@ -312,10 +313,14 @@
     </div>
 </div>
 
+<!-- Server config passed as JSON so the JS/CSS linter skips it -->
+<script id="hcConfig" type="application/json">
+    {"daily_limit": {{ daily_limit }}, "xp_per_video": {{ xp_per_video }}, "watched_today": {{ watched_today }}}
+</script>
+
 <!-- XP progress bar -->
 <div class="hc-xp-bar">
-    <div class="hc-xp-bar-fill" id="hcXpBarFill"
-         style="width: {{ (watched_today / daily_limit * 100)|int }}%"></div>
+    <div class="hc-xp-bar-fill" id="hcXpBarFill"></div>
 </div>
 
 <!-- XP toast -->
@@ -330,9 +335,13 @@
     const xpBarFill    = document.getElementById('hcXpBarFill');
     const csrfToken    = document.querySelector('meta[name=csrf-token]')?.content || '';
 
-    const DAILY_LIMIT    = {{ daily_limit }};
-    const XP_PER_VIDEO   = {{ xp_per_video }};
-    let watchedToday     = {{ watched_today }};
+    const _cfg         = JSON.parse(document.getElementById('hcConfig').textContent);
+    const DAILY_LIMIT  = _cfg.daily_limit;
+    const XP_PER_VIDEO = _cfg.xp_per_video;
+    let watchedToday   = _cfg.watched_today;
+
+    // Initialise XP bar from server value
+    xpBarFill.style.width = Math.min((watchedToday / DAILY_LIMIT) * 100, 100) + '%';
     let globalMuted      = true;
     let afterToken       = '';
     let loading          = false;

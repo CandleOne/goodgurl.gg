@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 from functools import wraps
 from urllib.parse import urlparse
 
+import requests
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -3197,8 +3198,6 @@ def _fetch_reddit_videos(subreddit: str, after: str = "") -> dict:
     are set in the environment (recommended — public API is frequently blocked).
     Falls back to the unauthenticated JSON endpoint otherwise.
     """
-    import requests as _req
-
     # ── Build auth headers ─────────────────────────────────────────────
     reddit_client_id     = os.environ.get("REDDIT_CLIENT_ID", "")
     reddit_client_secret = os.environ.get("REDDIT_CLIENT_SECRET", "")
@@ -3215,7 +3214,7 @@ def _fetch_reddit_videos(subreddit: str, after: str = "") -> dict:
         token_data = current_app.config.get("_reddit_token", {})
         if not token_data or token_data.get("expires_at", 0) < now + 30:
             try:
-                tok_resp = _req.post(
+                tok_resp = requests.post(
                     "https://www.reddit.com/api/v1/access_token",
                     auth=(reddit_client_id, reddit_client_secret),
                     data={"grant_type": "client_credentials"},
@@ -3241,7 +3240,7 @@ def _fetch_reddit_videos(subreddit: str, after: str = "") -> dict:
     )
 
     try:
-        resp = _req.get(url, headers=headers, timeout=6)
+        resp = requests.get(url, headers=headers, timeout=6)
         resp.raise_for_status()
         content_type = resp.headers.get("Content-Type", "")
         if "json" not in content_type and "javascript" not in content_type:
