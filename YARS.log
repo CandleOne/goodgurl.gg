@@ -1899,3 +1899,5 @@
 2026-04-23 21:29:54,077 - INFO - 127.0.0.1 - - [23/Apr/2026 21:29:54] "GET /notifications/count HTTP/1.1" 200 -
 2026-04-23 21:30:50,694 - INFO -  * Detected change in '/workspaces/goodgurl.gg/app.py', reloading
 2026-04-23 21:30:51,616 - INFO -  * Restarting with stat
+2026-04-23 21:30:59,731 - WARNING -  * Debugger is active!
+2026-04-23 21:30:59,731 - INFO -  * Debugger PIN: 711-190-077
