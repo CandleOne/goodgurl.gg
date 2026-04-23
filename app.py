@@ -3240,13 +3240,23 @@ def _fetch_reddit_videos(subreddit: str, after: str = "") -> dict:
     if not token:
         return {"posts": [], "after": None, "error": "Could not authenticate with content provider."}
 
-    try:
-        resp = requests.get(
+    def _call(tok):
+        return requests.get(
             f"https://api.redgifs.com/v2/niches/{niche}/gifs",
             params={"order": "trending", "count": count, "start": start},
-            headers={"Authorization": f"Bearer {token}", "User-Agent": "goodgurl_gg/1.0"},
+            headers={"Authorization": f"Bearer {tok}", "User-Agent": "goodgurl_gg/1.0"},
             timeout=8,
         )
+
+    try:
+        resp = _call(token)
+        if resp.status_code == 401:
+            # Token is IP-bound; invalidate cache and retry once with a fresh token
+            current_app.config.pop("_redgifs_token", None)
+            token = _get_redgifs_token()
+            if not token:
+                return {"posts": [], "after": None, "error": "Could not authenticate with content provider."}
+            resp = _call(token)
         resp.raise_for_status()
         data = resp.json()
     except Exception as exc:

@@ -62,3 +62,57 @@
 2026-04-23 00:35:46,827 - INFO - 127.0.0.1 - - [23/Apr/2026 00:35:46] "POST /api/hypno-chains/watched HTTP/1.1" 200 -
 2026-04-23 00:36:03,495 - INFO - 127.0.0.1 - - [23/Apr/2026 00:36:03] "POST /api/hypno-chains/watched HTTP/1.1" 200 -
 2026-04-23 00:38:57,079 - INFO - 127.0.0.1 - - [23/Apr/2026 00:38:57] "POST /api/hypno-chains/watched HTTP/1.1" 200 -
+2026-04-23 00:40:59,040 - INFO - 127.0.0.1 - - [23/Apr/2026 00:40:59] "GET /academy/hypno-chains HTTP/1.1" 200 -
+2026-04-23 00:40:59,716 - INFO - 127.0.0.1 - - [23/Apr/2026 00:40:59] "GET /static/style.css HTTP/1.1" 200 -
+2026-04-23 00:41:00,573 - INFO - 127.0.0.1 - - [23/Apr/2026 00:41:00] "GET /api/hypno-chains?sub=sissy-training&after= HTTP/1.1" 200 -
+2026-04-23 00:41:00,848 - INFO - 127.0.0.1 - - [23/Apr/2026 00:41:00] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2026-04-23 00:41:12,178 - INFO - 127.0.0.1 - - [23/Apr/2026 00:41:12] "GET /api/hypno-chains?sub=sissy-hypnosis&after= HTTP/1.1" 200 -
+2026-04-23 00:41:12,979 - INFO - 127.0.0.1 - - [23/Apr/2026 00:41:12] "GET /api/hypno-chains?sub=sissy-hypnosis&after=25 HTTP/1.1" 200 -
+2026-04-23 00:41:13,869 - INFO - 127.0.0.1 - - [23/Apr/2026 00:41:13] "GET /api/hypno-chains?sub=sissy-hypnosis&after=50 HTTP/1.1" 200 -
+2026-04-23 00:41:14,784 - INFO - 127.0.0.1 - - [23/Apr/2026 00:41:14] "GET /api/hypno-chains?sub=sissy-hypnosis&after=75 HTTP/1.1" 200 -
+2026-04-23 00:41:15,528 - INFO - 127.0.0.1 - - [23/Apr/2026 00:41:15] "GET /api/hypno-chains?sub=sissy-hypnosis&after=100 HTTP/1.1" 200 -
+2026-04-23 00:41:16,333 - INFO - 127.0.0.1 - - [23/Apr/2026 00:41:16] "GET /api/hypno-chains?sub=sissy-hypnosis&after=125 HTTP/1.1" 200 -
+2026-04-23 00:41:16,713 - INFO - 127.0.0.1 - - [23/Apr/2026 00:41:16] "GET /api/hypno-chains?sub=sissy-hypnosis&after=150 HTTP/1.1" 200 -
+2026-04-23 00:41:17,634 - INFO - 127.0.0.1 - - [23/Apr/2026 00:41:17] "GET /api/hypno-chains?sub=sissy-hypnosis&after=175 HTTP/1.1" 200 -
+2026-04-23 00:41:18,447 - INFO - 127.0.0.1 - - [23/Apr/2026 00:41:18] "GET /api/hypno-chains?sub=sissy-hypnosis&after=200 HTTP/1.1" 200 -
+2026-04-23 00:41:19,434 - INFO - 127.0.0.1 - - [23/Apr/2026 00:41:19] "GET /api/hypno-chains?sub=sissy-hypnosis&after=225 HTTP/1.1" 200 -
+2026-04-23 00:41:19,938 - INFO - 127.0.0.1 - - [23/Apr/2026 00:41:19] "GET /api/hypno-chains?sub=sissy-hypnosis&after=250 HTTP/1.1" 200 -
+2026-04-23 00:41:20,459 - INFO - 127.0.0.1 - - [23/Apr/2026 00:41:20] "GET /api/hypno-chains?sub=sissy-hypnosis&after=275 HTTP/1.1" 200 -
+2026-04-23 00:41:21,097 - INFO - 127.0.0.1 - - [23/Apr/2026 00:41:21] "GET /api/hypno-chains?sub=sissy-hypnosis&after=300 HTTP/1.1" 200 -
+2026-04-23 00:41:21,604 - INFO - 127.0.0.1 - - [23/Apr/2026 00:41:21] "GET /api/hypno-chains?sub=sissy-hypnosis&after=325 HTTP/1.1" 200 -
+2026-04-23 00:41:22,129 - INFO - 127.0.0.1 - - [23/Apr/2026 00:41:22] "GET /api/hypno-chains?sub=sissy-hypnosis&after=350 HTTP/1.1" 200 -
+2026-04-23 00:41:22,866 - INFO - 127.0.0.1 - - [23/Apr/2026 00:41:22] "GET /api/hypno-chains?sub=sissy-hypnosis&after=375 HTTP/1.1" 200 -
+2026-04-23 00:41:23,356 - INFO - 127.0.0.1 - - [23/Apr/2026 00:41:23] "GET /api/hypno-chains?sub=sissy-hypnosis&after=400 HTTP/1.1" 200 -
+2026-04-23 00:41:23,923 - INFO - 127.0.0.1 - - [23/Apr/2026 00:41:23] "GET /api/hypno-chains?sub=sissy-hypnosis&after=425 HTTP/1.1" 200 -
+2026-04-23 00:41:24,425 - INFO - 127.0.0.1 - - [23/Apr/2026 00:41:24] "GET /api/hypno-chains?sub=sissy-hypnosis&after=450 HTTP/1.1" 200 -
+2026-04-23 00:41:25,059 - INFO - 127.0.0.1 - - [23/Apr/2026 00:41:25] "GET /api/hypno-chains?sub=sissy-hypnosis&after=475 HTTP/1.1" 200 -
+2026-04-23 00:41:26,153 - INFO - 127.0.0.1 - - [23/Apr/2026 00:41:26] "GET /api/hypno-chains?sub=sissy-hypnosis&after=500 HTTP/1.1" 200 -
+2026-04-23 00:41:26,716 - INFO - 127.0.0.1 - - [23/Apr/2026 00:41:26] "GET /api/hypno-chains?sub=sissy-hypnosis&after=525 HTTP/1.1" 200 -
+2026-04-23 00:41:27,262 - INFO - 127.0.0.1 - - [23/Apr/2026 00:41:27] "GET /api/hypno-chains?sub=sissy-hypnosis&after=550 HTTP/1.1" 200 -
+2026-04-23 00:41:27,892 - INFO - 127.0.0.1 - - [23/Apr/2026 00:41:27] "GET /api/hypno-chains?sub=sissy-hypnosis&after=575 HTTP/1.1" 200 -
+2026-04-23 00:41:28,531 - INFO - 127.0.0.1 - - [23/Apr/2026 00:41:28] "GET /api/hypno-chains?sub=sissy-hypnosis&after=600 HTTP/1.1" 200 -
+2026-04-23 00:41:29,105 - INFO - 127.0.0.1 - - [23/Apr/2026 00:41:29] "GET /api/hypno-chains?sub=sissy-hypnosis&after=625 HTTP/1.1" 200 -
+2026-04-23 00:41:30,984 - INFO - 127.0.0.1 - - [23/Apr/2026 00:41:30] "GET /api/hypno-chains?sub=sissy-hypnosis&after=650 HTTP/1.1" 200 -
+2026-04-23 00:41:31,587 - INFO - 127.0.0.1 - - [23/Apr/2026 00:41:31] "GET /api/hypno-chains?sub=sissy-hypnosis&after=675 HTTP/1.1" 200 -
+2026-04-23 00:41:32,143 - INFO - 127.0.0.1 - - [23/Apr/2026 00:41:32] "GET /api/hypno-chains?sub=sissy-hypnosis&after=700 HTTP/1.1" 200 -
+2026-04-23 00:41:32,601 - INFO - ratelimit 30 per 1 minute (127.0.0.1) exceeded at endpoint: api_hypno_chains
+2026-04-23 00:41:32,602 - INFO - 127.0.0.1 - - [23/Apr/2026 00:41:32] "[31m[1mGET /api/hypno-chains?sub=sissy-hypnosis&after=725 HTTP/1.1[0m" 429 -
+2026-04-23 00:41:32,842 - INFO - ratelimit 30 per 1 minute (127.0.0.1) exceeded at endpoint: api_hypno_chains
+2026-04-23 00:41:32,842 - INFO - 127.0.0.1 - - [23/Apr/2026 00:41:32] "[31m[1mGET /api/hypno-chains?sub=sissy-hypnosis&after=725 HTTP/1.1[0m" 429 -
+2026-04-23 00:41:35,182 - INFO - ratelimit 30 per 1 minute (127.0.0.1) exceeded at endpoint: api_hypno_chains
+2026-04-23 00:41:35,182 - INFO - 127.0.0.1 - - [23/Apr/2026 00:41:35] "[31m[1mGET /api/hypno-chains?sub=sissy-training&after= HTTP/1.1[0m" 429 -
+2026-04-23 00:41:41,852 - INFO - 127.0.0.1 - - [23/Apr/2026 00:41:41] "GET /academy/hypno-chains HTTP/1.1" 200 -
+2026-04-23 00:41:42,010 - INFO - 127.0.0.1 - - [23/Apr/2026 00:41:42] "GET /static/style.css HTTP/1.1" 200 -
+2026-04-23 00:41:42,375 - INFO - ratelimit 30 per 1 minute (127.0.0.1) exceeded at endpoint: api_hypno_chains
+2026-04-23 00:41:42,376 - INFO - 127.0.0.1 - - [23/Apr/2026 00:41:42] "[31m[1mGET /api/hypno-chains?sub=sissy-training&after= HTTP/1.1[0m" 429 -
+2026-04-23 00:41:42,396 - INFO - 127.0.0.1 - - [23/Apr/2026 00:41:42] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2026-04-23 00:41:43,750 - INFO - ratelimit 30 per 1 minute (127.0.0.1) exceeded at endpoint: api_hypno_chains
+2026-04-23 00:41:43,750 - INFO - 127.0.0.1 - - [23/Apr/2026 00:41:43] "[31m[1mGET /api/hypno-chains?sub=sissy-hypnosis&after= HTTP/1.1[0m" 429 -
+2026-04-23 00:41:45,950 - INFO - ratelimit 30 per 1 minute (127.0.0.1) exceeded at endpoint: api_hypno_chains
+2026-04-23 00:41:45,950 - INFO - 127.0.0.1 - - [23/Apr/2026 00:41:45] "[31m[1mGET /api/hypno-chains?sub=sissy-training&after= HTTP/1.1[0m" 429 -
+2026-04-23 00:45:12,950 - INFO -  * Detected change in '/workspaces/goodgurl.gg/app.py', reloading
+2026-04-23 00:45:20,334 - WARNING -  * Debugger is active!
+2026-04-23 00:45:20,334 - INFO -  * Debugger PIN: 580-875-515
+2026-04-23 00:45:38,776 - INFO -  * Detected change in '/workspaces/goodgurl.gg/app.py', reloading
+2026-04-23 00:45:41,312 - WARNING -  * Debugger is active!
+2026-04-23 00:45:41,312 - INFO -  * Debugger PIN: 580-875-515

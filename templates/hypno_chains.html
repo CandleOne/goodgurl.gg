@@ -522,7 +522,7 @@
                 showEmptyState(
                     data.error
                         ? `Could not load content: ${escHtml(data.error)}`
-                        : `No video content found for r/${escHtml(currentSub)}.`,
+                        : `No videos found for ${escHtml(currentSub)}.`,
                     currentSub,
                     !!data.error
                 );
@@ -540,8 +540,8 @@
             if (viewport.querySelectorAll('.hc-slide, .hc-empty').length === 0) {
                 showEmptyState(
                     e.name === 'AbortError'
-                        ? 'Connection timed out. Reddit may be unavailable.'
-                        : 'Could not reach Reddit. Check your connection.',
+                        ? 'Connection timed out. Try again in a moment.'
+                        : `Failed to load content (${escHtml(e.message || 'network error')}). Tap Retry.`,
                     currentSub,
                     true
                 );
