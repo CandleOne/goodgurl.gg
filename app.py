@@ -3960,6 +3960,131 @@ def api_ggtv_bot_stream_stop():
     return jsonify({"stopped": stream_key})
 
 
+# ---------------------------------------------------------------------------
+# Share Card  – generate a shareable PNG stat card for a user
+# ---------------------------------------------------------------------------
+
+def _build_share_card(user):
+    """Render stat data onto the share template and return a PIL Image."""
+    from PIL import Image, ImageDraw, ImageFont
+    import textwrap
+
+    TEMPLATE_PATH = os.path.join(app.static_folder, "assets", "shareables", "blanksharetemplate.png")
+    FONT_BOLD = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+    FONT_REG  = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+
+    # Colours
+    C_WHITE   = (255, 255, 255, 255)
+    C_PINK    = (255, 60, 160, 255)
+    C_DIM     = (170, 170, 170, 255)
+    C_GREEN   = (60, 255, 160, 255)
+    C_DARK    = (20,  20,  20, 200)
+
+    today = utcnow().date()
+
+    # --- stat queries ---
+    xp_today = db.session.query(
+        db.func.coalesce(db.func.sum(XPAudit.amount), 0)
+    ).filter(
+        XPAudit.user_id == user.id,
+        XPAudit.audit_type == "add",
+        db.func.date(XPAudit.created_at) == today,
+    ).scalar() or 0
+
+    tasks_today = Task.query.filter(
+        Task.assignee_id == user.id,
+        Task.status == "completed",
+        db.func.date(Task.completed_at) == today,
+    ).count()
+
+    login_streak = user.get_current_streak_count("login") if user.role == "sissy" else 0
+
+    # --- open template ---
+    img = Image.open(TEMPLATE_PATH).convert("RGBA")
+    W, H = img.size          # 740 × 431
+    draw = ImageDraw.Draw(img)
+
+    def font(path, size):
+        try:
+            return ImageFont.truetype(path, size)
+        except OSError:
+            return ImageFont.load_default()
+
+    # --- date string  (top-right, matching reference card) ---
+    date_str  = utcnow().strftime("%-d %b %Y")
+    f_date    = font(FONT_BOLD, 16)
+    draw.text((W - 170, 28), date_str, font=f_date, fill=C_DIM)
+
+    # --- username sub-header (below logo on left) ---
+    f_user  = font(FONT_BOLD, 20)
+    draw.text((48, 80), f"× {user.username}", font=f_user, fill=C_WHITE)
+
+    # --- profile URL (top-right) ---
+    f_url   = font(FONT_REG, 13)
+    url_str = f"goodgurl.gg/profile/{user.username}"
+    draw.text((W - 10 - draw.textlength(url_str, font=f_url), 50), url_str, font=f_url, fill=C_DIM)
+
+    # --- big XP gained today ---
+    xp_sign  = "+" if xp_today >= 0 else ""
+    xp_label = f"{xp_sign}{xp_today:,} XP"
+    f_big    = font(FONT_BOLD, 72)
+    draw.text((48, 130), xp_label, font=f_big, fill=C_PINK)
+
+    # sub-label
+    f_sub = font(FONT_REG, 15)
+    draw.text((50, 215), "XP earned today", font=f_sub, fill=C_DIM)
+
+    # --- divider ---
+    draw.line([(48, 248), (W - 48, 248)], fill=(255, 60, 160, 80), width=1)
+
+    # --- bottom stat tiles ---
+    stats = [
+        ("Level",   str(user.level)),
+        ("Tier",    user.rank),
+        ("Streak",  f"{login_streak}d 🔥" if login_streak else "—"),
+        ("Tasks",   str(tasks_today)),
+        ("Total XP", f"{user.xp:,}"),
+    ]
+
+    col_w  = (W - 96) // len(stats)
+    f_val  = font(FONT_BOLD, 22)
+    f_lbl  = font(FONT_REG, 12)
+
+    for i, (lbl, val) in enumerate(stats):
+        cx = 48 + i * col_w
+        draw.text((cx, 263), val, font=f_val, fill=C_WHITE)
+        draw.text((cx, 293), lbl, font=f_lbl, fill=C_DIM)
+
+    # --- thin bottom border accent ---
+    draw.line([(0, H - 3), (W, H - 3)], fill=C_PINK, width=3)
+
+    return img
+
+
+@app.route("/share/stats-card")
+@login_required
+@limiter.limit("20 per minute")
+def share_stats_card():
+    """Generate and return the current user's stat share card as a PNG."""
+    img = _build_share_card(current_user)
+
+    buf = io.BytesIO()
+    img.save(buf, format="PNG", optimize=True)
+    buf.seek(0)
+
+    disposition = request.args.get("dl")
+    headers = {}
+    if disposition:
+        filename = f"goodgurl_{current_user.username}_{utcnow().strftime('%Y%m%d')}.png"
+        headers["Content-Disposition"] = f'attachment; filename="{filename}"'
+
+    return Response(
+        buf,
+        mimetype="image/png",
+        headers=headers,
+    )
+
+
 if __name__ == "__main__":
     app.run(debug=os.environ.get("FLASK_DEBUG", "1") == "1", port=5000)
 

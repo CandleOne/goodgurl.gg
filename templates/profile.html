@@ -76,6 +76,15 @@
 
             <small class="text-muted d-block mt-3">Joined {{ user.created_at.strftime('%B %Y') }}</small>
 
+            <!-- Share card (own profile only) -->
+            {% if current_user.is_authenticated and current_user.id == user.id and user.role == 'sissy' %}
+            <div class="mt-3">
+                <button class="btn btn-sm btn-outline-pink w-100" data-bs-toggle="modal" data-bs-target="#shareCardModal">
+                    <i class="bi bi-share"></i> Share My Stats Card
+                </button>
+            </div>
+            {% endif %}
+
             <!-- Follow / Message / Gift buttons -->
             {% if current_user.is_authenticated and current_user.id != user.id %}
             <div class="d-flex flex-wrap gap-2 mt-3 justify-content-center">
@@ -234,4 +243,51 @@
 
     </div>
 </div>
+
+<!-- Share Stats Card Modal -->
+{% if current_user.is_authenticated and current_user.id == user.id and user.role == 'sissy' %}
+<div class="modal fade" id="shareCardModal" tabindex="-1" aria-labelledby="shareCardModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" style="background:#0d0d0d; border:1px solid rgba(255,60,160,.3);">
+            <div class="modal-header border-0">
+                <h5 class="modal-title" id="shareCardModalLabel"><i class="bi bi-share text-pink"></i> Your Stats Card</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center">
+                <p class="text-muted small mb-3">Your personalised daily stat card — share it anywhere!</p>
+                <img id="shareCardImg"
+                     src="{{ url_for('share_stats_card') }}"
+                     class="img-fluid rounded"
+                     style="max-width:100%; border:1px solid rgba(255,60,160,.25);"
+                     alt="Stats card">
+            </div>
+            <div class="modal-footer border-0 justify-content-center gap-2">
+                <a href="{{ url_for('share_stats_card', dl=1) }}"
+                   class="btn btn-pink">
+                    <i class="bi bi-download"></i> Download PNG
+                </a>
+                <button class="btn btn-outline-light" onclick="copyShareCard()">
+                    <i class="bi bi-clipboard"></i> Copy Image
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+async function copyShareCard() {
+    try {
+        const img = document.getElementById('shareCardImg');
+        const res = await fetch(img.src);
+        const blob = await res.blob();
+        await navigator.clipboard.write([new ClipboardItem({'image/png': blob})]);
+        const btn = event.target.closest('button');
+        btn.innerHTML = '<i class="bi bi-check2"></i> Copied!';
+        setTimeout(() => { btn.innerHTML = '<i class="bi bi-clipboard"></i> Copy Image'; }, 2000);
+    } catch(e) {
+        alert('Copy failed — please use the Download button instead.');
+    }
+}
+</script>
+{% endif %}
+
 {% endblock %}
