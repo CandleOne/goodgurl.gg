@@ -2182,6 +2182,118 @@ def claim_all_gifts():
 
 
 # ---------------------------------------------------------------------------
+# Admin Panel – X (Twitter) import
+# ---------------------------------------------------------------------------
+
+def _scweet_client():
+    """Build a Scweet client from env vars. Returns (client, error_str)."""
+    auth_token = os.environ.get("X_AUTH_TOKEN", "").strip()
+    ct0 = os.environ.get("X_CT0", "").strip()
+    if not auth_token:
+        return None, "X_AUTH_TOKEN is not set in environment variables."
+    try:
+        from Scweet import Scweet as _Scweet
+        cookies: dict = {"auth_token": auth_token}
+        if ct0:
+            cookies["ct0"] = ct0
+        client = _Scweet(cookies=cookies, db_path="/tmp/scweet_admin.db", provision=True)
+        return client, None
+    except Exception as exc:
+        return None, str(exc)
+
+
+@app.route("/admin/x-import/scrape", methods=["POST"])
+@login_required
+@admin_required
+def admin_x_scrape():
+    data = request.get_json(silent=True) or {}
+    handle = re.sub(r"[^a-zA-Z0-9_]", "", data.get("handle", "").lstrip("@"))
+    if not handle:
+        return jsonify({"error": "X handle is required"}), 400
+
+    client, err = _scweet_client()
+    if err:
+        return jsonify({"error": err}), 503
+
+    try:
+        profiles = client.get_user_info([handle])
+    except Exception as exc:
+        return jsonify({"error": f"Scrape failed: {exc}"}), 500
+
+    if not profiles:
+        return jsonify({"error": f"User @{handle} not found on X"}), 404
+
+    profile = profiles[0]
+
+    try:
+        tweets = client.get_profile_tweets([handle], limit=10)
+    except Exception:
+        tweets = []
+
+    # Suggest a sanitised username from the X display name
+    raw_name = profile.get("name") or profile.get("username") or handle
+    suggested = re.sub(r"[^a-zA-Z0-9_]", "_", raw_name).strip("_")[:60] or handle
+
+    return jsonify({
+        "profile": {
+            "x_handle":       profile.get("username") or handle,
+            "display_name":   profile.get("name", ""),
+            "bio":            profile.get("description", ""),
+            "location":       profile.get("location", ""),
+            "avatar_url":     profile.get("profile_image_url", ""),
+            "followers":      profile.get("followers_count", 0),
+            "following":      profile.get("following_count", 0),
+            "verified":       profile.get("blue_verified") or profile.get("verified", False),
+        },
+        "tweets":           [t.get("text", "") for t in (tweets or []) if t.get("text")],
+        "suggested_username": suggested,
+    })
+
+
+@app.route("/admin/x-import/create", methods=["POST"])
+@login_required
+@admin_required
+def admin_x_create():
+    data = request.get_json(silent=True) or {}
+    username = data.get("username", "").strip()
+    email    = data.get("email", "").strip()
+    password = data.get("password", "")
+    role     = data.get("role", "sissy")
+    bio      = data.get("bio", "")[:500]          # cap bio length
+    avatar_url = data.get("avatar_url", "").strip()
+    x_handle = data.get("x_handle", "").strip()
+
+    if not username or not email or not password:
+        return jsonify({"error": "username, email, and password are required"}), 400
+    if role not in ("sissy", "master"):
+        return jsonify({"error": "Invalid role"}), 400
+    pw_error = validate_password(password)
+    if pw_error:
+        return jsonify({"error": pw_error}), 400
+    if not re.match(r"^[a-zA-Z0-9_]{1,64}$", username):
+        return jsonify({"error": "Username may only contain letters, digits, and underscores"}), 400
+    if User.query.filter((User.username == username) | (User.email == email)).first():
+        return jsonify({"error": "Username or email already taken"}), 400
+
+    user = User(
+        username=username,
+        email=email,
+        role=role,
+        bio=bio,
+        avatar_url=avatar_url or generate_avatar(username),
+        is_verified=True,   # admin-created accounts skip email verification
+    )
+    user.set_password(password)
+    if role == "master":
+        user.coins = 100
+    db.session.add(user)
+    db.session.commit()
+
+    return jsonify({"ok": True, "user_id": user.id, "username": user.username,
+                    "profile_url": url_for("profile", username=user.username)})
+
+
+# ---------------------------------------------------------------------------
 # Admin Panel
 # ---------------------------------------------------------------------------
 @app.route("/admin/give_coins", methods=["POST"])
