@@ -3312,6 +3312,8 @@ def hypno_chains():
         xp_per_video=HYPNO_CHAINS_XP_PER_VIDEO,
         daily_limit=HYPNO_CHAINS_DAILY_LIMIT,
         watched_today=min(watched_today, HYPNO_CHAINS_DAILY_LIMIT),
+        onboarded=current_user.hypno_niche is not None,
+        initial_niche=current_user.hypno_niche or HYPNO_CHAINS_SUBREDDITS[0],
     )
 
 
@@ -3323,6 +3325,20 @@ def api_hypno_chains():
     # Whitelist subreddits — non-whitelisted slugs are allowed (niche cloud selections)
     result = _fetch_reddit_videos(sub, after)
     return jsonify(result)
+
+
+@app.route("/api/hypno-chains/setup", methods=["POST"])
+@login_required
+@limiter.limit("10 per minute")
+def api_hypno_chains_setup():
+    """Save the user's training program niche selection from the onboarding wizard."""
+    data = request.get_json(silent=True) or {}
+    niche = str(data.get("niche", "")).strip()[:80]
+    if not niche:
+        return jsonify({"error": "missing niche"}), 400
+    current_user.hypno_niche = niche
+    db.session.commit()
+    return jsonify({"ok": True, "niche": niche})
 
 
 @app.route("/api/hypno-chains/niches")

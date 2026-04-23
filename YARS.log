@@ -247,3 +247,43 @@
 2026-04-23 01:00:08,896 - INFO -  * Restarting with stat
 2026-04-23 01:00:11,041 - WARNING -  * Debugger is active!
 2026-04-23 01:00:11,042 - INFO -  * Debugger PIN: 580-875-515
+2026-04-23 01:00:25,550 - INFO - 127.0.0.1 - - [23/Apr/2026 01:00:25] "GET /academy/hypno-chains HTTP/1.1" 200 -
+2026-04-23 01:00:26,156 - INFO - 127.0.0.1 - - [23/Apr/2026 01:00:26] "GET /static/style.css HTTP/1.1" 200 -
+2026-04-23 01:00:27,075 - INFO - 127.0.0.1 - - [23/Apr/2026 01:00:27] "GET /api/hypno-chains?sub=sissy-training&after= HTTP/1.1" 200 -
+2026-04-23 01:00:27,196 - INFO - 127.0.0.1 - - [23/Apr/2026 01:00:27] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2026-04-23 01:00:33,448 - INFO - 127.0.0.1 - - [23/Apr/2026 01:00:33] "GET /api/hypno-chains/niches HTTP/1.1" 200 -
+2026-04-23 01:00:37,271 - INFO - 127.0.0.1 - - [23/Apr/2026 01:00:37] "GET /api/hypno-chains?sub=sissy-chastity&after= HTTP/1.1" 200 -
+2026-04-23 01:00:38,258 - INFO - 127.0.0.1 - - [23/Apr/2026 01:00:38] "GET /api/hypno-chains?sub=sissy-chastity&after=25 HTTP/1.1" 200 -
+2026-04-23 01:00:38,847 - INFO - 127.0.0.1 - - [23/Apr/2026 01:00:38] "GET /api/hypno-chains?sub=sissy-chastity&after=50 HTTP/1.1" 200 -
+2026-04-23 01:00:39,958 - INFO - 127.0.0.1 - - [23/Apr/2026 01:00:39] "GET /api/hypno-chains?sub=sissy-chastity&after=75 HTTP/1.1" 200 -
+2026-04-23 01:00:41,745 - INFO - 127.0.0.1 - - [23/Apr/2026 01:00:41] "GET /api/hypno-chains?sub=sissy-chastity&after=100 HTTP/1.1" 200 -
+2026-04-23 01:00:43,490 - INFO - 127.0.0.1 - - [23/Apr/2026 01:00:43] "GET /api/hypno-chains?sub=sissy-chastity&after=125 HTTP/1.1" 200 -
+2026-04-23 01:00:44,473 - INFO - 127.0.0.1 - - [23/Apr/2026 01:00:44] "GET /api/hypno-chains?sub=sissy-chastity&after=150 HTTP/1.1" 200 -
+2026-04-23 01:00:45,068 - INFO - 127.0.0.1 - - [23/Apr/2026 01:00:45] "GET /api/hypno-chains?sub=sissy-chastity&after=175 HTTP/1.1" 200 -
+2026-04-23 01:00:45,600 - INFO - 127.0.0.1 - - [23/Apr/2026 01:00:45] "GET /api/hypno-chains?sub=sissy-chastity&after=200 HTTP/1.1" 200 -
+2026-04-23 01:00:46,434 - INFO - 127.0.0.1 - - [23/Apr/2026 01:00:46] "GET /api/hypno-chains?sub=sissy-chastity&after=225 HTTP/1.1" 200 -
+2026-04-23 01:00:47,213 - INFO - 127.0.0.1 - - [23/Apr/2026 01:00:47] "GET /api/hypno-chains?sub=sissy-chastity&after=250 HTTP/1.1" 200 -
+2026-04-23 01:00:47,841 - INFO - 127.0.0.1 - - [23/Apr/2026 01:00:47] "GET /api/hypno-chains?sub=sissy-chastity&after=275 HTTP/1.1" 200 -
+2026-04-23 01:00:48,517 - INFO - 127.0.0.1 - - [23/Apr/2026 01:00:48] "GET /api/hypno-chains?sub=sissy-chastity&after=300 HTTP/1.1" 200 -
+2026-04-23 01:00:49,203 - INFO - 127.0.0.1 - - [23/Apr/2026 01:00:49] "GET /api/hypno-chains?sub=sissy-chastity&after=325 HTTP/1.1" 200 -
+2026-04-23 01:00:49,916 - INFO - 127.0.0.1 - - [23/Apr/2026 01:00:49] "GET /api/hypno-chains?sub=sissy-chastity&after=350 HTTP/1.1" 200 -
+2026-04-23 01:00:50,820 - INFO - 127.0.0.1 - - [23/Apr/2026 01:00:50] "GET /api/hypno-chains?sub=sissy-chastity&after=375 HTTP/1.1" 200 -
+2026-04-23 01:00:51,716 - INFO - 127.0.0.1 - - [23/Apr/2026 01:00:51] "GET /api/hypno-chains?sub=sissy-chastity&after=400 HTTP/1.1" 200 -
+2026-04-23 01:00:52,294 - INFO - 127.0.0.1 - - [23/Apr/2026 01:00:52] "GET /api/hypno-chains?sub=sissy-chastity&after=425 HTTP/1.1" 200 -
+2026-04-23 01:00:53,184 - INFO - 127.0.0.1 - - [23/Apr/2026 01:00:53] "GET /api/hypno-chains?sub=sissy-chastity&after=450 HTTP/1.1" 200 -
+2026-04-23 01:00:54,039 - INFO - 127.0.0.1 - - [23/Apr/2026 01:00:54] "GET /api/hypno-chains?sub=sissy-chastity&after=475 HTTP/1.1" 200 -
+2026-04-23 01:00:54,829 - INFO - 127.0.0.1 - - [23/Apr/2026 01:00:54] "GET /api/hypno-chains?sub=sissy-chastity&after=500 HTTP/1.1" 200 -
+2026-04-23 01:00:55,966 - INFO - 127.0.0.1 - - [23/Apr/2026 01:00:55] "GET /api/hypno-chains?sub=sissy-chastity&after=525 HTTP/1.1" 200 -
+2026-04-23 01:00:56,670 - INFO - 127.0.0.1 - - [23/Apr/2026 01:00:56] "GET /api/hypno-chains?sub=sissy-chastity&after=550 HTTP/1.1" 200 -
+2026-04-23 01:00:57,450 - INFO - 127.0.0.1 - - [23/Apr/2026 01:00:57] "GET /api/hypno-chains?sub=sissy-chastity&after=575 HTTP/1.1" 200 -
+2026-04-23 01:00:58,111 - INFO - 127.0.0.1 - - [23/Apr/2026 01:00:58] "GET /api/hypno-chains?sub=sissy-chastity&after=600 HTTP/1.1" 200 -
+2026-04-23 01:00:59,011 - INFO - 127.0.0.1 - - [23/Apr/2026 01:00:59] "GET /api/hypno-chains?sub=sissy-chastity&after=625 HTTP/1.1" 200 -
+2026-04-23 01:00:59,649 - INFO - 127.0.0.1 - - [23/Apr/2026 01:00:59] "GET /api/hypno-chains?sub=sissy-chastity&after=650 HTTP/1.1" 200 -
+2026-04-23 01:01:00,497 - INFO - 127.0.0.1 - - [23/Apr/2026 01:01:00] "GET /api/hypno-chains?sub=sissy-chastity&after=675 HTTP/1.1" 200 -
+2026-04-23 01:01:01,216 - INFO - 127.0.0.1 - - [23/Apr/2026 01:01:01] "GET /api/hypno-chains?sub=sissy-chastity&after=700 HTTP/1.1" 200 -
+2026-04-23 01:01:01,675 - INFO - ratelimit 30 per 1 minute (127.0.0.1) exceeded at endpoint: api_hypno_chains
+2026-04-23 01:01:01,676 - INFO - 127.0.0.1 - - [23/Apr/2026 01:01:01] "[31m[1mGET /api/hypno-chains?sub=sissy-chastity&after=725 HTTP/1.1[0m" 429 -
+2026-04-23 01:01:01,943 - INFO - ratelimit 30 per 1 minute (127.0.0.1) exceeded at endpoint: api_hypno_chains
+2026-04-23 01:01:01,944 - INFO - 127.0.0.1 - - [23/Apr/2026 01:01:01] "[31m[1mGET /api/hypno-chains?sub=sissy-chastity&after=725 HTTP/1.1[0m" 429 -
+2026-04-23 01:04:27,881 - INFO -  * Detected change in '/workspaces/goodgurl.gg/models.py', reloading
+2026-04-23 01:04:28,387 - INFO -  * Restarting with stat

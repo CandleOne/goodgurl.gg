@@ -85,6 +85,7 @@ class User(UserMixin, db.Model):
     fp = db.Column(db.Integer, default=0)   # Feminization Power
     bp = db.Column(db.Integer, default=0)   # Bimbofication Power
     labs_accepted = db.Column(db.Boolean, default=False)
+    hypno_niche   = db.Column(db.String(80), nullable=True, default=None)  # chosen via training setup wizard
     profile_frame = db.Column(db.String(60), default="")
     profile_title = db.Column(db.String(60), default="")
     created_at = db.Column(db.DateTime, default=utcnow)

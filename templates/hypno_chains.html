@@ -368,7 +368,165 @@
     font-size: .9rem;
     gap: 12px;
 }
+
+/* ── Training Wizard ── */
+.hc-wizard {
+    position: fixed;
+    inset: 0;
+    z-index: 3000;
+    background: #0a0818;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 20px;
+    transition: opacity .4s ease;
+}
+.hc-wizard.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+.hc-wizard-card {
+    width: 100%;
+    max-width: 480px;
+    background: rgba(255,255,255,.04);
+    border: 1px solid rgba(167,139,250,.2);
+    border-radius: 20px;
+    padding: 32px 28px 28px;
+    text-align: center;
+}
+.hc-wizard-title {
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: #d4c6ff;
+    margin-bottom: 6px;
+}
+.hc-wizard-sub {
+    font-size: .82rem;
+    color: rgba(255,255,255,.4);
+    margin-bottom: 28px;
+}
+.hc-wizard-q {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #e0d7ff;
+    margin-bottom: 16px;
+    min-height: 2.5em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.hc-wizard-opts {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 24px;
+}
+.hc-wizard-opt {
+    background: rgba(167,139,250,.08);
+    border: 1px solid rgba(167,139,250,.25);
+    border-radius: 14px;
+    color: #c4b5fd;
+    font-size: .85rem;
+    font-weight: 600;
+    padding: 14px 10px;
+    cursor: pointer;
+    transition: background .15s, border-color .15s, transform .1s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    line-height: 1.3;
+}
+.hc-wizard-opt:hover {
+    background: rgba(167,139,250,.18);
+    border-color: rgba(167,139,250,.6);
+}
+.hc-wizard-opt.selected {
+    background: rgba(167,139,250,.25);
+    border-color: #a78bfa;
+    color: #fff;
+    transform: scale(1.03);
+}
+.hc-wizard-opt .hc-opt-icon {
+    font-size: 1.6rem;
+}
+.hc-wizard-dots {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 20px;
+}
+.hc-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: rgba(167,139,250,.25);
+    transition: background .3s;
+}
+.hc-dot.active { background: #a78bfa; }
+.hc-dot.done   { background: rgba(167,139,250,.55); }
+.hc-wizard-next {
+    width: 100%;
+    padding: 14px;
+    background: linear-gradient(135deg,#7c3aed,#a78bfa);
+    border: none;
+    border-radius: 14px;
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    opacity: .4;
+    transition: opacity .2s;
+}
+.hc-wizard-next.ready { opacity: 1; }
+.hc-wizard-result {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 0 4px;
+}
+.hc-wizard-result .hc-niche-pill {
+    background: linear-gradient(135deg,rgba(167,139,250,.3),rgba(255,77,166,.2));
+    border: 1px solid rgba(167,139,250,.5);
+    border-radius: 24px;
+    padding: 8px 22px;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #d4c6ff;
+}
 </style>
+
+{% if not onboarded %}
+<!-- Training Program Wizard -->
+<div class="hc-wizard" id="hcWizard">
+    <div class="hc-wizard-card">
+        <!-- Step screens -->
+        <div id="hcWzStep" >
+            <div class="hc-wizard-title"><i class="bi bi-hypnotize me-2" style="color:#a78bfa;"></i>Build Your Training Program</div>
+            <div class="hc-wizard-sub">Answer 3 quick questions and we'll curate your perfect hypno feed.</div>
+            <div class="hc-wizard-dots" id="hcWzDots">
+                <div class="hc-dot active" id="hcDot0"></div>
+                <div class="hc-dot" id="hcDot1"></div>
+                <div class="hc-dot" id="hcDot2"></div>
+            </div>
+            <div class="hc-wizard-q" id="hcWzQ"></div>
+            <div class="hc-wizard-opts" id="hcWzOpts"></div>
+            <button class="hc-wizard-next" id="hcWzNext" disabled>Continue &rarr;</button>
+        </div>
+        <!-- Result screen (shown after step 3) -->
+        <div id="hcWzResult" class="hc-wizard-result">
+            <div style="font-size:2.5rem;">✨</div>
+            <div style="color:#d4c6ff; font-weight:800; font-size:1.1rem;">Your Program Is Ready</div>
+            <div style="color:rgba(255,255,255,.5); font-size:.82rem;">Your personalised hypno feed has been built.</div>
+            <div class="hc-niche-pill" id="hcWzNichePill"></div>
+            <button class="hc-wizard-next ready" id="hcWzEnter" style="margin-top:8px;">
+                <i class="bi bi-play-fill me-1"></i> Enter Hypno Chains
+            </button>
+        </div>
+    </div>
+</div>
+{% endif %}
 
 <!-- Niche Cloud overlay -->
 <div class="hc-niche-overlay" id="hcNicheOverlay">
@@ -420,7 +578,7 @@
 
 <!-- Server config passed as JSON so the JS/CSS linter skips it -->
 <script id="hcConfig" type="application/json">
-    {"daily_limit": {{ daily_limit }}, "xp_per_video": {{ xp_per_video }}, "watched_today": {{ watched_today }}}
+    {"daily_limit": {{ daily_limit }}, "xp_per_video": {{ xp_per_video }}, "watched_today": {{ watched_today }}, "onboarded": {{ 'true' if onboarded else 'false' }}, "initial_niche": {{ initial_niche | tojson }}}
 </script>
 
 <!-- XP progress bar -->
@@ -451,7 +609,7 @@
     let afterToken       = '';
     let loading          = false;
     let hasMore          = true;
-    let currentSub       = document.querySelector('.hc-sub-pill.active')?.dataset.sub || 'sissyhypno';
+    let currentSub       = _cfg.initial_niche || document.querySelector('.hc-sub-pill.active')?.dataset.sub || 'sissy-training';
 
     // Already-awarded set (client-side guard against same-slide duplicate calls)
     const awardedSet = new Set();
@@ -848,8 +1006,151 @@
         }, 250);
     });
 
+    // ── Training Wizard ───────────────────────────────────────────────
+    const wizard     = document.getElementById('hcWizard');
+    const wzStep     = document.getElementById('hcWzStep');
+    const wzResult   = document.getElementById('hcWzResult');
+    const wzQ        = document.getElementById('hcWzQ');
+    const wzOpts     = document.getElementById('hcWzOpts');
+    const wzNext     = document.getElementById('hcWzNext');
+    const wzEnter    = document.getElementById('hcWzEnter');
+    const wzNichePill = document.getElementById('hcWzNichePill');
+
+    const WZ_STEPS = [
+        {
+            q: 'How do you see yourself?',
+            opts: [
+                { icon: '🌸', label: 'Curious newcomer',  key: 'new' },
+                { icon: '💗', label: 'Aspiring sissy',    key: 'aspiring' },
+                { icon: '👑', label: 'Trained good girl', key: 'trained' },
+                { icon: '🔮', label: 'Just exploring',    key: 'explore' },
+            ],
+        },
+        {
+            q: 'What draws you most?',
+            opts: [
+                { icon: '👗', label: 'Feminization &amp; dress-up', key: 'femme' },
+                { icon: '🌀', label: 'Hypnosis &amp; mind control', key: 'hypno' },
+                { icon: '🔗', label: 'Submission &amp; obedience',  key: 'sub' },
+                { icon: '🔒', label: 'Chastity &amp; denial',       key: 'chastity' },
+            ],
+        },
+        {
+            q: 'What do you want to feel?',
+            opts: [
+                { icon: '✨', label: 'Transformed & beautiful', key: 'beauty' },
+                { icon: '💫', label: 'Deeply hypnotised',       key: 'trance' },
+                { icon: '🎀', label: 'Used & owned',            key: 'owned' },
+                { icon: '🌷', label: 'Sweet & innocent',        key: 'cute' },
+            ],
+        },
+    ];
+
+    // Score each niche candidate by answer combination
+    const NICHE_SCORES = {
+        'sissy-training':           { new:2, aspiring:3, trained:2, explore:1, femme:2, hypno:1, sub:3, chastity:2, beauty:1, trance:1, owned:3, cute:1 },
+        'sissy-hypnosis':           { new:1, aspiring:2, trained:2, explore:2, femme:1, hypno:3, sub:2, chastity:1, beauty:1, trance:3, owned:1, cute:1 },
+        'feminization-sissy-captions': { new:2, aspiring:3, trained:2, explore:2, femme:3, hypno:2, sub:1, chastity:1, beauty:2, trance:2, owned:1, cute:2 },
+        'sissy-chastity':           { new:1, aspiring:2, trained:3, explore:1, femme:1, hypno:1, sub:2, chastity:3, beauty:1, trance:1, owned:2, cute:1 },
+        'sissygasm':                { new:1, aspiring:2, trained:3, explore:1, femme:1, hypno:2, sub:2, chastity:2, beauty:1, trance:2, owned:3, cute:1 },
+        'femboys':                  { new:2, aspiring:2, trained:2, explore:3, femme:3, hypno:1, sub:1, chastity:1, beauty:3, trance:1, owned:1, cute:3 },
+        'crossdresser':             { new:3, aspiring:2, trained:1, explore:3, femme:3, hypno:1, sub:1, chastity:1, beauty:2, trance:1, owned:1, cute:2 },
+        'trans-sissy-porn':         { new:1, aspiring:2, trained:3, explore:1, femme:2, hypno:1, sub:2, chastity:1, beauty:2, trance:1, owned:3, cute:1 },
+    };
+
+    const NICHE_LABELS = {
+        'sissy-training':              'Sissy Training',
+        'sissy-hypnosis':              'Sissy Hypnosis',
+        'feminization-sissy-captions': 'Feminization Captions',
+        'sissy-chastity':              'Sissy Chastity',
+        'sissygasm':                   'Sissygasm',
+        'femboys':                     'Femboys',
+        'crossdresser':                'Crossdresser',
+        'trans-sissy-porn':            'Trans/Sissy',
+    };
+
+    let wzAnswers  = [];
+    let wzCurrent  = 0;
+    let wzSelected = null;
+
+    function wzRenderStep(idx) {
+        const step = WZ_STEPS[idx];
+        wzQ.textContent = step.q;
+        wzOpts.innerHTML = '';
+        wzSelected = null;
+        wzNext.disabled = true;
+        wzNext.classList.remove('ready');
+
+        // Update dots
+        for (let i = 0; i < 3; i++) {
+            const dot = document.getElementById('hcDot' + i);
+            dot.className = 'hc-dot' + (i < idx ? ' done' : i === idx ? ' active' : '');
+        }
+
+        step.opts.forEach(opt => {
+            const btn = document.createElement('button');
+            btn.className = 'hc-wizard-opt';
+            btn.innerHTML = `<span class="hc-opt-icon">${opt.icon}</span><span>${opt.label}</span>`;
+            btn.dataset.key = opt.key;
+            btn.addEventListener('click', () => {
+                wzOpts.querySelectorAll('.hc-wizard-opt').forEach(b => b.classList.remove('selected'));
+                btn.classList.add('selected');
+                wzSelected = opt.key;
+                wzNext.disabled = false;
+                wzNext.classList.add('ready');
+            });
+            wzOpts.appendChild(btn);
+        });
+    }
+
+    function wzPickNiche() {
+        const totals = {};
+        Object.entries(NICHE_SCORES).forEach(([niche, weights]) => {
+            totals[niche] = wzAnswers.reduce((sum, ans) => sum + (weights[ans] || 0), 0);
+        });
+        return Object.entries(totals).sort((a, b) => b[1] - a[1])[0][0];
+    }
+
+    if (wizard) {
+        wzRenderStep(0);
+
+        wzNext.addEventListener('click', () => {
+            if (!wzSelected) return;
+            wzAnswers.push(wzSelected);
+            wzCurrent++;
+
+            if (wzCurrent < WZ_STEPS.length) {
+                wzRenderStep(wzCurrent);
+            } else {
+                // Show result
+                const chosen = wzPickNiche();
+                wzNichePill.textContent = NICHE_LABELS[chosen] || chosen.replace(/-/g, ' ');
+                wzStep.style.display  = 'none';
+                wzResult.style.display = 'flex';
+
+                // Save to server
+                fetch('/api/hypno-chains/setup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                    body: JSON.stringify({ niche: chosen }),
+                }).catch(() => {});
+
+                wzEnter.dataset.niche = chosen;
+            }
+        });
+
+        wzEnter.addEventListener('click', () => {
+            const chosen = wzEnter.dataset.niche;
+            currentSub = chosen;
+            wizard.classList.add('hidden');
+            setTimeout(() => wizard.remove(), 400);
+            loadPage();
+            showToast(`Starting: ${NICHE_LABELS[chosen] || chosen}`, '#a78bfa');
+        });
+    }
+
     // ── Initial load ──────────────────────────────────────────────────
-    loadPage();
+    if (_cfg.onboarded) loadPage();
 })();
 </script>
 </body>
