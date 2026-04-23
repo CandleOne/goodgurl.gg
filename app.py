@@ -3190,35 +3190,35 @@ HYPNO_CHAINS_XP_PER_VIDEO = 5
 HYPNO_CHAINS_DAILY_LIMIT   = 20   # max XP-earning videos per user per day
 HYPNO_CHAINS_SUBREDDITS    = ["sissyhypno", "sissification", "feminization", "crossdressing"]
 
+# YARS session (random UA rotation + retry backoff) — created once at module load
+from yars.yars import YARS as _YARS
+_yars = _YARS(timeout=8)
+
 
 def _fetch_reddit_videos(subreddit: str, after: str = "") -> dict:
     """Fetch video/gif posts from a subreddit via Reddit's API.
 
-    Uses OAuth2 client-credentials if REDDIT_CLIENT_ID / REDDIT_CLIENT_SECRET
-    are set in the environment (recommended — public API is frequently blocked).
-    Falls back to the unauthenticated JSON endpoint otherwise.
+    Uses YARS for random user-agent rotation and automatic retry on 429/5xx.
+    Upgrades to OAuth2 client-credentials when REDDIT_CLIENT_ID /
+    REDDIT_CLIENT_SECRET env vars are set.
     """
-    # ── Build auth headers ─────────────────────────────────────────────
+    # ── Build URL & auth headers ───────────────────────────────────────
     reddit_client_id     = os.environ.get("REDDIT_CLIENT_ID", "")
     reddit_client_secret = os.environ.get("REDDIT_CLIENT_SECRET", "")
-    user_agent = "goodgurl_gg/1.0 (by /u/goodgurl_gg)"
-
-    headers = {"User-Agent": user_agent}
     base_url = "https://www.reddit.com"
+    extra_headers: dict = {}
 
     if reddit_client_id and reddit_client_secret:
-        # OAuth2 client-credentials token (cached in app.config)
         from flask import current_app
         from datetime import datetime as _dt
         now = _dt.utcnow().timestamp()
         token_data = current_app.config.get("_reddit_token", {})
         if not token_data or token_data.get("expires_at", 0) < now + 30:
             try:
-                tok_resp = requests.post(
+                tok_resp = _yars.session.post(
                     "https://www.reddit.com/api/v1/access_token",
                     auth=(reddit_client_id, reddit_client_secret),
                     data={"grant_type": "client_credentials"},
-                    headers={"User-Agent": user_agent},
                     timeout=8,
                 )
                 tok_resp.raise_for_status()
@@ -3231,20 +3231,20 @@ def _fetch_reddit_videos(subreddit: str, after: str = "") -> dict:
             except Exception:
                 token_data = {}
         if token_data.get("token"):
-            headers["Authorization"] = f"Bearer {token_data['token']}"
+            extra_headers["Authorization"] = f"Bearer {token_data['token']}"
             base_url = "https://oauth.reddit.com"
 
-    url = (
-        f"{base_url}/r/{subreddit}/hot.json"
-        f"?limit=25&raw_json=1{'&after=' + after if after else ''}"
-    )
+    params: dict = {"limit": 25, "raw_json": 1}
+    if after:
+        params["after"] = after
+
+    url = f"{base_url}/r/{subreddit}/hot.json"
 
     try:
-        resp = requests.get(url, headers=headers, timeout=6)
+        resp = _yars.session.get(url, params=params, headers=extra_headers, timeout=8)
         resp.raise_for_status()
         content_type = resp.headers.get("Content-Type", "")
         if "json" not in content_type and "javascript" not in content_type:
-            # Reddit returned HTML (login wall) — not JSON
             return {"posts": [], "after": None,
                     "error": "Reddit returned a non-JSON response (login wall or redirect). "
                              "Set REDDIT_CLIENT_ID and REDDIT_CLIENT_SECRET to enable API access."}
@@ -3256,7 +3256,6 @@ def _fetch_reddit_videos(subreddit: str, after: str = "") -> dict:
     new_after = raw.get("data", {}).get("after")
     for item in raw.get("data", {}).get("children", []):
         d = item.get("data", {})
-        # Skip stickied/ads/removed posts
         if d.get("stickied") or d.get("removed_by_category"):
             continue
 
@@ -3266,24 +3265,18 @@ def _fetch_reddit_videos(subreddit: str, after: str = "") -> dict:
         if d.get("is_video"):
             rv = d.get("media", {}).get("reddit_video", {})
             fallback = rv.get("fallback_url", "")
-            # Strip query params — the base .mp4 path is a direct playable file
             media_url = fallback.split("?")[0] if fallback else None
             media_type = "video"
         elif d.get("url", "").lower().endswith((".gif", ".gifv")):
             media_url = d["url"].replace(".gifv", ".gif")
             media_type = "gif"
         elif d.get("post_hint") == "rich:video":
-            # redgifs / external embeds — grab preview mp4 if present
-            rv_preview = (
-                d.get("preview", {})
-                 .get("reddit_video_preview", {})
-            )
+            rv_preview = d.get("preview", {}).get("reddit_video_preview", {})
             fallback = rv_preview.get("fallback_url", "")
             if fallback:
                 media_url = fallback.split("?")[0]
                 media_type = "video"
         elif d.get("post_hint") == "image":
-            # Treat still images as valid slides too so the feed isn't empty
             img_url = d.get("url", "")
             if img_url.lower().endswith((".jpg", ".jpeg", ".png", ".webp")):
                 media_url = img_url
