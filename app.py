@@ -3964,6 +3964,58 @@ def api_ggtv_bot_stream_stop():
 # Share Card  – generate a shareable PNG stat card for a user
 # ---------------------------------------------------------------------------
 
+def _load_avatar_circle(user, size=36):
+    """Return a circular PIL Image for the user's avatar, or a monogram fallback."""
+    from PIL import Image, ImageDraw, ImageFont
+
+    def _monogram(letter, sz):
+        """Colored circle with an initial letter."""
+        circle = Image.new("RGBA", (sz, sz), (0, 0, 0, 0))
+        d = ImageDraw.Draw(circle)
+        d.ellipse([(0, 0), (sz - 1, sz - 1)], fill=(200, 30, 120, 255))
+        try:
+            mfont = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", sz // 2)
+        except OSError:
+            mfont = ImageFont.load_default()
+        tw = d.textlength(letter, font=mfont)
+        bbox = mfont.getbbox(letter)
+        th = bbox[3] - bbox[1]
+        d.text(((sz - tw) / 2, (sz - th) / 2 - bbox[1]), letter, font=mfont, fill=(255, 255, 255, 255))
+        return circle
+
+    def _to_circle(raw_img, sz):
+        raw_img = raw_img.convert("RGBA").resize((sz, sz), Image.LANCZOS)
+        mask = Image.new("L", (sz, sz), 0)
+        ImageDraw.Draw(mask).ellipse([(0, 0), (sz - 1, sz - 1)], fill=255)
+        result = Image.new("RGBA", (sz, sz), (0, 0, 0, 0))
+        result.paste(raw_img, mask=mask)
+        return result
+
+    letter = (user.username[0] if user.username else "?").upper()
+    avatar_url = user.avatar_url or ""
+
+    # Skip SVGs (multiavatar) – fall through to monogram
+    if avatar_url.lower().endswith(".svg"):
+        return _monogram(letter, size)
+
+    try:
+        if avatar_url.startswith("/uploads/"):
+            path = os.path.join(app.config["UPLOAD_FOLDER"], os.path.basename(avatar_url))
+            raw = Image.open(path)
+        elif avatar_url.startswith("/static/"):
+            path = os.path.join(app.static_folder, avatar_url[len("/static/"):])
+            raw = Image.open(path)
+        elif avatar_url.startswith("http://") or avatar_url.startswith("https://"):
+            resp = requests.get(avatar_url, timeout=4, stream=True)
+            resp.raise_for_status()
+            raw = Image.open(io.BytesIO(resp.content))
+        else:
+            return _monogram(letter, size)
+        return _to_circle(raw, size)
+    except Exception:
+        return _monogram(letter, size)
+
+
 def _build_share_card(user):
     """Render stat data onto the share template and return a PIL Image."""
     from PIL import Image, ImageDraw, ImageFont
@@ -4023,19 +4075,36 @@ def _build_share_card(user):
     url_w   = draw.textlength(url_str, font=f_url)
     draw.text((W - 32 - url_w, 48), url_str, font=f_url, fill=C_DIM)
 
-    # ── Username – placed BELOW the logo (logo occupies ~y 32-105) ─────────
-    draw.text((50, 112), f"x {user.username}", font=f_user, fill=C_DIM)
+    # ── Username row: avatar circle + "x username" ────────────────────────
+    AVATAR_SIZE = 34
+    avatar_y    = 108   # top-left y of the circle
+    avatar_x    = 50
+
+    avatar_circle = _load_avatar_circle(user, size=AVATAR_SIZE)
+    img.paste(avatar_circle, (avatar_x, avatar_y), avatar_circle)
+
+    # thin pink ring around the avatar
+    ring = Image.new("RGBA", (AVATAR_SIZE, AVATAR_SIZE), (0, 0, 0, 0))
+    ImageDraw.Draw(ring).ellipse(
+        [(0, 0), (AVATAR_SIZE - 1, AVATAR_SIZE - 1)],
+        outline=(255, 60, 160, 200), width=2,
+    )
+    img.paste(ring, (avatar_x, avatar_y), ring)
+
+    text_x = avatar_x + AVATAR_SIZE + 8
+    text_y = avatar_y + (AVATAR_SIZE - 17) // 2   # vertically centre against circle
+    draw.text((text_x, text_y), f"x {user.username}", font=f_user, fill=C_DIM)
 
     # ── Big XP number ──────────────────────────────────────────────────────
     xp_sign  = "+" if xp_today >= 0 else ""
     xp_label = f"{xp_sign}{xp_today:,} XP"
-    draw.text((50, 142), xp_label, font=f_big, fill=C_PINK)
+    draw.text((50, 152), xp_label, font=f_big, fill=C_PINK)
 
     # ── Sub-label ──────────────────────────────────────────────────────────
-    draw.text((52, 218), "XP earned today", font=f_sub, fill=C_DIM)
+    draw.text((52, 222), "XP earned today", font=f_sub, fill=C_DIM)
 
     # ── Divider ────────────────────────────────────────────────────────────
-    draw.line([(48, 246), (W - 48, 246)], fill=(255, 60, 160, 80), width=1)
+    draw.line([(48, 250), (W - 48, 250)], fill=(255, 60, 160, 80), width=1)
 
     # ── Bottom stat tiles – each centred in its column ─────────────────────
     # Truncate tier name to fit (max ~11 chars before overflow at size 20)
@@ -4055,8 +4124,8 @@ def _build_share_card(user):
     PAD_R = 48
     col_w = (W - PAD_L - PAD_R) // n
 
-    Y_VAL = 258
-    Y_LBL = 284
+    Y_VAL = 262
+    Y_LBL = 288
 
     for i, (lbl, val) in enumerate(stats):
         col_cx = PAD_L + i * col_w + col_w // 2
