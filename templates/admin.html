@@ -100,7 +100,7 @@
                                         </td>
                                         <td><span class="badge {% if user.role == 'sissy' %}bg-pink{% elif user.role == 'admin' %}bg-danger{% else %}bg-warning text-dark{% endif %}">{{ user.role }}</span></td>
                                         <td class="text-muted">{{ user.created_at.strftime('%b %d, %Y') }}</td>
-                                        <td><span class="badge" style="background: {{ user.tier.color }}; color: #fff;"><iconify-icon icon="{{ user.tier.icon }}" inline></iconify-icon> {{ user.rank }}</span></td>
+                                        <td><span class="badge tier-badge" data-bg="{{ user.tier.color }}"><iconify-icon icon="{{ user.tier.icon }}" inline></iconify-icon> {{ user.rank }}</span></td>
                                         <td>{{ user.level }}</td>
                                         <td>{{ user.xp }}</td>
                                         <td>{% if user.role == 'sissy' %}<span class="text-info">{{ user.market_value }}</span>{% else %}-{% endif %}</td>
@@ -144,6 +144,7 @@
                                     {% endfor %}
                                 </tbody>
                             </table>
+                            <script>document.querySelectorAll('.tier-badge[data-bg]').forEach(el=>{el.style.background=el.dataset.bg;el.style.color='#fff';});</script>
                         </div>
                     </div>
                 </div>
