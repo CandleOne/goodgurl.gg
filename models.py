@@ -263,6 +263,8 @@ class User(UserMixin, db.Model):
         return ua
 
     def has_achievement(self, achievement_id):
+        if hasattr(achievement_id, 'id'):
+            achievement_id = achievement_id.id
         ua = UserAchievement.query.filter_by(user_id=self.id, achievement_id=achievement_id).first()
         return ua is not None and ua.progress >= 100
 
