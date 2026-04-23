@@ -3204,8 +3204,8 @@ _yars = _YARS(timeout=8)
 def _get_redgifs_token() -> str:
     """Retrieve a cached Redgifs temporary token, refreshing when near expiry."""
     from flask import current_app
-    from datetime import datetime as _dt
-    now = _dt.utcnow().timestamp()
+    from datetime import datetime as _dt, timezone as _tz
+    now = _dt.now(_tz.utc).timestamp()
     cached = current_app.config.get("_redgifs_token", {})
     if cached and cached.get("expires_at", 0) > now + 60:
         return cached["token"]
@@ -3333,8 +3333,8 @@ def api_hypno_chains_niches():
     Results are cached in app config for 1 hour to avoid hammering the API.
     """
     from flask import current_app
-    from datetime import datetime as _dt
-    now = _dt.utcnow().timestamp()
+    from datetime import datetime as _dt, timezone as _tz
+    now = _dt.now(_tz.utc).timestamp()
     cached = current_app.config.get("_redgifs_niches_cache", {})
     if cached and cached.get("expires_at", 0) > now:
         return jsonify(cached["niches"])

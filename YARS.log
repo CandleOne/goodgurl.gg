@@ -221,3 +221,29 @@
 2026-04-23 00:58:39,620 - INFO -  * Restarting with stat
 2026-04-23 00:58:41,771 - WARNING -  * Debugger is active!
 2026-04-23 00:58:41,772 - INFO -  * Debugger PIN: 580-875-515
+2026-04-23 00:58:53,058 - INFO - 127.0.0.1 - - [23/Apr/2026 00:58:53] "GET /academy/hypno-chains HTTP/1.1" 200 -
+2026-04-23 00:58:53,622 - INFO - 127.0.0.1 - - [23/Apr/2026 00:58:53] "GET /static/style.css HTTP/1.1" 200 -
+2026-04-23 00:58:54,667 - INFO - 127.0.0.1 - - [23/Apr/2026 00:58:54] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2026-04-23 00:58:56,405 - INFO - 127.0.0.1 - - [23/Apr/2026 00:58:56] "GET /api/hypno-chains?sub=sissy-training&after= HTTP/1.1" 200 -
+2026-04-23 00:58:58,676 - INFO - 127.0.0.1 - - [23/Apr/2026 00:58:58] "GET /academy/hypno-chains HTTP/1.1" 200 -
+2026-04-23 00:58:59,373 - INFO - 127.0.0.1 - - [23/Apr/2026 00:58:59] "GET /static/style.css HTTP/1.1" 200 -
+2026-04-23 00:58:59,903 - INFO - 127.0.0.1 - - [23/Apr/2026 00:58:59] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2026-04-23 00:59:01,844 - INFO - 127.0.0.1 - - [23/Apr/2026 00:59:01] "GET /api/hypno-chains?sub=sissy-training&after= HTTP/1.1" 200 -
+2026-04-23 00:59:05,672 - INFO - 127.0.0.1 - - [23/Apr/2026 00:59:05] "GET /api/hypno-chains?sub=sissy-hypnosis&after= HTTP/1.1" 200 -
+2026-04-23 00:59:07,196 - INFO - 127.0.0.1 - - [23/Apr/2026 00:59:07] "GET /academy HTTP/1.1" 200 -
+2026-04-23 00:59:07,507 - INFO - 127.0.0.1 - - [23/Apr/2026 00:59:07] "[36mGET /static/style.css HTTP/1.1[0m" 304 -
+2026-04-23 00:59:07,507 - INFO - 127.0.0.1 - - [23/Apr/2026 00:59:07] "[36mGET /static/assets/gg.png HTTP/1.1[0m" 304 -
+2026-04-23 00:59:07,542 - INFO - 127.0.0.1 - - [23/Apr/2026 00:59:07] "[36mGET /static/assets/sissyloving/slsponsorbanner.png HTTP/1.1[0m" 304 -
+2026-04-23 00:59:07,747 - INFO - 127.0.0.1 - - [23/Apr/2026 00:59:07] "[36mGET /static/assets/checticon.png HTTP/1.1[0m" 304 -
+2026-04-23 00:59:07,999 - INFO - 127.0.0.1 - - [23/Apr/2026 00:59:07] "[36mGET /static/assets/laboratory.png HTTP/1.1[0m" 304 -
+2026-04-23 00:59:14,092 - INFO - 127.0.0.1 - - [23/Apr/2026 00:59:14] "GET /academy/hypno-chains HTTP/1.1" 200 -
+2026-04-23 00:59:14,361 - INFO - 127.0.0.1 - - [23/Apr/2026 00:59:14] "[36mGET /static/style.css HTTP/1.1[0m" 304 -
+2026-04-23 00:59:16,734 - INFO - 127.0.0.1 - - [23/Apr/2026 00:59:16] "GET /api/hypno-chains?sub=sissy-training&after= HTTP/1.1" 200 -
+2026-04-23 00:59:51,832 - INFO -  * Detected change in '/workspaces/goodgurl.gg/app.py', reloading
+2026-04-23 00:59:52,630 - INFO -  * Restarting with stat
+2026-04-23 00:59:58,741 - WARNING -  * Debugger is active!
+2026-04-23 00:59:58,752 - INFO -  * Debugger PIN: 580-875-515
+2026-04-23 01:00:08,494 - INFO -  * Detected change in '/workspaces/goodgurl.gg/app.py', reloading
+2026-04-23 01:00:08,896 - INFO -  * Restarting with stat
+2026-04-23 01:00:11,041 - WARNING -  * Debugger is active!
+2026-04-23 01:00:11,042 - INFO -  * Debugger PIN: 580-875-515
