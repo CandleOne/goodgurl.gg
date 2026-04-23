@@ -3258,6 +3258,12 @@ def _fetch_reddit_videos(subreddit: str, after: str = "") -> dict:
             if not token:
                 return {"posts": [], "after": None, "error": "Could not authenticate with content provider."}
             resp = _call(token)
+        if resp.status_code == 429:
+            # Back off and retry once after the Retry-After hint (max 6 s)
+            import time
+            wait = min(float(resp.headers.get("Retry-After", 2)), 6)
+            time.sleep(wait)
+            resp = _call(token)
         resp.raise_for_status()
         data = resp.json()
     except Exception as exc:
@@ -3339,6 +3345,7 @@ def api_hypno_chains_niches():
 
     all_niches = []
     try:
+        import time as _time
         for page in range(1, 10):  # max 9 pages (API has ~7 for "sissy")
             resp = requests.get(
                 "https://api.redgifs.com/v2/niches",
@@ -3346,6 +3353,15 @@ def api_hypno_chains_niches():
                 headers={"Authorization": f"Bearer {token}", "User-Agent": "goodgurl_gg/1.0"},
                 timeout=8,
             )
+            if resp.status_code == 429:
+                wait = min(float(resp.headers.get("Retry-After", 3)), 6)
+                _time.sleep(wait)
+                resp = requests.get(
+                    "https://api.redgifs.com/v2/niches",
+                    params={"query": "sissy", "page": page},
+                    headers={"Authorization": f"Bearer {token}", "User-Agent": "goodgurl_gg/1.0"},
+                    timeout=8,
+                )
             resp.raise_for_status()
             data = resp.json()
             niches = data.get("niches", [])
@@ -3358,6 +3374,7 @@ def api_hypno_chains_niches():
             ])
             if page >= data.get("pages", 1):
                 break
+            _time.sleep(0.25)  # 250 ms between pages — avoids bursting the rate limit
     except Exception:
         pass
 
