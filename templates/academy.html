@@ -2,64 +2,277 @@
 {% block title %}GoodGurl Labs – goodgurl.gg{% endblock %}
 {% block content %}
 
-<!-- ===== WELCOME MODAL (Step 1) ===== -->
-{% if show_welcome and current_user.is_authenticated %}
-<div class="modal fade" id="welcomeModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-pink" style="background: rgba(26,20,50,0.97);">
-            <div class="modal-body text-center p-5">
-                <img src="{{ url_for('static', filename='assets/laboratory.png') }}" width="80" height="80" alt="GoodGurl Labs" class="mb-3">
-                <h3 class="text-pink mb-3">Welcome to GoodGurl Labs</h3>
-                <p class="text-light fs-5">Our premier feminization and bimbofication institution, designed and personalized to fit your journey.</p>
-                <p class="text-muted mt-3">Every day you'll receive fresh audio lessons and hands-on tasks across two transformative tracks. Complete them to earn XP, coins, and specialized power.</p>
-                <button class="btn btn-pink btn-lg mt-3" id="welcomeNext">
-                    <i class="bi bi-arrow-right-circle"></i> Continue
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-{% endif %}
-
-<!-- ===== ACCEPTANCE MODAL (Step 2) ===== -->
 {% if show_acceptance and current_user.is_authenticated %}
-<div class="modal fade" id="acceptanceModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-purple" style="background: rgba(26,20,50,0.97);">
-            <div class="modal-body text-center p-5">
-                <div style="font-size: 3rem;" class="mb-3">🔐</div>
-                <h3 class="mb-3">Identity Acknowledgment</h3>
-                <p class="text-light">Before proceeding, you must acknowledge and accept your position and calling to be a sissy.</p>
-                <p class="text-muted small">This is the first step of your transformation. By accepting, you commit to your feminization and bimbofication journey through GoodGurl Labs.</p>
+<!-- ===== GG LABS ONBOARDING WIZARD ===== -->
+<style>
+.gg-wizard {
+    position: fixed; inset: 0; z-index: 2000;
+    background: #0a0818;
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px;
+    transition: opacity .4s;
+}
+.gg-wizard.hidden { opacity: 0; pointer-events: none; }
+.gg-wizard-card {
+    width: 100%; max-width: 500px;
+    background: rgba(255,255,255,.04);
+    border: 1px solid rgba(167,139,250,.2);
+    border-radius: 22px;
+    padding: 36px 32px 30px;
+    text-align: center;
+}
+.gg-wz-title   { font-size: 1.4rem; font-weight: 800; color: #d4c6ff; margin-bottom: 6px; }
+.gg-wz-sub     { font-size: .82rem; color: rgba(255,255,255,.4); margin-bottom: 26px; }
+.gg-wz-q       { font-size: 1rem; font-weight: 700; color: #e0d7ff; margin-bottom: 18px; min-height: 2.5em; display:flex; align-items:center; justify-content:center; }
+.gg-wz-opts    { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 22px; }
+.gg-wz-opt {
+    background: rgba(167,139,250,.07);
+    border: 1px solid rgba(167,139,250,.22);
+    border-radius: 14px; color: #c4b5fd;
+    font-size: .85rem; font-weight: 600;
+    padding: 14px 10px; cursor: pointer;
+    transition: background .15s, border-color .15s, transform .1s;
+    display: flex; flex-direction: column; align-items: center; gap: 6px; line-height: 1.3;
+}
+.gg-wz-opt:hover  { background: rgba(167,139,250,.18); border-color: rgba(167,139,250,.6); }
+.gg-wz-opt.sel    { background: rgba(167,139,250,.26); border-color: #a78bfa; color: #fff; transform: scale(1.03); }
+.gg-wz-opt .icon  { font-size: 1.6rem; }
+.gg-wz-dots       { display:flex; justify-content:center; gap:8px; margin-bottom:20px; }
+.gg-wz-dot        { width:8px; height:8px; border-radius:50%; background:rgba(167,139,250,.22); transition: background .3s; }
+.gg-wz-dot.active { background: #a78bfa; }
+.gg-wz-dot.done   { background: rgba(167,139,250,.5); }
+.gg-wz-btn {
+    width: 100%; padding: 14px;
+    background: linear-gradient(135deg,#7c3aed,#a78bfa);
+    border: none; border-radius: 14px; color: #fff;
+    font-size: 1rem; font-weight: 700; cursor: pointer;
+    opacity: .35; transition: opacity .2s;
+}
+.gg-wz-btn.ready { opacity: 1; }
+.gg-wz-checks { text-align: left; margin-bottom: 22px; display:flex; flex-direction:column; gap:12px; }
+.gg-wz-check-row { display:flex; align-items:flex-start; gap:12px; }
+.gg-wz-check-row input[type=checkbox] { margin-top:2px; width:18px; height:18px; flex-shrink:0; accent-color:#a78bfa; cursor:pointer; }
+.gg-wz-check-row label { color:rgba(255,255,255,.8); font-size:.87rem; cursor:pointer; }
+.gg-wz-result { display:none; flex-direction:column; align-items:center; gap:12px; padding:8px 0 4px; }
+.gg-wz-niche-pill {
+    background: linear-gradient(135deg,rgba(167,139,250,.3),rgba(255,77,166,.2));
+    border: 1px solid rgba(167,139,250,.5);
+    border-radius: 24px; padding: 8px 24px;
+    font-size: 1.05rem; font-weight: 700; color: #d4c6ff;
+}
+</style>
 
-                <form method="POST" action="{{ url_for('academy_accept') }}" id="acceptForm" class="mt-4">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <div class="form-check text-start mb-3">
-                        <input class="form-check-input" type="checkbox" id="acceptCheck1" required>
-                        <label class="form-check-label text-light" for="acceptCheck1">
-                            I acknowledge my position and calling as a sissy
-                        </label>
-                    </div>
-                    <div class="form-check text-start mb-4">
-                        <input class="form-check-input" type="checkbox" id="acceptCheck2" required>
-                        <label class="form-check-label text-light" for="acceptCheck2">
-                            I accept and submit fully to my feminization journey
-                        </label>
-                    </div>
-                    <div class="d-flex gap-3 justify-content-center">
-                        <button type="submit" class="btn btn-pink btn-lg" id="acceptBtn" disabled>
-                            <i class="bi bi-heart-fill"></i> Accept & Begin
-                        </button>
-                        <a href="{{ url_for('feed') }}" class="btn btn-outline-secondary btn-lg">
-                            <i class="bi bi-x-circle"></i> Decline
-                        </a>
-                    </div>
-                </form>
-            </div>
-        </div>
+<div class="gg-wizard" id="ggWizard">
+  <div class="gg-wizard-card">
+
+    <!-- Steps 1-3 -->
+    <div id="ggWzSteps">
+      <div class="gg-wz-title"><i class="bi bi-stars me-2" style="color:#a78bfa;"></i>GoodGurl Labs Setup</div>
+      <div class="gg-wz-sub">Just 4 steps to unlock your personalised training program.</div>
+      <div class="gg-wz-dots" id="ggWzDots">
+        <div class="gg-wz-dot active" id="ggDot0"></div>
+        <div class="gg-wz-dot" id="ggDot1"></div>
+        <div class="gg-wz-dot" id="ggDot2"></div>
+        <div class="gg-wz-dot" id="ggDot3"></div>
+      </div>
+      <div class="gg-wz-q"    id="ggWzQ"></div>
+      <div id="ggWzBody"></div>
+      <button class="gg-wz-btn" id="ggWzNext" disabled>Continue &rarr;</button>
     </div>
+
+    <!-- Result screen -->
+    <div class="gg-wz-result" id="ggWzResult">
+      <div style="font-size:2.8rem;">✨</div>
+      <div style="color:#d4c6ff; font-weight:800; font-size:1.15rem;">Your Program Is Ready</div>
+      <div style="color:rgba(255,255,255,.45); font-size:.82rem;">Your personalised GoodGurl Labs content has been curated.</div>
+      <div class="gg-wz-niche-pill" id="ggWzNichePill"></div>
+      <button class="gg-wz-btn ready" id="ggWzEnter" style="margin-top:6px;">
+        <i class="bi bi-unlock-fill me-2"></i>Enter GoodGurl Labs
+      </button>
+    </div>
+
+  </div>
 </div>
+
+<script>
+(function(){
+  const csrfToken = document.querySelector('meta[name=csrf-token]')?.content || '';
+
+  // ── Step definitions ──────────────────────────────────────────────
+  const STEPS = [
+    // Step 0: identity acknowledgment (checkboxes)
+    { type: 'check' },
+    // Steps 1-3: training profile questions
+    {
+      type: 'opts',
+      q: 'How do you see yourself?',
+      opts: [
+        { icon:'🌸', label:'Curious newcomer',   key:'new' },
+        { icon:'💗', label:'Aspiring sissy',      key:'aspiring' },
+        { icon:'👑', label:'Trained good girl',   key:'trained' },
+        { icon:'🔮', label:'Just exploring',      key:'explore' },
+      ],
+    },
+    {
+      type: 'opts',
+      q: 'What draws you most?',
+      opts: [
+        { icon:'👗', label:'Feminization &amp; dress-up',  key:'femme' },
+        { icon:'🌀', label:'Hypnosis &amp; mind control',  key:'hypno' },
+        { icon:'🔗', label:'Submission &amp; obedience',   key:'sub' },
+        { icon:'🔒', label:'Chastity &amp; denial',        key:'chastity' },
+      ],
+    },
+    {
+      type: 'opts',
+      q: 'What do you want to feel?',
+      opts: [
+        { icon:'✨', label:'Transformed &amp; beautiful', key:'beauty' },
+        { icon:'💫', label:'Deeply hypnotised',           key:'trance' },
+        { icon:'🎀', label:'Used &amp; owned',            key:'owned' },
+        { icon:'🌷', label:'Sweet &amp; innocent',        key:'cute' },
+      ],
+    },
+  ];
+
+  // ── Niche scoring ─────────────────────────────────────────────────
+  const NICHE_SCORES = {
+    'sissy-training':              { new:2,aspiring:3,trained:2,explore:1, femme:2,hypno:1,sub:3,chastity:2, beauty:1,trance:1,owned:3,cute:1 },
+    'sissy-hypnosis':              { new:1,aspiring:2,trained:2,explore:2, femme:1,hypno:3,sub:2,chastity:1, beauty:1,trance:3,owned:1,cute:1 },
+    'feminization-sissy-captions': { new:2,aspiring:3,trained:2,explore:2, femme:3,hypno:2,sub:1,chastity:1, beauty:2,trance:2,owned:1,cute:2 },
+    'sissy-chastity':              { new:1,aspiring:2,trained:3,explore:1, femme:1,hypno:1,sub:2,chastity:3, beauty:1,trance:1,owned:2,cute:1 },
+    'sissygasm':                   { new:1,aspiring:2,trained:3,explore:1, femme:1,hypno:2,sub:2,chastity:2, beauty:1,trance:2,owned:3,cute:1 },
+    'femboys':                     { new:2,aspiring:2,trained:2,explore:3, femme:3,hypno:1,sub:1,chastity:1, beauty:3,trance:1,owned:1,cute:3 },
+    'crossdresser':                { new:3,aspiring:2,trained:1,explore:3, femme:3,hypno:1,sub:1,chastity:1, beauty:2,trance:1,owned:1,cute:2 },
+    'trans-sissy-porn':            { new:1,aspiring:2,trained:3,explore:1, femme:2,hypno:1,sub:2,chastity:1, beauty:2,trance:1,owned:3,cute:1 },
+  };
+  const NICHE_LABELS = {
+    'sissy-training':              'Sissy Training',
+    'sissy-hypnosis':              'Sissy Hypnosis',
+    'feminization-sissy-captions': 'Feminization Captions',
+    'sissy-chastity':              'Sissy Chastity',
+    'sissygasm':                   'Sissygasm',
+    'femboys':                     'Femboys',
+    'crossdresser':                'Crossdresser',
+    'trans-sissy-porn':            'Trans/Sissy',
+  };
+
+  let step = 0;
+  let answers = [];
+  let checksOk = false;
+
+  const wzQ    = document.getElementById('ggWzQ');
+  const wzBody = document.getElementById('ggWzBody');
+  const wzNext = document.getElementById('ggWzNext');
+  const wzDots = document.getElementById('ggWzDots');
+
+  function updateDots() {
+    for (let i = 0; i < STEPS.length; i++) {
+      const d = document.getElementById('ggDot' + i);
+      d.className = 'gg-wz-dot' + (i < step ? ' done' : i === step ? ' active' : '');
+    }
+  }
+
+  function renderStep() {
+    const s = STEPS[step];
+    updateDots();
+    wzNext.disabled = true;
+    wzNext.classList.remove('ready');
+
+    if (s.type === 'check') {
+      wzQ.textContent = 'First, acknowledge your calling.';
+      wzBody.innerHTML = `
+        <div class="gg-wz-checks">
+          <div class="gg-wz-check-row">
+            <input type="checkbox" id="wzC1">
+            <label for="wzC1">I acknowledge my position and calling as a sissy.</label>
+          </div>
+          <div class="gg-wz-check-row">
+            <input type="checkbox" id="wzC2">
+            <label for="wzC2">I accept and submit fully to my feminization journey through GoodGurl Labs.</label>
+          </div>
+        </div>`;
+      const c1 = document.getElementById('wzC1');
+      const c2 = document.getElementById('wzC2');
+      function chk() {
+        checksOk = c1.checked && c2.checked;
+        wzNext.disabled = !checksOk;
+        wzNext.classList.toggle('ready', checksOk);
+      }
+      c1.addEventListener('change', chk);
+      c2.addEventListener('change', chk);
+
+    } else {
+      wzQ.innerHTML = s.q;
+      wzBody.innerHTML = '<div class="gg-wz-opts" id="ggWzOpts"></div>';
+      const optsEl = document.getElementById('ggWzOpts');
+      s.opts.forEach(opt => {
+        const btn = document.createElement('button');
+        btn.className = 'gg-wz-opt';
+        btn.innerHTML = `<span class="icon">${opt.icon}</span><span>${opt.label}</span>`;
+        btn.dataset.key = opt.key;
+        btn.addEventListener('click', () => {
+          optsEl.querySelectorAll('.gg-wz-opt').forEach(b => b.classList.remove('sel'));
+          btn.classList.add('sel');
+          // store/replace last answer for this step
+          answers[step - 1] = opt.key;
+          wzNext.disabled = false;
+          wzNext.classList.add('ready');
+        });
+        optsEl.appendChild(btn);
+      });
+    }
+  }
+
+  function pickNiche() {
+    const totals = {};
+    Object.entries(NICHE_SCORES).forEach(([n, w]) => {
+      totals[n] = answers.reduce((s, a) => s + (w[a] || 0), 0);
+    });
+    return Object.entries(totals).sort((a,b) => b[1]-a[1])[0][0];
+  }
+
+  renderStep();
+
+  wzNext.addEventListener('click', () => {
+    step++;
+    if (step < STEPS.length) {
+      renderStep();
+    } else {
+      // Done — compute niche, save everything, show result
+      const chosen = pickNiche();
+      document.getElementById('ggWzNichePill').textContent = NICHE_LABELS[chosen] || chosen.replace(/-/g,' ');
+      document.getElementById('ggWzSteps').style.display  = 'none';
+      document.getElementById('ggWzResult').style.display = 'flex';
+
+      // 1. Accept labs (sets labs_accepted=True)
+      fetch('{{ url_for("academy_accept") }}', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRFToken': csrfToken },
+        body: 'csrf_token=' + encodeURIComponent(csrfToken),
+      }).catch(()=>{});
+
+      // 2. Save chosen training niche
+      fetch('{{ url_for("api_hypno_chains_setup") }}', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+        body: JSON.stringify({ niche: chosen }),
+      }).catch(()=>{});
+
+      document.getElementById('ggWzEnter').dataset.niche = chosen;
+    }
+  });
+
+  document.getElementById('ggWzEnter').addEventListener('click', () => {
+    const wizard = document.getElementById('ggWizard');
+    wizard.classList.add('hidden');
+    setTimeout(() => wizard.remove(), 400);
+  });
+})();
+</script>
 {% endif %}
+
+
 
 <div class="container py-4">
 
@@ -79,7 +292,7 @@
 
     {% if not labs_accepted and current_user.is_authenticated %}
     <div class="text-center mb-4">
-        <button class="btn btn-pink btn-lg" onclick="new bootstrap.Modal(document.getElementById('acceptanceModal')).show();">
+        <button class="btn btn-pink btn-lg" onclick="document.getElementById('ggWizard') && (document.getElementById('ggWizard').classList.remove('hidden'))">
             <i class="bi bi-unlock"></i> Accept Your Calling to Begin
         </button>
     </div>
@@ -584,51 +797,10 @@
 
     .pair-header hr { margin: 0; }
 
-    #acceptanceModal .form-check-input:checked { background-color: #ff4da6; border-color: #ff4da6; }
 </style>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Step 1: Welcome modal
-    var welcomeEl = document.getElementById('welcomeModal');
-    if (welcomeEl) {
-        var welcomeModal = new bootstrap.Modal(welcomeEl);
-        welcomeModal.show();
-
-        document.getElementById('welcomeNext').addEventListener('click', function() {
-            welcomeModal.hide();
-            // Dismiss welcome via AJAX
-            fetch('{{ url_for("academy_dismiss_welcome") }}', {
-                method: 'POST',
-                headers: {'X-CSRFToken': '{{ csrf_token() }}'}
-            });
-            // Show acceptance modal if needed
-            var acceptEl = document.getElementById('acceptanceModal');
-            if (acceptEl) {
-                setTimeout(function() {
-                    new bootstrap.Modal(acceptEl).show();
-                }, 400);
-            }
-        });
-    } else {
-        // No welcome needed, but maybe acceptance is
-        var acceptEl = document.getElementById('acceptanceModal');
-        if (acceptEl) {
-            new bootstrap.Modal(acceptEl).show();
-        }
-    }
-
-    // Enable accept button only when both checkboxes are checked
-    var check1 = document.getElementById('acceptCheck1');
-    var check2 = document.getElementById('acceptCheck2');
-    var acceptBtn = document.getElementById('acceptBtn');
-    if (check1 && check2 && acceptBtn) {
-        function updateBtn() {
-            acceptBtn.disabled = !(check1.checked && check2.checked);
-        }
-        check1.addEventListener('change', updateBtn);
-        check2.addEventListener('change', updateBtn);
-    }
 
     // Update bonus badges when share album checkbox is toggled
     function setupBonusToggle(checkboxId, badgesId, labelId) {

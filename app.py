@@ -2918,6 +2918,9 @@ def academy_accept():
     current_user.labs_accepted = True
     session["labs_welcome_seen"] = True
     db.session.commit()
+    # Support both form POST (legacy) and fetch JSON/form from wizard
+    if request.is_json or request.headers.get("X-CSRFToken"):
+        return jsonify({"ok": True})
     flash("Welcome to GoodGurl Labs! Your journey begins now.", "success")
     return redirect(url_for("academy"))
 
