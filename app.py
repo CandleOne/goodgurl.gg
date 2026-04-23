@@ -3345,43 +3345,27 @@ def api_hypno_chains_niches():
 
     all_niches = []
     try:
-        import time as _time
-        for page in range(1, 10):  # max 9 pages (API has ~7 for "sissy")
-            resp = requests.get(
-                "https://api.redgifs.com/v2/niches",
-                params={"query": "sissy", "page": page},
-                headers={"Authorization": f"Bearer {token}", "User-Agent": "goodgurl_gg/1.0"},
-                timeout=8,
-            )
-            if resp.status_code == 429:
-                wait = min(float(resp.headers.get("Retry-After", 3)), 6)
-                _time.sleep(wait)
-                resp = requests.get(
-                    "https://api.redgifs.com/v2/niches",
-                    params={"query": "sissy", "page": page},
-                    headers={"Authorization": f"Bearer {token}", "User-Agent": "goodgurl_gg/1.0"},
-                    timeout=8,
-                )
-            resp.raise_for_status()
-            data = resp.json()
-            niches = data.get("niches", [])
-            if not niches:
-                break
-            all_niches.extend([
-                {"id": n["id"], "name": n["name"], "gifs": n.get("gifs", 0),
-                 "thumbnail": n.get("thumbnail", "")}
-                for n in niches
-            ])
-            if page >= data.get("pages", 1):
-                break
-            _time.sleep(0.25)  # 250 ms between pages — avoids bursting the rate limit
+        # Fetch only page 1 — ~25 niches is enough for the word cloud and
+        # keeps us to a single API call, preserving rate-limit budget for the feed.
+        resp = requests.get(
+            "https://api.redgifs.com/v2/niches",
+            params={"query": "sissy", "page": 1, "count": 50},
+            headers={"Authorization": f"Bearer {token}", "User-Agent": "goodgurl_gg/1.0"},
+            timeout=8,
+        )
+        resp.raise_for_status()
+        all_niches = [
+            {"id": n["id"], "name": n["name"], "gifs": n.get("gifs", 0),
+             "thumbnail": n.get("thumbnail", "")}
+            for n in resp.json().get("niches", [])
+        ]
     except Exception:
         pass
 
     all_niches.sort(key=lambda x: x["gifs"], reverse=True)
     current_app.config["_redgifs_niches_cache"] = {
         "niches": all_niches,
-        "expires_at": now + 3600,
+        "expires_at": now + 86400,  # 24-hour cache — niches don't change often
     }
     return jsonify(all_niches)
 

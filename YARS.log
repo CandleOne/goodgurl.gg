@@ -157,3 +157,67 @@
 2026-04-23 00:56:10,003 - INFO -  * Detected change in '/workspaces/goodgurl.gg/app.py', reloading
 2026-04-23 00:56:12,409 - WARNING -  * Debugger is active!
 2026-04-23 00:56:12,410 - INFO -  * Debugger PIN: 580-875-515
+2026-04-23 00:56:28,878 - INFO - 127.0.0.1 - - [23/Apr/2026 00:56:28] "GET /academy/hypno-chains HTTP/1.1" 200 -
+2026-04-23 00:56:29,501 - INFO - 127.0.0.1 - - [23/Apr/2026 00:56:29] "GET /static/style.css HTTP/1.1" 200 -
+2026-04-23 00:56:30,584 - INFO - 127.0.0.1 - - [23/Apr/2026 00:56:30] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2026-04-23 00:56:32,351 - INFO - 127.0.0.1 - - [23/Apr/2026 00:56:32] "GET /api/hypno-chains?sub=sissy-training&after= HTTP/1.1" 200 -
+2026-04-23 00:56:38,572 - INFO - 127.0.0.1 - - [23/Apr/2026 00:56:38] "GET /api/hypno-chains?sub=sissy-training&after= HTTP/1.1" 200 -
+2026-04-23 00:56:59,353 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2026-04-23 00:56:59,354 - INFO - [33mPress CTRL+C to quit[0m
+2026-04-23 00:56:59,355 - INFO -  * Restarting with stat
+2026-04-23 00:57:01,647 - WARNING -  * Debugger is active!
+2026-04-23 00:57:01,648 - INFO -  * Debugger PIN: 580-875-515
+2026-04-23 00:57:06,111 - INFO - 127.0.0.1 - - [23/Apr/2026 00:57:06] "GET / HTTP/1.1" 200 -
+2026-04-23 00:57:06,505 - INFO - 127.0.0.1 - - [23/Apr/2026 00:57:06] "[36mGET /static/style.css HTTP/1.1[0m" 304 -
+2026-04-23 00:57:06,577 - INFO - 127.0.0.1 - - [23/Apr/2026 00:57:06] "[36mGET /static/assets/gg.png HTTP/1.1[0m" 304 -
+2026-04-23 00:57:06,903 - INFO - 127.0.0.1 - - [23/Apr/2026 00:57:06] "GET /static/avatars/LaceyDream.svg HTTP/1.1" 200 -
+2026-04-23 00:57:06,994 - INFO - 127.0.0.1 - - [23/Apr/2026 00:57:06] "GET /static/assets/bot_post_gif_bank/671b7b4b48afd.gif HTTP/1.1" 200 -
+2026-04-23 00:57:07,215 - INFO - 127.0.0.1 - - [23/Apr/2026 00:57:07] "[36mGET /static/assets/sissyloving/slsponsorbanner.png HTTP/1.1[0m" 304 -
+2026-04-23 00:57:07,314 - INFO - 127.0.0.1 - - [23/Apr/2026 00:57:07] "GET /static/assets/checticon.png HTTP/1.1" 200 -
+2026-04-23 00:57:07,417 - INFO - 127.0.0.1 - - [23/Apr/2026 00:57:07] "[36mGET /static/assets/laboratory.png HTTP/1.1[0m" 304 -
+2026-04-23 00:57:07,468 - INFO - 127.0.0.1 - - [23/Apr/2026 00:57:07] "GET /static/assets/bot_post_gif_bank/if-he-makes-it-that-far_001.gif HTTP/1.1" 200 -
+2026-04-23 00:57:07,470 - INFO - 127.0.0.1 - - [23/Apr/2026 00:57:07] "GET /static/bot_post_photo_bank/Screenshot%202026-04-14%20012128.png HTTP/1.1" 200 -
+2026-04-23 00:57:07,474 - INFO - 127.0.0.1 - - [23/Apr/2026 00:57:07] "GET /static/assets/goodgurlgglogopixel.png HTTP/1.1" 200 -
+2026-04-23 00:57:07,474 - INFO - 127.0.0.1 - - [23/Apr/2026 00:57:07] "GET /static/assets/bot_post_gif_bank/adriana-chechik_001.gif HTTP/1.1" 200 -
+2026-04-23 00:57:08,230 - INFO - 127.0.0.1 - - [23/Apr/2026 00:57:08] "GET /static/avatars/keyholly.svg HTTP/1.1" 200 -
+2026-04-23 00:57:08,326 - INFO - 127.0.0.1 - - [23/Apr/2026 00:57:08] "GET /static/bot_post_photo_bank/Screenshot%202026-04-14%20012245.png HTTP/1.1" 200 -
+2026-04-23 00:57:08,329 - INFO - 127.0.0.1 - - [23/Apr/2026 00:57:08] "GET /static/avatars/the_debra.svg HTTP/1.1" 200 -
+2026-04-23 00:57:08,385 - INFO - 127.0.0.1 - - [23/Apr/2026 00:57:08] "GET /static/avatars/the_annette.svg HTTP/1.1" 200 -
+2026-04-23 00:57:08,505 - INFO - 127.0.0.1 - - [23/Apr/2026 00:57:08] "GET /static/assets/bot_post_gif_bank/manners-are-important-for-a-sissy_001.gif HTTP/1.1" 200 -
+2026-04-23 00:57:08,618 - INFO - 127.0.0.1 - - [23/Apr/2026 00:57:08] "GET /static/avatars/the_lisa.svg HTTP/1.1" 200 -
+2026-04-23 00:57:08,622 - INFO - 127.0.0.1 - - [23/Apr/2026 00:57:08] "GET /static/avatars/xx_amy_xx.svg HTTP/1.1" 200 -
+2026-04-23 00:57:08,625 - INFO - 127.0.0.1 - - [23/Apr/2026 00:57:08] "GET /static/assets/bot_post_gif_bank/671b7b39d778c.gif HTTP/1.1" 200 -
+2026-04-23 00:57:08,625 - INFO - 127.0.0.1 - - [23/Apr/2026 00:57:08] "GET /static/assets/bot_post_gif_bank/cum-make-you-happy_001.gif HTTP/1.1" 200 -
+2026-04-23 00:57:08,629 - INFO - 127.0.0.1 - - [23/Apr/2026 00:57:08] "[35m[1mGET /static/assets/bot_post_video_bank/reddit.mp4 HTTP/1.1[0m" 206 -
+2026-04-23 00:57:08,690 - INFO - 127.0.0.1 - - [23/Apr/2026 00:57:08] "GET /static/assets/bot_post_gif_bank/blowjob_001.gif HTTP/1.1" 200 -
+2026-04-23 00:57:08,694 - INFO - 127.0.0.1 - - [23/Apr/2026 00:57:08] "GET /static/avatars/anne28.svg HTTP/1.1" 200 -
+2026-04-23 00:57:08,697 - INFO - 127.0.0.1 - - [23/Apr/2026 00:57:08] "[35m[1mGET /static/assets/bot_post_video_bank/reddit%20(2).mp4 HTTP/1.1[0m" 206 -
+2026-04-23 00:57:08,708 - INFO - 127.0.0.1 - - [23/Apr/2026 00:57:08] "GET /static/avatars/campaignvanessa.svg HTTP/1.1" 200 -
+2026-04-23 00:57:08,710 - INFO - 127.0.0.1 - - [23/Apr/2026 00:57:08] "GET /static/avatars/mindmichelle.svg HTTP/1.1" 200 -
+2026-04-23 00:57:08,845 - INFO - 127.0.0.1 - - [23/Apr/2026 00:57:08] "GET /static/avatars/the_ashley.svg HTTP/1.1" 200 -
+2026-04-23 00:57:08,867 - INFO - 127.0.0.1 - - [23/Apr/2026 00:57:08] "GET /static/avatars/vickie51.svg HTTP/1.1" 200 -
+2026-04-23 00:57:08,867 - INFO - 127.0.0.1 - - [23/Apr/2026 00:57:08] "GET /static/avatars/sandra.andrews.svg HTTP/1.1" 200 -
+2026-04-23 00:57:08,868 - INFO - 127.0.0.1 - - [23/Apr/2026 00:57:08] "GET /static/avatars/the_faith.svg HTTP/1.1" 200 -
+2026-04-23 00:57:08,868 - INFO - 127.0.0.1 - - [23/Apr/2026 00:57:08] "GET /static/avatars/kimberly_bb.svg HTTP/1.1" 200 -
+2026-04-23 00:57:08,869 - INFO - 127.0.0.1 - - [23/Apr/2026 00:57:08] "GET /static/avatars/courtney_gg.svg HTTP/1.1" 200 -
+2026-04-23 00:57:08,872 - INFO - 127.0.0.1 - - [23/Apr/2026 00:57:08] "GET /static/bot_post_photo_bank/Screenshot%202026-04-14%20012605.png HTTP/1.1" 200 -
+2026-04-23 00:57:08,961 - INFO - 127.0.0.1 - - [23/Apr/2026 00:57:08] "[35m[1mGET /static/assets/bot_post_video_bank/reddit.mp4 HTTP/1.1[0m" 206 -
+2026-04-23 00:57:09,058 - INFO - 127.0.0.1 - - [23/Apr/2026 00:57:09] "[35m[1mGET /static/assets/bot_post_video_bank/reddit%20(2).mp4 HTTP/1.1[0m" 206 -
+2026-04-23 00:57:10,999 - INFO - 127.0.0.1 - - [23/Apr/2026 00:57:10] "GET /academy HTTP/1.1" 200 -
+2026-04-23 00:57:12,167 - INFO - 127.0.0.1 - - [23/Apr/2026 00:57:12] "[36mGET /static/assets/sissyloving/slsponsorbanner.png HTTP/1.1[0m" 304 -
+2026-04-23 00:57:12,183 - INFO - 127.0.0.1 - - [23/Apr/2026 00:57:12] "[36mGET /static/assets/gg.png HTTP/1.1[0m" 304 -
+2026-04-23 00:57:12,189 - INFO - 127.0.0.1 - - [23/Apr/2026 00:57:12] "[36mGET /static/style.css HTTP/1.1[0m" 304 -
+2026-04-23 00:57:13,691 - INFO - 127.0.0.1 - - [23/Apr/2026 00:57:13] "[36mGET /static/assets/laboratory.png HTTP/1.1[0m" 304 -
+2026-04-23 00:57:13,763 - INFO - 127.0.0.1 - - [23/Apr/2026 00:57:13] "[36mGET /static/assets/checticon.png HTTP/1.1[0m" 304 -
+2026-04-23 00:57:20,016 - INFO - 127.0.0.1 - - [23/Apr/2026 00:57:20] "GET /academy/hypno-chains HTTP/1.1" 200 -
+2026-04-23 00:57:20,437 - INFO - 127.0.0.1 - - [23/Apr/2026 00:57:20] "[36mGET /static/style.css HTTP/1.1[0m" 304 -
+2026-04-23 00:57:22,875 - INFO - 127.0.0.1 - - [23/Apr/2026 00:57:22] "GET /api/hypno-chains?sub=sissy-training&after= HTTP/1.1" 200 -
+2026-04-23 00:58:09,078 - INFO -  * Detected change in '/workspaces/goodgurl.gg/app.py', reloading
+2026-04-23 00:58:11,207 - INFO -  * Restarting with stat
+2026-04-23 00:58:17,475 - WARNING -  * Debugger is active!
+2026-04-23 00:58:17,476 - INFO -  * Debugger PIN: 580-875-515
+2026-04-23 00:58:39,283 - INFO -  * Detected change in '/workspaces/goodgurl.gg/app.py', reloading
+2026-04-23 00:58:39,620 - INFO -  * Restarting with stat
+2026-04-23 00:58:41,771 - WARNING -  * Debugger is active!
+2026-04-23 00:58:41,772 - INFO -  * Debugger PIN: 580-875-515
