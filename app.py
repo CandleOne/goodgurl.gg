@@ -2477,6 +2477,33 @@ def admin_grant_multiplier():
 # Context processor
 # ---------------------------------------------------------------------------
 @app.context_processor
+def inject_ticker_data():
+    try:
+        sissies = User.query.filter_by(role="sissy", listed_on_market=True).order_by(
+            User.xp.desc()
+        ).limit(20).all()
+        data = []
+        for s in sissies:
+            mv = s.market_value
+            first_snap = MarketSnapshot.query.filter_by(sissy_id=s.id).order_by(
+                MarketSnapshot.timestamp.asc()
+            ).first()
+            if first_snap and first_snap.market_value > 0:
+                change_pct = round((mv - first_snap.market_value) / first_snap.market_value * 100, 1)
+            else:
+                change_pct = 0.0
+            data.append({
+                "username": s.username,
+                "value": mv,
+                "change_pct": change_pct,
+                "avatar_url": s.avatar_url or url_for('static', filename='avatars/default.png'),
+            })
+        return {"global_ticker_data": data}
+    except Exception:
+        return {"global_ticker_data": []}
+
+
+@app.context_processor
 def inject_notification_count():
     if current_user.is_authenticated:
         unread = Notification.query.filter_by(user_id=current_user.id, is_read=False).count()
