@@ -382,14 +382,14 @@
             ${mediaHTML}
             ${watchedBadge}
             <div class="hc-info">
-                <div class="hc-subreddit"><i class="bi bi-reddit"></i> ${escHtml(p.subreddit)}</div>
+                <div class="hc-subreddit"><i class="bi bi-film"></i> ${escHtml(p.subreddit)}</div>
                 <div class="hc-title">${escHtml(p.title)}</div>
                 <div class="hc-author">u/${escHtml(p.author)} &nbsp;·&nbsp; <i class="bi bi-arrow-up"></i> ${p.ups.toLocaleString()}</div>
             </div>
             <div class="hc-actions">
-                <a class="hc-action" href="${escHtml(p.permalink)}" target="_blank" rel="noopener noreferrer" title="Open on Reddit">
+                <a class="hc-action" href="${escHtml(p.permalink)}" target="_blank" rel="noopener noreferrer" title="Open on Redgifs">
                     <i class="bi bi-box-arrow-up-right"></i>
-                    <span>Reddit</span>
+                    <span>Source</span>
                 </a>
                 <div class="hc-action" onclick="shareSlide('${escHtml(p.permalink)}')" title="Share">
                     <i class="bi bi-share"></i>

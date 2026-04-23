@@ -3183,119 +3183,93 @@ def academy_complete_day():
 
 
 # ---------------------------------------------------------------------------
-# Hypno Chains — Reddit video scroller in GoodGurl Labs
+# Hypno Chains — Redgifs video scroller in GoodGurl Labs
 # ---------------------------------------------------------------------------
 
 HYPNO_CHAINS_XP_PER_VIDEO = 5
 HYPNO_CHAINS_DAILY_LIMIT   = 20   # max XP-earning videos per user per day
 HYPNO_CHAINS_SUBREDDITS    = ["sissyhypno", "sissification", "feminization", "crossdressing"]
 
+# Each subreddit pill maps to a Redgifs search query
+_REDGIFS_QUERY_MAP = {
+    "sissyhypno":    "sissy hypno",
+    "sissification": "sissification",
+    "feminization":  "feminized crossdress",
+    "crossdressing": "crossdressing",
+}
+
 # YARS session (random UA rotation + retry backoff) — created once at module load
 from yars.yars import YARS as _YARS
 _yars = _YARS(timeout=8)
 
 
+def _get_redgifs_token() -> str:
+    """Retrieve a cached Redgifs temporary token, refreshing when near expiry."""
+    from flask import current_app
+    from datetime import datetime as _dt
+    now = _dt.utcnow().timestamp()
+    cached = current_app.config.get("_redgifs_token", {})
+    if cached and cached.get("expires_at", 0) > now + 60:
+        return cached["token"]
+    try:
+        resp = _yars.session.get("https://api.redgifs.com/v2/auth/temporary", timeout=8)
+        resp.raise_for_status()
+        data = resp.json()
+        token = data["token"]
+        current_app.config["_redgifs_token"] = {
+            "token": token,
+            "expires_at": now + data.get("duration", 86400),
+        }
+        return token
+    except Exception:
+        return ""
+
+
 def _fetch_reddit_videos(subreddit: str, after: str = "") -> dict:
-    """Fetch video/gif posts from a subreddit via Reddit's API.
+    """Fetch hypno content from Redgifs for the given subreddit channel.
 
     Uses YARS for random user-agent rotation and automatic retry on 429/5xx.
-    Upgrades to OAuth2 client-credentials when REDDIT_CLIENT_ID /
-    REDDIT_CLIENT_SECRET env vars are set.
+    Pagination via `after` is an integer offset string (e.g. "25", "50").
     """
-    # ── Build URL & auth headers ───────────────────────────────────────
-    reddit_client_id     = os.environ.get("REDDIT_CLIENT_ID", "")
-    reddit_client_secret = os.environ.get("REDDIT_CLIENT_SECRET", "")
-    base_url = "https://www.reddit.com"
-    extra_headers: dict = {}
+    query = _REDGIFS_QUERY_MAP.get(subreddit, subreddit.replace("_", " "))
+    count = 25
+    start = int(after) if after and after.isdigit() else 0
 
-    if reddit_client_id and reddit_client_secret:
-        from flask import current_app
-        from datetime import datetime as _dt
-        now = _dt.utcnow().timestamp()
-        token_data = current_app.config.get("_reddit_token", {})
-        if not token_data or token_data.get("expires_at", 0) < now + 30:
-            try:
-                tok_resp = _yars.session.post(
-                    "https://www.reddit.com/api/v1/access_token",
-                    auth=(reddit_client_id, reddit_client_secret),
-                    data={"grant_type": "client_credentials"},
-                    timeout=8,
-                )
-                tok_resp.raise_for_status()
-                tok_json = tok_resp.json()
-                token_data = {
-                    "token": tok_json["access_token"],
-                    "expires_at": now + tok_json.get("expires_in", 3600),
-                }
-                current_app.config["_reddit_token"] = token_data
-            except Exception:
-                token_data = {}
-        if token_data.get("token"):
-            extra_headers["Authorization"] = f"Bearer {token_data['token']}"
-            base_url = "https://oauth.reddit.com"
-
-    params: dict = {"limit": 25, "raw_json": 1}
-    if after:
-        params["after"] = after
-
-    url = f"{base_url}/r/{subreddit}/hot.json"
+    token = _get_redgifs_token()
+    if not token:
+        return {"posts": [], "after": None, "error": "Could not authenticate with content provider."}
 
     try:
-        resp = _yars.session.get(url, params=params, headers=extra_headers, timeout=8)
+        resp = _yars.session.get(
+            "https://api.redgifs.com/v2/gifs/search",
+            params={"search_text": query, "order": "trending", "count": count, "start": start},
+            headers={"Authorization": f"Bearer {token}"},
+            timeout=8,
+        )
         resp.raise_for_status()
-        content_type = resp.headers.get("Content-Type", "")
-        if "json" not in content_type and "javascript" not in content_type:
-            return {"posts": [], "after": None,
-                    "error": "Reddit returned a non-JSON response (login wall or redirect). "
-                             "Set REDDIT_CLIENT_ID and REDDIT_CLIENT_SECRET to enable API access."}
-        raw = resp.json()
+        data = resp.json()
     except Exception as exc:
         return {"posts": [], "after": None, "error": str(exc)[:120]}
 
+    gifs = data.get("gifs", [])
     posts = []
-    new_after = raw.get("data", {}).get("after")
-    for item in raw.get("data", {}).get("children", []):
-        d = item.get("data", {})
-        if d.get("stickied") or d.get("removed_by_category"):
-            continue
-
-        media_url = None
-        media_type = "image"
-
-        if d.get("is_video"):
-            rv = d.get("media", {}).get("reddit_video", {})
-            fallback = rv.get("fallback_url", "")
-            media_url = fallback.split("?")[0] if fallback else None
-            media_type = "video"
-        elif d.get("url", "").lower().endswith((".gif", ".gifv")):
-            media_url = d["url"].replace(".gifv", ".gif")
-            media_type = "gif"
-        elif d.get("post_hint") == "rich:video":
-            rv_preview = d.get("preview", {}).get("reddit_video_preview", {})
-            fallback = rv_preview.get("fallback_url", "")
-            if fallback:
-                media_url = fallback.split("?")[0]
-                media_type = "video"
-        elif d.get("post_hint") == "image":
-            img_url = d.get("url", "")
-            if img_url.lower().endswith((".jpg", ".jpeg", ".png", ".webp")):
-                media_url = img_url
-                media_type = "image"
-
+    for g in gifs:
+        urls = g.get("urls", {})
+        media_url = urls.get("hd") or urls.get("sd")
         if not media_url:
             continue
-
         posts.append({
-            "id": d["id"],
-            "title": d.get("title", "")[:200],
+            "id": g["id"],
+            "title": (g.get("title") or g.get("description") or query.title())[:200],
             "media_url": media_url,
-            "media_type": media_type,
-            "subreddit": d.get("subreddit_name_prefixed", f"r/{subreddit}"),
-            "author": d.get("author", ""),
-            "ups": d.get("ups", 0),
-            "permalink": f"https://reddit.com{d.get('permalink', '')}",
+            "media_type": "video",
+            "subreddit": f"r/{subreddit}",
+            "author": g.get("userName", ""),
+            "ups": g.get("likes", 0),
+            "permalink": f"https://redgifs.com/watch/{g['id']}",
         })
 
+    new_after = str(start + count) if len(gifs) == count else None
     return {"posts": posts, "after": new_after}
 
 
