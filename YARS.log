@@ -1861,3 +1861,5 @@
 2026-04-23 21:24:26,336 - INFO -  * Restarting with stat
 2026-04-23 21:24:28,405 - WARNING -  * Debugger is active!
 2026-04-23 21:24:28,406 - INFO -  * Debugger PIN: 711-190-077
+2026-04-23 21:24:37,033 - INFO - 127.0.0.1 - - [23/Apr/2026 21:24:37] "GET /messages/unread_count HTTP/1.1" 200 -
+2026-04-23 21:24:37,115 - INFO - 127.0.0.1 - - [23/Apr/2026 21:24:37] "GET /notifications/count HTTP/1.1" 200 -
