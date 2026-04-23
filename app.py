@@ -3235,6 +3235,7 @@ def _fetch_reddit_videos(subreddit: str, after: str = "") -> dict:
     niche = subreddit  # subreddit arg is now a Redgifs niche slug
     count = 25
     start = int(after) if after and after.isdigit() else 0
+    from flask import current_app
 
     token = _get_redgifs_token()
     if not token:
