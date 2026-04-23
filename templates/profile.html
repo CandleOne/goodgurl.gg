@@ -266,25 +266,56 @@
                    class="btn btn-pink">
                     <i class="bi bi-download"></i> Download PNG
                 </a>
-                <button class="btn btn-outline-light" onclick="copyShareCard()">
+                <button class="btn btn-outline-light" onclick="copyShareCard(event)">
                     <i class="bi bi-clipboard"></i> Copy Image
+                </button>
+                <button id="nativeShareBtn" class="btn btn-outline-pink d-none" onclick="nativeShare()">
+                    <i class="bi bi-share"></i> Share
                 </button>
             </div>
         </div>
     </div>
 </div>
 <script>
-async function copyShareCard() {
+// Show native share button only when Web Share API supports files
+document.addEventListener('DOMContentLoaded', function () {
+    if (navigator.canShare && navigator.canShare({ files: [new File([], 'test.png', { type: 'image/png' })] })) {
+        document.getElementById('nativeShareBtn').classList.remove('d-none');
+    }
+});
+
+async function _getCardBlob() {
+    const img = document.getElementById('shareCardImg');
+    const res = await fetch(img.src);
+    return await res.blob();
+}
+
+async function copyShareCard(event) {
     try {
-        const img = document.getElementById('shareCardImg');
-        const res = await fetch(img.src);
-        const blob = await res.blob();
+        const blob = await _getCardBlob();
         await navigator.clipboard.write([new ClipboardItem({'image/png': blob})]);
         const btn = event.target.closest('button');
         btn.innerHTML = '<i class="bi bi-check2"></i> Copied!';
         setTimeout(() => { btn.innerHTML = '<i class="bi bi-clipboard"></i> Copy Image'; }, 2000);
     } catch(e) {
         alert('Copy failed — please use the Download button instead.');
+    }
+}
+
+async function nativeShare() {
+    try {
+        const blob = await _getCardBlob();
+        const file = new File([blob], 'goodgurl-stats.png', { type: 'image/png' });
+        await navigator.share({
+            title: 'My goodgurl.gg Stats',
+            text: 'Check out my stats on goodgurl.gg!',
+            url: '{{ url_for("profile", username=user.username, _external=True) }}',
+            files: [file],
+        });
+    } catch(e) {
+        if (e.name !== 'AbortError') {
+            alert('Share failed — try Download instead.');
+        }
     }
 }
 </script>
