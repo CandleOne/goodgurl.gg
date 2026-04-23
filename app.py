@@ -3994,12 +3994,19 @@ def _load_avatar_circle(user, size=36):
     letter = (user.username[0] if user.username else "?").upper()
     avatar_url = user.avatar_url or ""
 
-    # Skip SVGs (multiavatar) – fall through to monogram
-    if avatar_url.lower().endswith(".svg"):
-        return _monogram(letter, size)
-
     try:
-        if avatar_url.startswith("/uploads/"):
+        if avatar_url.lower().endswith(".svg"):
+            # Use cairosvg to rasterise the SVG at target size
+            import cairosvg
+            if avatar_url.startswith("/static/"):
+                svg_path = os.path.join(app.static_folder, avatar_url[len("/static/"):])
+            elif avatar_url.startswith("/"):
+                svg_path = os.path.join(app.root_path, avatar_url.lstrip("/"))
+            else:
+                return _monogram(letter, size)
+            png_bytes = cairosvg.svg2png(url=svg_path, output_width=size, output_height=size)
+            raw = Image.open(io.BytesIO(png_bytes))
+        elif avatar_url.startswith("/uploads/"):
             path = os.path.join(app.config["UPLOAD_FOLDER"], os.path.basename(avatar_url))
             raw = Image.open(path)
         elif avatar_url.startswith("/static/"):

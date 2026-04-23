@@ -1863,3 +1863,39 @@
 2026-04-23 21:24:28,406 - INFO -  * Debugger PIN: 711-190-077
 2026-04-23 21:24:37,033 - INFO - 127.0.0.1 - - [23/Apr/2026 21:24:37] "GET /messages/unread_count HTTP/1.1" 200 -
 2026-04-23 21:24:37,115 - INFO - 127.0.0.1 - - [23/Apr/2026 21:24:37] "GET /notifications/count HTTP/1.1" 200 -
+2026-04-23 21:24:52,847 - INFO - 127.0.0.1 - - [23/Apr/2026 21:24:52] "GET /profile/LaceyDream HTTP/1.1" 200 -
+2026-04-23 21:24:52,950 - INFO - 127.0.0.1 - - [23/Apr/2026 21:24:52] "GET /static/assets/gg.png HTTP/1.1" 200 -
+2026-04-23 21:24:52,952 - INFO - 127.0.0.1 - - [23/Apr/2026 21:24:52] "GET /static/style.css HTTP/1.1" 200 -
+2026-04-23 21:24:53,012 - INFO - 127.0.0.1 - - [23/Apr/2026 21:24:53] "GET /static/assets/sissyloving/slsponsorbanner.png HTTP/1.1" 200 -
+2026-04-23 21:24:53,161 - INFO - 127.0.0.1 - - [23/Apr/2026 21:24:53] "GET /static/assets/checticon.png HTTP/1.1" 200 -
+2026-04-23 21:24:53,164 - INFO - 127.0.0.1 - - [23/Apr/2026 21:24:53] "GET /uploads/7a99bb0eba3ea77609d8b8fe730cbaeb.png HTTP/1.1" 200 -
+2026-04-23 21:24:53,194 - INFO - 127.0.0.1 - - [23/Apr/2026 21:24:53] "GET /static/assets/laboratory.png HTTP/1.1" 200 -
+2026-04-23 21:24:53,256 - INFO - 127.0.0.1 - - [23/Apr/2026 21:24:53] "GET /uploads/5433e1d4a4c8f0634046b92834e0a107.png HTTP/1.1" 200 -
+2026-04-23 21:24:53,334 - INFO - 127.0.0.1 - - [23/Apr/2026 21:24:53] "GET /uploads/f2c6b76c6e65e8dae60f2e08630c7f44.png HTTP/1.1" 200 -
+2026-04-23 21:24:53,337 - INFO - 127.0.0.1 - - [23/Apr/2026 21:24:53] "GET /static/avatars/LaceyDream.svg HTTP/1.1" 200 -
+2026-04-23 21:24:53,562 - INFO - 127.0.0.1 - - [23/Apr/2026 21:24:53] "GET /share/stats-card HTTP/1.1" 200 -
+2026-04-23 21:24:53,852 - INFO - 127.0.0.1 - - [23/Apr/2026 21:24:53] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2026-04-23 21:25:23,955 - INFO - 127.0.0.1 - - [23/Apr/2026 21:25:23] "GET /notifications/count HTTP/1.1" 200 -
+2026-04-23 21:25:23,956 - INFO - 127.0.0.1 - - [23/Apr/2026 21:25:23] "GET /messages/unread_count HTTP/1.1" 200 -
+2026-04-23 21:25:53,958 - INFO - 127.0.0.1 - - [23/Apr/2026 21:25:53] "GET /notifications/count HTTP/1.1" 200 -
+2026-04-23 21:25:53,961 - INFO - 127.0.0.1 - - [23/Apr/2026 21:25:53] "GET /messages/unread_count HTTP/1.1" 200 -
+2026-04-23 21:26:23,976 - INFO - 127.0.0.1 - - [23/Apr/2026 21:26:23] "GET /messages/unread_count HTTP/1.1" 200 -
+2026-04-23 21:26:24,056 - INFO - 127.0.0.1 - - [23/Apr/2026 21:26:24] "GET /notifications/count HTTP/1.1" 200 -
+2026-04-23 21:26:54,070 - INFO - 127.0.0.1 - - [23/Apr/2026 21:26:54] "GET /messages/unread_count HTTP/1.1" 200 -
+2026-04-23 21:26:54,070 - INFO - 127.0.0.1 - - [23/Apr/2026 21:26:54] "GET /notifications/count HTTP/1.1" 200 -
+2026-04-23 21:27:24,088 - INFO - 127.0.0.1 - - [23/Apr/2026 21:27:24] "GET /notifications/count HTTP/1.1" 200 -
+2026-04-23 21:27:24,097 - INFO - 127.0.0.1 - - [23/Apr/2026 21:27:24] "GET /messages/unread_count HTTP/1.1" 200 -
+2026-04-23 21:27:53,963 - INFO - 127.0.0.1 - - [23/Apr/2026 21:27:53] "GET /notifications/count HTTP/1.1" 200 -
+2026-04-23 21:27:53,967 - INFO - 127.0.0.1 - - [23/Apr/2026 21:27:53] "GET /messages/unread_count HTTP/1.1" 200 -
+2026-04-23 21:28:59,549 - INFO - 127.0.0.1 - - [23/Apr/2026 21:28:59] "GET /notifications/count HTTP/1.1" 200 -
+2026-04-23 21:28:59,550 - INFO - 127.0.0.1 - - [23/Apr/2026 21:28:59] "GET /messages/unread_count HTTP/1.1" 200 -
+2026-04-23 21:29:23,548 - INFO -  * Detected change in '/workspaces/goodgurl.gg/app.py', reloading
+2026-04-23 21:29:24,944 - INFO -  * Restarting with stat
+2026-04-23 21:29:29,395 - WARNING -  * Debugger is active!
+2026-04-23 21:29:29,397 - INFO -  * Debugger PIN: 711-190-077
+2026-04-23 21:29:29,467 - INFO - 127.0.0.1 - - [23/Apr/2026 21:29:29] "GET /messages/unread_count HTTP/1.1" 200 -
+2026-04-23 21:29:29,468 - INFO - 127.0.0.1 - - [23/Apr/2026 21:29:29] "GET /notifications/count HTTP/1.1" 200 -
+2026-04-23 21:29:54,061 - INFO - 127.0.0.1 - - [23/Apr/2026 21:29:54] "GET /messages/unread_count HTTP/1.1" 200 -
+2026-04-23 21:29:54,077 - INFO - 127.0.0.1 - - [23/Apr/2026 21:29:54] "GET /notifications/count HTTP/1.1" 200 -
+2026-04-23 21:30:50,694 - INFO -  * Detected change in '/workspaces/goodgurl.gg/app.py', reloading
+2026-04-23 21:30:51,616 - INFO -  * Restarting with stat
