@@ -3967,18 +3967,14 @@ def api_ggtv_bot_stream_stop():
 def _build_share_card(user):
     """Render stat data onto the share template and return a PIL Image."""
     from PIL import Image, ImageDraw, ImageFont
-    import textwrap
 
     TEMPLATE_PATH = os.path.join(app.static_folder, "assets", "shareables", "blanksharetemplate.png")
     FONT_BOLD = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
     FONT_REG  = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
 
-    # Colours
-    C_WHITE   = (255, 255, 255, 255)
-    C_PINK    = (255, 60, 160, 255)
-    C_DIM     = (170, 170, 170, 255)
-    C_GREEN   = (60, 255, 160, 255)
-    C_DARK    = (20,  20,  20, 200)
+    C_WHITE = (255, 255, 255, 255)
+    C_PINK  = (255,  60, 160, 255)
+    C_DIM   = (170, 170, 170, 255)
 
     today = utcnow().date()
 
@@ -4001,61 +3997,81 @@ def _build_share_card(user):
 
     # --- open template ---
     img = Image.open(TEMPLATE_PATH).convert("RGBA")
-    W, H = img.size          # 740 × 431
+    W, H = img.size   # 740 × 431
     draw = ImageDraw.Draw(img)
 
-    def font(path, size):
+    def fnt(path, size):
         try:
             return ImageFont.truetype(path, size)
         except OSError:
             return ImageFont.load_default()
 
-    # --- date string  (top-right, matching reference card) ---
-    date_str  = utcnow().strftime("%-d %b %Y")
-    f_date    = font(FONT_BOLD, 16)
-    draw.text((W - 170, 28), date_str, font=f_date, fill=C_DIM)
+    f_date = fnt(FONT_BOLD, 16)
+    f_url  = fnt(FONT_REG,  12)
+    f_user = fnt(FONT_BOLD, 17)
+    f_big  = fnt(FONT_BOLD, 66)
+    f_sub  = fnt(FONT_REG,  14)
+    f_val  = fnt(FONT_BOLD, 20)
+    f_lbl  = fnt(FONT_REG,  11)
 
-    # --- username sub-header (below logo on left) ---
-    f_user  = font(FONT_BOLD, 20)
-    draw.text((48, 80), f"× {user.username}", font=f_user, fill=C_WHITE)
+    # ── Top-right: date + URL ──────────────────────────────────────────────
+    date_str = utcnow().strftime("%-d %b %Y")
+    date_w   = draw.textlength(date_str, font=f_date)
+    draw.text((W - 32 - date_w, 26), date_str, font=f_date, fill=C_WHITE)
 
-    # --- profile URL (top-right) ---
-    f_url   = font(FONT_REG, 13)
     url_str = f"goodgurl.gg/profile/{user.username}"
-    draw.text((W - 10 - draw.textlength(url_str, font=f_url), 50), url_str, font=f_url, fill=C_DIM)
+    url_w   = draw.textlength(url_str, font=f_url)
+    draw.text((W - 32 - url_w, 48), url_str, font=f_url, fill=C_DIM)
 
-    # --- big XP gained today ---
+    # ── Username – placed BELOW the logo (logo occupies ~y 32-105) ─────────
+    draw.text((50, 112), f"x {user.username}", font=f_user, fill=C_DIM)
+
+    # ── Big XP number ──────────────────────────────────────────────────────
     xp_sign  = "+" if xp_today >= 0 else ""
     xp_label = f"{xp_sign}{xp_today:,} XP"
-    f_big    = font(FONT_BOLD, 72)
-    draw.text((48, 130), xp_label, font=f_big, fill=C_PINK)
+    draw.text((50, 142), xp_label, font=f_big, fill=C_PINK)
 
-    # sub-label
-    f_sub = font(FONT_REG, 15)
-    draw.text((50, 215), "XP earned today", font=f_sub, fill=C_DIM)
+    # ── Sub-label ──────────────────────────────────────────────────────────
+    draw.text((52, 218), "XP earned today", font=f_sub, fill=C_DIM)
 
-    # --- divider ---
-    draw.line([(48, 248), (W - 48, 248)], fill=(255, 60, 160, 80), width=1)
+    # ── Divider ────────────────────────────────────────────────────────────
+    draw.line([(48, 246), (W - 48, 246)], fill=(255, 60, 160, 80), width=1)
 
-    # --- bottom stat tiles ---
+    # ── Bottom stat tiles – each centred in its column ─────────────────────
+    # Truncate tier name to fit (max ~11 chars before overflow at size 20)
+    tier_str   = user.rank[:11] if len(user.rank) > 11 else user.rank
+    streak_str = f"{login_streak}d" if login_streak else "--"
+
     stats = [
-        ("Level",   str(user.level)),
-        ("Tier",    user.rank),
-        ("Streak",  f"{login_streak}d 🔥" if login_streak else "—"),
-        ("Tasks",   str(tasks_today)),
+        ("Level",    str(user.level)),
+        ("Tier",     tier_str),
+        ("Streak",   streak_str),
+        ("Tasks",    str(tasks_today)),
         ("Total XP", f"{user.xp:,}"),
     ]
 
-    col_w  = (W - 96) // len(stats)
-    f_val  = font(FONT_BOLD, 22)
-    f_lbl  = font(FONT_REG, 12)
+    n     = len(stats)
+    PAD_L = 48
+    PAD_R = 48
+    col_w = (W - PAD_L - PAD_R) // n
+
+    Y_VAL = 258
+    Y_LBL = 284
 
     for i, (lbl, val) in enumerate(stats):
-        cx = 48 + i * col_w
-        draw.text((cx, 263), val, font=f_val, fill=C_WHITE)
-        draw.text((cx, 293), lbl, font=f_lbl, fill=C_DIM)
+        col_cx = PAD_L + i * col_w + col_w // 2
+        # draw value centred
+        vw = draw.textlength(val, font=f_val)
+        draw.text((col_cx - vw / 2, Y_VAL), val, font=f_val, fill=C_WHITE)
+        # draw label centred
+        lw = draw.textlength(lbl, font=f_lbl)
+        draw.text((col_cx - lw / 2, Y_LBL), lbl, font=f_lbl, fill=C_DIM)
+        # vertical separator (skip after last column)
+        if i < n - 1:
+            sx = PAD_L + (i + 1) * col_w
+            draw.line([(sx, Y_VAL + 2), (sx, Y_LBL + 13)], fill=(80, 80, 80, 180), width=1)
 
-    # --- thin bottom border accent ---
+    # ── Bottom pink accent bar ─────────────────────────────────────────────
     draw.line([(0, H - 3), (W, H - 3)], fill=C_PINK, width=3)
 
     return img
