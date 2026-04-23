@@ -90,6 +90,9 @@ class User(UserMixin, db.Model):
     profile_title = db.Column(db.String(60), default="")
     created_at = db.Column(db.DateTime, default=utcnow)
     stream_key = db.Column(db.String(32), unique=True, nullable=True, index=True)
+    social_onlyfans = db.Column(db.String(120), nullable=True, default=None)
+    social_reddit    = db.Column(db.String(120), nullable=True, default=None)
+    social_x         = db.Column(db.String(120), nullable=True, default=None)
 
     # Relationships
     posts = db.relationship("Post", backref="author", lazy="dynamic", cascade="all, delete-orphan")

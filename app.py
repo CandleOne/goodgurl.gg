@@ -1748,6 +1748,40 @@ def edit_account():
     return redirect(url_for("account"))
 
 
+@app.route("/account/social-links", methods=["POST"])
+@login_required
+def save_social_links():
+    import re
+    def _clean_url(val, allowed_hosts):
+        val = (val or "").strip()
+        if not val:
+            return None
+        # Accept a bare username (no slashes) as a username-only entry
+        if re.match(r'^[\w.\-]+$', val):
+            return val
+        # Validate as a URL with an allowed host
+        from urllib.parse import urlparse
+        try:
+            p = urlparse(val)
+            if p.scheme not in ("http", "https"):
+                return None
+            if not any(p.netloc == h or p.netloc.endswith("." + h) for h in allowed_hosts):
+                return None
+            return val
+        except Exception:
+            return None
+
+    current_user.social_onlyfans = _clean_url(
+        request.form.get("social_onlyfans"), ["onlyfans.com"])
+    current_user.social_reddit = _clean_url(
+        request.form.get("social_reddit"), ["reddit.com", "www.reddit.com"])
+    current_user.social_x = _clean_url(
+        request.form.get("social_x"), ["x.com", "twitter.com", "www.x.com", "www.twitter.com"])
+    db.session.commit()
+    flash("Social links saved!", "success")
+    return redirect(url_for("account"))
+
+
 @app.route("/account/new_avatar", methods=["POST"])
 @login_required
 def new_avatar():

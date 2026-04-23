@@ -2575,3 +2575,23 @@
 2026-04-23 23:31:22,409 - INFO - 127.0.0.1 - - [23/Apr/2026 23:31:22] "GET /notifications/count HTTP/1.1" 200 -
 2026-04-23 23:31:52,491 - INFO - 127.0.0.1 - - [23/Apr/2026 23:31:52] "GET /notifications/count HTTP/1.1" 200 -
 2026-04-23 23:31:52,497 - INFO - 127.0.0.1 - - [23/Apr/2026 23:31:52] "GET /messages/unread_count HTTP/1.1" 200 -
+2026-04-23 23:32:22,421 - INFO - 127.0.0.1 - - [23/Apr/2026 23:32:22] "GET /notifications/count HTTP/1.1" 200 -
+2026-04-23 23:32:22,443 - INFO - 127.0.0.1 - - [23/Apr/2026 23:32:22] "GET /messages/unread_count HTTP/1.1" 200 -
+2026-04-23 23:32:27,735 - INFO - 127.0.0.1 - - [23/Apr/2026 23:32:27] "GET /account HTTP/1.1" 200 -
+2026-04-23 23:32:27,824 - INFO - 127.0.0.1 - - [23/Apr/2026 23:32:27] "GET /static/avatars/LaceyDream.svg HTTP/1.1" 200 -
+2026-04-23 23:32:27,824 - INFO - 127.0.0.1 - - [23/Apr/2026 23:32:27] "GET /static/style.css HTTP/1.1" 200 -
+2026-04-23 23:32:27,886 - INFO - 127.0.0.1 - - [23/Apr/2026 23:32:27] "GET /static/assets/gg.png HTTP/1.1" 200 -
+2026-04-23 23:32:28,047 - INFO - 127.0.0.1 - - [23/Apr/2026 23:32:28] "GET /static/assets/sissyloving/slsponsorbanner.png HTTP/1.1" 200 -
+2026-04-23 23:32:28,084 - INFO - 127.0.0.1 - - [23/Apr/2026 23:32:28] "GET /static/assets/checticon.png HTTP/1.1" 200 -
+2026-04-23 23:32:28,134 - INFO - 127.0.0.1 - - [23/Apr/2026 23:32:28] "GET /static/assets/laboratory.png HTTP/1.1" 200 -
+2026-04-23 23:32:28,497 - INFO - 127.0.0.1 - - [23/Apr/2026 23:32:28] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2026-04-23 23:32:58,437 - INFO - 127.0.0.1 - - [23/Apr/2026 23:32:58] "GET /messages/unread_count HTTP/1.1" 200 -
+2026-04-23 23:32:58,443 - INFO - 127.0.0.1 - - [23/Apr/2026 23:32:58] "GET /notifications/count HTTP/1.1" 200 -
+2026-04-23 23:33:28,416 - INFO - 127.0.0.1 - - [23/Apr/2026 23:33:28] "GET /messages/unread_count HTTP/1.1" 200 -
+2026-04-23 23:33:28,420 - INFO - 127.0.0.1 - - [23/Apr/2026 23:33:28] "GET /notifications/count HTTP/1.1" 200 -
+2026-04-23 23:33:58,415 - INFO - 127.0.0.1 - - [23/Apr/2026 23:33:58] "GET /messages/unread_count HTTP/1.1" 200 -
+2026-04-23 23:33:58,482 - INFO - 127.0.0.1 - - [23/Apr/2026 23:33:58] "GET /notifications/count HTTP/1.1" 200 -
+2026-04-23 23:34:28,402 - INFO - 127.0.0.1 - - [23/Apr/2026 23:34:28] "GET /messages/unread_count HTTP/1.1" 200 -
+2026-04-23 23:34:28,473 - INFO - 127.0.0.1 - - [23/Apr/2026 23:34:28] "GET /notifications/count HTTP/1.1" 200 -
+2026-04-23 23:34:44,386 - INFO -  * Detected change in '/workspaces/goodgurl.gg/models.py', reloading
+2026-04-23 23:34:45,132 - INFO -  * Restarting with stat
