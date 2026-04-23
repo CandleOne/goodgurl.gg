@@ -94,6 +94,15 @@ class User(UserMixin, db.Model):
     social_reddit    = db.Column(db.String(120), nullable=True, default=None)
     social_x         = db.Column(db.String(120), nullable=True, default=None)
 
+    @property
+    def social_urls(self):
+        """Return a dict of platform -> canonical URL (or None) for all linked socials."""
+        return {
+            "onlyfans": f"https://onlyfans.com/{self.social_onlyfans}" if self.social_onlyfans else None,
+            "reddit":   f"https://reddit.com/u/{self.social_reddit}" if self.social_reddit else None,
+            "x":        f"https://x.com/{self.social_x}" if self.social_x else None,
+        }
+
     # Relationships
     posts = db.relationship("Post", backref="author", lazy="dynamic", cascade="all, delete-orphan")
     tasks_created = db.relationship("Task", backref="creator", lazy="dynamic", foreign_keys="Task.creator_id", cascade="all, delete-orphan")

@@ -76,6 +76,28 @@
 
             <small class="text-muted d-block mt-3">Joined {{ user.created_at.strftime('%B %Y') }}</small>
 
+            <!-- Social links (public) -->
+            {% set su = user.social_urls %}
+            {% if su.onlyfans or su.reddit or su.x %}
+            <div class="d-flex justify-content-center gap-3 mt-2">
+                {% if su.onlyfans %}
+                <a href="{{ su.onlyfans }}" target="_blank" rel="noopener noreferrer" title="OnlyFans">
+                    <img src="{{ url_for('static', filename='assets/socialmediaicons/onlyfans.png') }}" width="24" height="24" alt="OnlyFans" style="object-fit:contain; opacity:.85;">
+                </a>
+                {% endif %}
+                {% if su.reddit %}
+                <a href="{{ su.reddit }}" target="_blank" rel="noopener noreferrer" title="Reddit">
+                    <img src="{{ url_for('static', filename='assets/socialmediaicons/reddit.png') }}" width="24" height="24" alt="Reddit" style="object-fit:contain; opacity:.85;">
+                </a>
+                {% endif %}
+                {% if su.x %}
+                <a href="{{ su.x }}" target="_blank" rel="noopener noreferrer" title="X / Twitter">
+                    <img src="{{ url_for('static', filename='assets/socialmediaicons/x.png') }}" width="24" height="24" alt="X" style="object-fit:contain; opacity:.85;">
+                </a>
+                {% endif %}
+            </div>
+            {% endif %}
+
             <!-- Share card (own profile only) -->
             {% if current_user.is_authenticated and current_user.id == user.id and user.role == 'sissy' %}
             <div class="mt-3">
@@ -261,7 +283,7 @@
                      style="max-width:100%; border:1px solid rgba(255,60,160,.25);"
                      alt="Stats card">
             </div>
-            <div class="modal-footer border-0 justify-content-center gap-2">
+            <div class="modal-footer border-0 justify-content-center gap-2 flex-wrap">
                 <a href="{{ url_for('share_stats_card', dl=1) }}"
                    class="btn btn-pink">
                     <i class="bi bi-download"></i> Download PNG
@@ -272,6 +294,32 @@
                 <button id="nativeShareBtn" class="btn btn-outline-pink d-none" onclick="nativeShare()">
                     <i class="bi bi-share"></i> Share
                 </button>
+                {% if current_user.social_x %}
+                <a id="shareToX"
+                   href="#"
+                   target="_blank" rel="noopener noreferrer"
+                   class="btn btn-outline-light d-flex align-items-center gap-1">
+                    <img src="{{ url_for('static', filename='assets/socialmediaicons/x.png') }}" width="16" height="16" alt="X" style="object-fit:contain; filter:invert(1);">
+                    Post to X
+                </a>
+                {% endif %}
+                {% if current_user.social_reddit %}
+                <a id="shareToReddit"
+                   href="#"
+                   target="_blank" rel="noopener noreferrer"
+                   class="btn btn-outline-light d-flex align-items-center gap-1">
+                    <img src="{{ url_for('static', filename='assets/socialmediaicons/reddit.png') }}" width="16" height="16" alt="Reddit" style="object-fit:contain;">
+                    Post to Reddit
+                </a>
+                {% endif %}
+                {% if current_user.social_onlyfans %}
+                <a href="{{ current_user.social_urls.onlyfans }}"
+                   target="_blank" rel="noopener noreferrer"
+                   class="btn btn-outline-light d-flex align-items-center gap-1">
+                    <img src="{{ url_for('static', filename='assets/socialmediaicons/onlyfans.png') }}" width="16" height="16" alt="OnlyFans" style="object-fit:contain;">
+                    Open OnlyFans
+                </a>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -281,6 +329,19 @@
 document.addEventListener('DOMContentLoaded', function () {
     if (navigator.canShare && navigator.canShare({ files: [new File([], 'test.png', { type: 'image/png' })] })) {
         document.getElementById('nativeShareBtn').classList.remove('d-none');
+    }
+
+    const profileUrl = encodeURIComponent('{{ url_for("profile", username=user.username, _external=True) }}');
+    const shareText  = encodeURIComponent('Check out my daily stats on goodgurl.gg! 💅');
+
+    const xBtn = document.getElementById('shareToX');
+    if (xBtn) {
+        xBtn.href = `https://x.com/intent/tweet?text=${shareText}&url=${profileUrl}`;
+    }
+
+    const redditBtn = document.getElementById('shareToReddit');
+    if (redditBtn) {
+        redditBtn.href = `https://www.reddit.com/submit?type=link&title=${encodeURIComponent('My goodgurl.gg Stats Card')}&url=${profileUrl}`;
     }
 });
 

@@ -276,32 +276,68 @@
 
         <!-- Link Social Accounts -->
         <div class="card glass-card p-4 mb-4">
-            <h5 class="mb-3"><i class="bi bi-link-45deg text-pink"></i> Link Social Accounts</h5>
+            <h5 class="mb-1"><i class="bi bi-link-45deg text-pink"></i> Link Social Accounts</h5>
+            <p class="text-muted small mb-3">Paste a full URL or just your username. Leave blank to disconnect.</p>
             <form method="POST" action="{{ url_for('save_social_links') }}">
-                <div class="mb-3 d-flex align-items-center gap-3">
-                    <img src="{{ url_for('static', filename='assets/socialmediaicons/onlyfans.png') }}" width="32" height="32" alt="OnlyFans" style="object-fit:contain; flex-shrink:0;">
-                    <div class="flex-grow-1">
-                        <input type="text" name="social_onlyfans" class="form-control"
-                               placeholder="onlyfans.com/yourname or username"
-                               value="{{ current_user.social_onlyfans or '' }}">
+                {% set su = current_user.social_urls %}
+
+                <!-- OnlyFans -->
+                <div class="mb-3">
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                        <img src="{{ url_for('static', filename='assets/socialmediaicons/onlyfans.png') }}" width="22" height="22" alt="OnlyFans" style="object-fit:contain;">
+                        <span class="fw-semibold small">OnlyFans</span>
+                        {% if current_user.social_onlyfans %}
+                        <span class="badge bg-success ms-auto"><i class="bi bi-check-circle"></i> Connected</span>
+                        {% endif %}
                     </div>
+                    {% if current_user.social_onlyfans %}
+                    <a href="{{ su.onlyfans }}" target="_blank" rel="noopener noreferrer" class="d-block text-muted small mb-1 text-truncate">
+                        <i class="bi bi-box-arrow-up-right"></i> {{ su.onlyfans }}
+                    </a>
+                    {% endif %}
+                    <input type="text" name="social_onlyfans" class="form-control form-control-sm"
+                           placeholder="e.g. mypinkyname"
+                           value="{{ current_user.social_onlyfans or '' }}">
                 </div>
-                <div class="mb-3 d-flex align-items-center gap-3">
-                    <img src="{{ url_for('static', filename='assets/socialmediaicons/reddit.png') }}" width="32" height="32" alt="Reddit" style="object-fit:contain; flex-shrink:0;">
-                    <div class="flex-grow-1">
-                        <input type="text" name="social_reddit" class="form-control"
-                               placeholder="reddit.com/u/yourname or username"
-                               value="{{ current_user.social_reddit or '' }}">
+
+                <!-- Reddit -->
+                <div class="mb-3">
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                        <img src="{{ url_for('static', filename='assets/socialmediaicons/reddit.png') }}" width="22" height="22" alt="Reddit" style="object-fit:contain;">
+                        <span class="fw-semibold small">Reddit</span>
+                        {% if current_user.social_reddit %}
+                        <span class="badge bg-success ms-auto"><i class="bi bi-check-circle"></i> Connected</span>
+                        {% endif %}
                     </div>
+                    {% if current_user.social_reddit %}
+                    <a href="{{ su.reddit }}" target="_blank" rel="noopener noreferrer" class="d-block text-muted small mb-1 text-truncate">
+                        <i class="bi bi-box-arrow-up-right"></i> {{ su.reddit }}
+                    </a>
+                    {% endif %}
+                    <input type="text" name="social_reddit" class="form-control form-control-sm"
+                           placeholder="e.g. u/mypinkyname"
+                           value="{{ current_user.social_reddit or '' }}">
                 </div>
-                <div class="mb-3 d-flex align-items-center gap-3">
-                    <img src="{{ url_for('static', filename='assets/socialmediaicons/x.png') }}" width="32" height="32" alt="X / Twitter" style="object-fit:contain; flex-shrink:0;">
-                    <div class="flex-grow-1">
-                        <input type="text" name="social_x" class="form-control"
-                               placeholder="x.com/yourname or username"
-                               value="{{ current_user.social_x or '' }}">
+
+                <!-- X / Twitter -->
+                <div class="mb-3">
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                        <img src="{{ url_for('static', filename='assets/socialmediaicons/x.png') }}" width="22" height="22" alt="X / Twitter" style="object-fit:contain;">
+                        <span class="fw-semibold small">X / Twitter</span>
+                        {% if current_user.social_x %}
+                        <span class="badge bg-success ms-auto"><i class="bi bi-check-circle"></i> Connected</span>
+                        {% endif %}
                     </div>
+                    {% if current_user.social_x %}
+                    <a href="{{ su.x }}" target="_blank" rel="noopener noreferrer" class="d-block text-muted small mb-1 text-truncate">
+                        <i class="bi bi-box-arrow-up-right"></i> {{ su.x }}
+                    </a>
+                    {% endif %}
+                    <input type="text" name="social_x" class="form-control form-control-sm"
+                           placeholder="e.g. @mypinkyname"
+                           value="{{ current_user.social_x or '' }}">
                 </div>
+
                 <button class="btn btn-pink btn-sm">Save Social Links</button>
             </form>
         </div>

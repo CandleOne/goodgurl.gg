@@ -1752,31 +1752,59 @@ def edit_account():
 @login_required
 def save_social_links():
     import re
-    def _clean_url(val, allowed_hosts):
+    from urllib.parse import urlparse
+
+    # Prefixes to strip for each platform so we always store just the handle
+    _STRIP = {
+        "onlyfans": [
+            r"https?://(www\.)?onlyfans\.com/",
+        ],
+        "reddit": [
+            r"https?://(www\.)?reddit\.com/u/",
+            r"https?://(www\.)?reddit\.com/user/",
+            r"u/", r"user/",
+        ],
+        "x": [
+            r"https?://(www\.)?(x|twitter)\.com/",
+            r"@",
+        ],
+    }
+
+    # Allowed domains for full-URL entries
+    _HOSTS = {
+        "onlyfans": ["onlyfans.com"],
+        "reddit":   ["reddit.com", "www.reddit.com"],
+        "x":        ["x.com", "twitter.com", "www.x.com", "www.twitter.com"],
+    }
+
+    def _normalize(val, platform):
         val = (val or "").strip()
         if not val:
             return None
-        # Accept a bare username (no slashes) as a username-only entry
-        if re.match(r'^[\w.\-]+$', val):
-            return val
-        # Validate as a URL with an allowed host
-        from urllib.parse import urlparse
-        try:
-            p = urlparse(val)
-            if p.scheme not in ("http", "https"):
+        # Strip known URL prefixes to get bare handle
+        for pattern in _STRIP[platform]:
+            val = re.sub(pattern, "", val, flags=re.IGNORECASE).strip("/")
+        # If it still looks like a full URL, validate host then extract path segment
+        if val.startswith("http"):
+            try:
+                p = urlparse(val)
+                if p.scheme not in ("http", "https"):
+                    return None
+                if not any(p.netloc == h or p.netloc.endswith("." + h) for h in _HOSTS[platform]):
+                    return None
+                # Extract the first path segment as the handle
+                handle = p.path.strip("/").split("/")[0]
+                return handle or None
+            except Exception:
                 return None
-            if not any(p.netloc == h or p.netloc.endswith("." + h) for h in allowed_hosts):
-                return None
+        # Validate as a bare handle: alphanumeric, underscores, hyphens, dots
+        if re.match(r'^[\w.\-]{1,50}$', val):
             return val
-        except Exception:
-            return None
+        return None
 
-    current_user.social_onlyfans = _clean_url(
-        request.form.get("social_onlyfans"), ["onlyfans.com"])
-    current_user.social_reddit = _clean_url(
-        request.form.get("social_reddit"), ["reddit.com", "www.reddit.com"])
-    current_user.social_x = _clean_url(
-        request.form.get("social_x"), ["x.com", "twitter.com", "www.x.com", "www.twitter.com"])
+    current_user.social_onlyfans = _normalize(request.form.get("social_onlyfans"), "onlyfans")
+    current_user.social_reddit   = _normalize(request.form.get("social_reddit"), "reddit")
+    current_user.social_x        = _normalize(request.form.get("social_x"), "x")
     db.session.commit()
     flash("Social links saved!", "success")
     return redirect(url_for("account"))
