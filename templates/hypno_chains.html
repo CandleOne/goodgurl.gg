@@ -281,7 +281,108 @@
     transition: opacity .3s;
 }
 .hc-watched-badge.visible { opacity: 1; }
+
+/* ── Niche Cloud overlay ── */
+.hc-niche-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    background: rgba(10,8,24,.97);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .3s ease;
+}
+.hc-niche-overlay.open {
+    opacity: 1;
+    pointer-events: all;
+}
+.hc-niche-overlay-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px 10px;
+    flex-shrink: 0;
+    border-bottom: 1px solid rgba(167,139,250,.15);
+}
+.hc-niche-overlay-header h2 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #d4c6ff;
+}
+.hc-niche-overlay-header p {
+    margin: 0;
+    font-size: .75rem;
+    color: rgba(255,255,255,.4);
+}
+.hc-niche-close {
+    background: rgba(167,139,250,.15);
+    border: none;
+    color: #d4c6ff;
+    border-radius: 50%;
+    width: 34px; height: 34px;
+    font-size: 1.1rem;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+}
+.hc-cloud-wrap {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px 24px 32px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 12px;
+    align-content: flex-start;
+    justify-content: center;
+}
+.hc-cloud-word {
+    cursor: pointer;
+    color: #c4b5fd;
+    line-height: 1.1;
+    transition: color .15s, transform .15s;
+    white-space: nowrap;
+    user-select: none;
+    opacity: .85;
+}
+.hc-cloud-word:hover {
+    color: #ff4da6;
+    transform: scale(1.08);
+    opacity: 1;
+}
+.hc-cloud-word.loading-niche {
+    color: #a78bfa;
+    animation: hcPulse .8s infinite alternate;
+}
+@keyframes hcPulse { from { opacity:.5 } to { opacity:1 } }
+.hc-cloud-spinner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: 60px 0;
+    color: rgba(167,139,250,.5);
+    font-size: .9rem;
+    gap: 12px;
+}
 </style>
+
+<!-- Niche Cloud overlay -->
+<div class="hc-niche-overlay" id="hcNicheOverlay">
+    <div class="hc-niche-overlay-header">
+        <div>
+            <h2><i class="bi bi-grid-3x3-gap-fill me-2" style="color:#a78bfa;"></i>Niche Cloud</h2>
+            <p>Tap any niche to load its feed &mdash; size = number of gifs</p>
+        </div>
+        <button class="hc-niche-close" id="hcNicheClose" title="Close"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="hc-cloud-wrap" id="hcCloudWrap">
+        <div class="hc-cloud-spinner"><div class="spinner-border spinner-border-sm" style="color:#a78bfa;"></div> Loading niches&hellip;</div>
+    </div>
+</div>
 
 <!-- Top bar -->
 <div class="hc-top-bar">
@@ -295,6 +396,10 @@
         <i class="bi bi-lightning-fill" style="color:#a78bfa;"></i>
         <span id="hcWatchedCount">{{ watched_today }}</span>/{{ daily_limit }}
     </span>
+    <button id="hcNicheCloudBtn" title="Niche Cloud"
+            style="background:rgba(167,139,250,.15); border:1px solid rgba(167,139,250,.3); color:#d4c6ff; border-radius:20px; padding:4px 10px; font-size:.75rem; cursor:pointer; display:flex; align-items:center; gap:5px;">
+        <i class="bi bi-grid-3x3-gap-fill"></i> Niches
+    </button>
 </div>
 
 <!-- Subreddit selector pills -->
@@ -648,6 +753,100 @@
         d.textContent = String(s);
         return d.innerHTML;
     }
+
+    // ── Niche Cloud ───────────────────────────────────────────────────
+    const nicheOverlay  = document.getElementById('hcNicheOverlay');
+    const nicheCloudBtn = document.getElementById('hcNicheCloudBtn');
+    const nicheClose    = document.getElementById('hcNicheClose');
+    const cloudWrap     = document.getElementById('hcCloudWrap');
+    let nichesFetched   = false;
+
+    function logScale(val, min, max, outMin, outMax) {
+        if (max <= min) return (outMin + outMax) / 2;
+        const t = (Math.log(val + 1) - Math.log(min + 1)) / (Math.log(max + 1) - Math.log(min + 1));
+        return outMin + t * (outMax - outMin);
+    }
+
+    async function fetchAndRenderCloud() {
+        if (nichesFetched) return;
+        try {
+            const resp = await fetch('/api/hypno-chains/niches');
+            if (!resp.ok) throw new Error('fetch failed');
+            const niches = await resp.json();
+            nichesFetched = true;
+            cloudWrap.innerHTML = '';
+
+            if (!niches.length) {
+                cloudWrap.innerHTML = '<p style="color:rgba(255,255,255,.4); width:100%; text-align:center;">No niches found.</p>';
+                return;
+            }
+
+            const counts = niches.map(n => n.gifs);
+            const minC   = Math.min(...counts);
+            const maxC   = Math.max(...counts);
+
+            // Shuffle so large words don't cluster at the top
+            const shuffled = [...niches].sort(() => Math.random() - 0.5);
+
+            shuffled.forEach(n => {
+                const size = logScale(n.gifs, minC, maxC, 0.72, 2.6).toFixed(2);
+                // Hue shift based on log position for colour variety
+                const hue  = Math.round(logScale(n.gifs, minC, maxC, 200, 340));
+                const span = document.createElement('span');
+                span.className   = 'hc-cloud-word';
+                span.textContent = n.name;
+                span.title       = `${n.name} — ${n.gifs.toLocaleString()} gifs`;
+                span.style.fontSize   = `${size}rem`;
+                span.style.color      = `hsl(${hue},80%,75%)`;
+                span.dataset.nicheId  = n.id;
+                span.dataset.nicheName = n.name;
+                cloudWrap.appendChild(span);
+            });
+        } catch (e) {
+            cloudWrap.innerHTML = '<p style="color:rgba(255,255,255,.4); width:100%; text-align:center;">Could not load niches.</p>';
+        }
+    }
+
+    nicheCloudBtn.addEventListener('click', () => {
+        nicheOverlay.classList.add('open');
+        fetchAndRenderCloud();
+    });
+
+    nicheClose.addEventListener('click', () => nicheOverlay.classList.remove('open'));
+
+    // Escape key closes overlay
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') nicheOverlay.classList.remove('open'); });
+
+    cloudWrap.addEventListener('click', (e) => {
+        const word = e.target.closest('.hc-cloud-word');
+        if (!word) return;
+        const id   = word.dataset.nicheId;
+        const name = word.dataset.nicheName;
+
+        // Visual feedback while loading
+        cloudWrap.querySelectorAll('.hc-cloud-word').forEach(w => w.classList.remove('loading-niche'));
+        word.classList.add('loading-niche');
+
+        // Close overlay and load that niche
+        setTimeout(() => {
+            nicheOverlay.classList.remove('open');
+            word.classList.remove('loading-niche');
+
+            // Remove existing pill active state
+            document.querySelectorAll('.hc-sub-pill').forEach(p => p.classList.remove('active'));
+            currentSub = id;
+
+            // Clear feed and reload
+            viewport.querySelectorAll('.hc-slide, .hc-empty').forEach(el => el.remove());
+            afterToken = '';
+            hasMore    = true;
+            loader.style.display = '';
+            loadPage();
+            viewport.scrollTop = 0;
+
+            showToast(`Loading: ${name}`, '#a78bfa');
+        }, 250);
+    });
 
     // ── Initial load ──────────────────────────────────────────────────
     loadPage();

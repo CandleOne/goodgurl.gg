@@ -119,3 +119,27 @@
 2026-04-23 00:46:13,348 - INFO -  * Detected change in '/workspaces/goodgurl.gg/app.py', reloading
 2026-04-23 00:46:20,561 - WARNING -  * Debugger is active!
 2026-04-23 00:46:20,564 - INFO -  * Debugger PIN: 580-875-515
+2026-04-23 00:46:35,906 - INFO - 127.0.0.1 - - [23/Apr/2026 00:46:35] "GET /academy/hypno-chains HTTP/1.1" 200 -
+2026-04-23 00:46:36,073 - INFO - 127.0.0.1 - - [23/Apr/2026 00:46:36] "GET /static/style.css HTTP/1.1" 200 -
+2026-04-23 00:46:36,499 - INFO - 127.0.0.1 - - [23/Apr/2026 00:46:36] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2026-04-23 00:46:36,848 - INFO - 127.0.0.1 - - [23/Apr/2026 00:46:36] "GET /api/hypno-chains?sub=sissy-training&after= HTTP/1.1" 200 -
+2026-04-23 00:47:17,047 - INFO - 127.0.0.1 - - [23/Apr/2026 00:47:17] "GET /api/hypno-chains?sub=sissy-hypnosis&after= HTTP/1.1" 200 -
+2026-04-23 00:47:17,321 - INFO - 127.0.0.1 - - [23/Apr/2026 00:47:17] "GET /api/hypno-chains?sub=sissy-hypnosis&after=25 HTTP/1.1" 200 -
+2026-04-23 00:47:17,530 - INFO - 127.0.0.1 - - [23/Apr/2026 00:47:17] "GET /api/hypno-chains?sub=sissy-hypnosis&after=50 HTTP/1.1" 200 -
+2026-04-23 00:47:17,770 - INFO - 127.0.0.1 - - [23/Apr/2026 00:47:17] "GET /api/hypno-chains?sub=sissy-hypnosis&after=75 HTTP/1.1" 200 -
+2026-04-23 00:47:18,243 - INFO - 127.0.0.1 - - [23/Apr/2026 00:47:18] "GET /api/hypno-chains?sub=sissy-hypnosis&after=100 HTTP/1.1" 200 -
+2026-04-23 00:47:18,564 - INFO - 127.0.0.1 - - [23/Apr/2026 00:47:18] "GET /api/hypno-chains?sub=sissy-hypnosis&after=125 HTTP/1.1" 200 -
+2026-04-23 00:47:18,965 - INFO - 127.0.0.1 - - [23/Apr/2026 00:47:18] "GET /api/hypno-chains?sub=sissy-hypnosis&after=150 HTTP/1.1" 200 -
+2026-04-23 00:47:19,216 - INFO - 127.0.0.1 - - [23/Apr/2026 00:47:19] "GET /api/hypno-chains?sub=sissy-hypnosis&after=175 HTTP/1.1" 200 -
+2026-04-23 00:47:19,443 - INFO - 127.0.0.1 - - [23/Apr/2026 00:47:19] "GET /api/hypno-chains?sub=sissy-hypnosis&after=200 HTTP/1.1" 200 -
+2026-04-23 00:47:19,684 - INFO - 127.0.0.1 - - [23/Apr/2026 00:47:19] "GET /api/hypno-chains?sub=sissy-hypnosis&after=225 HTTP/1.1" 200 -
+2026-04-23 00:47:20,063 - INFO - 127.0.0.1 - - [23/Apr/2026 00:47:20] "GET /api/hypno-chains?sub=sissy-hypnosis&after=250 HTTP/1.1" 200 -
+2026-04-23 00:51:39,214 - INFO -  * Detected change in '/workspaces/goodgurl.gg/app.py', reloading
+2026-04-23 00:51:47,046 - WARNING -  * Debugger is active!
+2026-04-23 00:51:47,049 - INFO -  * Debugger PIN: 580-875-515
+2026-04-23 00:52:10,701 - INFO -  * Detected change in '/workspaces/goodgurl.gg/app.py', reloading
+2026-04-23 00:52:15,175 - WARNING -  * Debugger is active!
+2026-04-23 00:52:15,175 - INFO -  * Debugger PIN: 580-875-515
+2026-04-23 00:54:01,114 - INFO -  * Detected change in '/workspaces/goodgurl.gg/app.py', reloading
+2026-04-23 00:54:04,720 - WARNING -  * Debugger is active!
+2026-04-23 00:54:04,721 - INFO -  * Debugger PIN: 580-875-515

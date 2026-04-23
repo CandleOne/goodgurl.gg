@@ -3314,11 +3314,59 @@ def hypno_chains():
 def api_hypno_chains():
     sub = request.args.get("sub", HYPNO_CHAINS_SUBREDDITS[0])
     after = request.args.get("after", "")
-    # Whitelist subreddits
-    if sub not in HYPNO_CHAINS_SUBREDDITS:
-        sub = HYPNO_CHAINS_SUBREDDITS[0]
+    # Whitelist subreddits — non-whitelisted slugs are allowed (niche cloud selections)
     result = _fetch_reddit_videos(sub, after)
     return jsonify(result)
+
+
+@app.route("/api/hypno-chains/niches")
+@limiter.limit("10 per minute")
+@login_required
+def api_hypno_chains_niches():
+    """Return all Redgifs niches matching 'sissy', sorted by gif count.
+    Results are cached in app config for 1 hour to avoid hammering the API.
+    """
+    from flask import current_app
+    from datetime import datetime as _dt
+    now = _dt.utcnow().timestamp()
+    cached = current_app.config.get("_redgifs_niches_cache", {})
+    if cached and cached.get("expires_at", 0) > now:
+        return jsonify(cached["niches"])
+
+    token = _get_redgifs_token()
+    if not token:
+        return jsonify([])
+
+    all_niches = []
+    try:
+        for page in range(1, 10):  # max 9 pages (API has ~7 for "sissy")
+            resp = requests.get(
+                "https://api.redgifs.com/v2/niches",
+                params={"query": "sissy", "page": page},
+                headers={"Authorization": f"Bearer {token}", "User-Agent": "goodgurl_gg/1.0"},
+                timeout=8,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            niches = data.get("niches", [])
+            if not niches:
+                break
+            all_niches.extend([
+                {"id": n["id"], "name": n["name"], "gifs": n.get("gifs", 0),
+                 "thumbnail": n.get("thumbnail", "")}
+                for n in niches
+            ])
+            if page >= data.get("pages", 1):
+                break
+    except Exception:
+        pass
+
+    all_niches.sort(key=lambda x: x["gifs"], reverse=True)
+    current_app.config["_redgifs_niches_cache"] = {
+        "niches": all_niches,
+        "expires_at": now + 3600,
+    }
+    return jsonify(all_niches)
 
 
 @app.route("/api/hypno-chains/watched", methods=["POST"])
