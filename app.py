@@ -42,7 +42,7 @@ from models import (
     ForumCategory, ForumThread, ForumReply, Report,
     DailyChallenge, UserDailyChallenge, ShopItem, UserPurchase, UserPowerup,
     Lesson, LessonProgress, JournalEntry, JournalPhoto, PostMedia,
-    HypnoChainWatch, Duel, DuelQueue, DuelSpectator, DUEL_ACTIVITIES,
+    HypnoChainWatch, Duel, DuelQueue, DuelSpectator, DuelSpectatorQueue, DUEL_ACTIVITIES,
     likes_table, post_tags, followers_table, blocked_users,
 )
 from helpers import (
@@ -3077,11 +3077,15 @@ def duels():
         Duel.status.in_(["waiting", "active", "voting"])
     ).order_by(Duel.created_at.desc()).limit(20).all()
     my_queue = DuelQueue.query.filter_by(user_id=current_user.id).first()
+    my_spectator_queue = DuelSpectatorQueue.query.filter_by(user_id=current_user.id).first()
+    spectator_queue_count = DuelSpectatorQueue.query.count()
     return render_template(
         "duels.html",
         activities=DUEL_ACTIVITIES,
         active_duels=active_duels,
         my_queue=my_queue,
+        my_spectator_queue=my_spectator_queue,
+        spectator_queue_count=spectator_queue_count,
     )
 
 
@@ -3117,29 +3121,45 @@ def duel_arena(duel_id):
 @app.route("/duels/spectate")
 @login_required
 def spectate_random_duel():
-    """Redirect spectator to a random active duel they haven't voted in."""
+    """Redirect spectator to a random active duel; queue them if none are live."""
     already_watching = db.session.query(DuelSpectator.duel_id).filter_by(
         user_id=current_user.id).subquery()
     duel = Duel.query.filter(
-        Duel.status == "active",
+        Duel.status.in_(["active", "voting"]),
         Duel.id.notin_(already_watching),
         Duel.challenger_id != current_user.id,
         Duel.opponent_id != current_user.id,
     ).order_by(db.func.random()).first()
 
     if not duel:
-        # Fall back to any active duel
+        # Fall back to any live duel (including ones already watched)
         duel = Duel.query.filter(
-            Duel.status == "active",
+            Duel.status.in_(["active", "voting"]),
             Duel.challenger_id != current_user.id,
             Duel.opponent_id != current_user.id,
         ).order_by(db.func.random()).first()
 
-    if not duel:
-        flash("No active duels to spectate right now. Check back soon!", "info")
-        return redirect(url_for("duels"))
+    if duel:
+        return redirect(url_for("duel_arena", duel_id=duel.id))
 
-    return redirect(url_for("duel_arena", duel_id=duel.id))
+    # No live duels — place into spectator queue
+    existing = DuelSpectatorQueue.query.filter_by(user_id=current_user.id).first()
+    if not existing:
+        db.session.add(DuelSpectatorQueue(user_id=current_user.id))
+        db.session.commit()
+    flash("No duels are live right now. We'll send you in as soon as one starts!", "info")
+    return redirect(url_for("duels"))
+
+
+@app.route("/duels/spectate/leave", methods=["POST"])
+@login_required
+def spectator_queue_leave():
+    """Remove current user from spectator queue."""
+    entry = DuelSpectatorQueue.query.filter_by(user_id=current_user.id).first()
+    if entry:
+        db.session.delete(entry)
+        db.session.commit()
+    return redirect(url_for("duels"))
 
 
 @app.route("/duels/queue/join", methods=["POST"])
@@ -3200,9 +3220,23 @@ def _try_matchmake(activity_id, new_user_id):
     db.session.add(duel)
     db.session.commit()
 
-    # Notify both via SocketIO
+    # Notify both participants via SocketIO
     socketio.emit("duel_matched", {"duel_id": duel.id}, room=f"user_{partner.user_id}")
     socketio.emit("duel_matched", {"duel_id": duel.id}, room=f"user_{new_user_id}")
+
+    # Dispatch queued spectators (up to 10) to this new duel
+    queued_spectators = DuelSpectatorQueue.query.order_by(
+        DuelSpectatorQueue.joined_at
+    ).limit(10).all()
+    for sq in queued_spectators:
+        socketio.emit(
+            "spectator_duel_ready",
+            {"duel_id": duel.id},
+            room=f"user_{sq.user_id}",
+        )
+        db.session.delete(sq)
+    if queued_spectators:
+        db.session.commit()
 
 
 # ---- SocketIO: personal room subscription ----

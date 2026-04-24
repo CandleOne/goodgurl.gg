@@ -3459,3 +3459,75 @@
 2026-04-24 00:42:08,603 - INFO -  * Debugger PIN: 136-627-038
 2026-04-24 00:42:35,330 - INFO - 127.0.0.1 - - [24/Apr/2026 00:42:35] "GET /notifications/count HTTP/1.1" 200 -
 2026-04-24 00:42:35,331 - INFO - 127.0.0.1 - - [24/Apr/2026 00:42:35] "GET /messages/unread_count HTTP/1.1" 200 -
+2026-04-24 00:53:07,950 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2026-04-24 00:53:07,950 - INFO - [33mPress CTRL+C to quit[0m
+2026-04-24 00:53:07,950 - INFO -  * Restarting with stat
+2026-04-24 00:53:13,252 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2026-04-24 00:53:13,253 - INFO - [33mPress CTRL+C to quit[0m
+2026-04-24 00:53:13,253 - INFO -  * Restarting with stat
+2026-04-24 00:53:15,588 - WARNING -  * Debugger is active!
+2026-04-24 00:53:15,597 - INFO -  * Debugger PIN: 136-627-038
+2026-04-24 00:53:19,111 - INFO - 127.0.0.1 - - [24/Apr/2026 00:53:19] "GET /duels HTTP/1.1" 200 -
+2026-04-24 00:53:19,283 - INFO - 127.0.0.1 - - [24/Apr/2026 00:53:19] "GET /static/style.css HTTP/1.1" 200 -
+2026-04-24 00:53:19,288 - INFO - 127.0.0.1 - - [24/Apr/2026 00:53:19] "GET /static/assets/gg.png HTTP/1.1" 200 -
+2026-04-24 00:53:19,579 - INFO - 127.0.0.1 - - [24/Apr/2026 00:53:19] "GET /static/assets/laboratory.png HTTP/1.1" 200 -
+2026-04-24 00:53:19,581 - INFO - 127.0.0.1 - - [24/Apr/2026 00:53:19] "GET /static/assets/sissyloving/slsponsorbanner.png HTTP/1.1" 200 -
+2026-04-24 00:53:19,596 - INFO - 127.0.0.1 - - [24/Apr/2026 00:53:19] "GET /static/assets/checticon.png HTTP/1.1" 200 -
+2026-04-24 00:53:19,603 - INFO - 127.0.0.1 - - [24/Apr/2026 00:53:19] "GET /static/avatars/LaceyDream.svg HTTP/1.1" 200 -
+2026-04-24 00:53:19,953 - INFO - 127.0.0.1 - - [24/Apr/2026 00:53:19] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2026-04-24 00:53:28,705 - INFO - 127.0.0.1 - - [24/Apr/2026 00:53:28] "[32mPOST /duels/queue/join HTTP/1.1[0m" 302 -
+2026-04-24 00:53:28,759 - INFO - 127.0.0.1 - - [24/Apr/2026 00:53:28] "GET /duels HTTP/1.1" 200 -
+2026-04-24 00:53:28,836 - INFO - 127.0.0.1 - - [24/Apr/2026 00:53:28] "[36mGET /static/style.css HTTP/1.1[0m" 304 -
+2026-04-24 00:53:28,840 - INFO - 127.0.0.1 - - [24/Apr/2026 00:53:28] "[36mGET /static/avatars/LaceyDream.svg HTTP/1.1[0m" 304 -
+2026-04-24 00:53:28,852 - INFO - 127.0.0.1 - - [24/Apr/2026 00:53:28] "[36mGET /static/assets/gg.png HTTP/1.1[0m" 304 -
+2026-04-24 00:53:28,903 - INFO - 127.0.0.1 - - [24/Apr/2026 00:53:28] "[36mGET /static/assets/laboratory.png HTTP/1.1[0m" 304 -
+2026-04-24 00:53:28,906 - INFO - 127.0.0.1 - - [24/Apr/2026 00:53:28] "[36mGET /static/assets/sissyloving/slsponsorbanner.png HTTP/1.1[0m" 304 -
+2026-04-24 00:53:28,909 - INFO - 127.0.0.1 - - [24/Apr/2026 00:53:28] "[36mGET /static/assets/checticon.png HTTP/1.1[0m" 304 -
+2026-04-24 00:53:36,215 - INFO - 127.0.0.1 - - [24/Apr/2026 00:53:36] "[32mGET /duels/spectate HTTP/1.1[0m" 302 -
+2026-04-24 00:53:36,277 - INFO - 127.0.0.1 - - [24/Apr/2026 00:53:36] "GET /duels HTTP/1.1" 200 -
+2026-04-24 00:53:36,368 - INFO - 127.0.0.1 - - [24/Apr/2026 00:53:36] "[36mGET /static/style.css HTTP/1.1[0m" 304 -
+2026-04-24 00:53:36,373 - INFO - 127.0.0.1 - - [24/Apr/2026 00:53:36] "[36mGET /static/assets/gg.png HTTP/1.1[0m" 304 -
+2026-04-24 00:53:36,434 - INFO - 127.0.0.1 - - [24/Apr/2026 00:53:36] "[36mGET /static/assets/laboratory.png HTTP/1.1[0m" 304 -
+2026-04-24 00:53:36,448 - INFO - 127.0.0.1 - - [24/Apr/2026 00:53:36] "[36mGET /static/assets/sissyloving/slsponsorbanner.png HTTP/1.1[0m" 304 -
+2026-04-24 00:53:36,464 - INFO - 127.0.0.1 - - [24/Apr/2026 00:53:36] "[36mGET /static/assets/checticon.png HTTP/1.1[0m" 304 -
+2026-04-24 00:53:36,500 - INFO - 127.0.0.1 - - [24/Apr/2026 00:53:36] "[36mGET /static/avatars/LaceyDream.svg HTTP/1.1[0m" 304 -
+2026-04-24 00:54:07,277 - INFO - 127.0.0.1 - - [24/Apr/2026 00:54:07] "GET /notifications/count HTTP/1.1" 200 -
+2026-04-24 00:54:07,391 - INFO - 127.0.0.1 - - [24/Apr/2026 00:54:07] "GET /messages/unread_count HTTP/1.1" 200 -
+2026-04-24 00:54:37,327 - INFO - 127.0.0.1 - - [24/Apr/2026 00:54:37] "GET /messages/unread_count HTTP/1.1" 200 -
+2026-04-24 00:54:37,329 - INFO - 127.0.0.1 - - [24/Apr/2026 00:54:37] "GET /notifications/count HTTP/1.1" 200 -
+2026-04-24 00:55:05,535 - INFO -  * Detected change in '/workspaces/goodgurl.gg/models.py', reloading
+2026-04-24 00:55:06,350 - INFO -  * Restarting with stat
+2026-04-24 00:55:10,583 - WARNING -  * Debugger is active!
+2026-04-24 00:55:10,584 - INFO -  * Debugger PIN: 136-627-038
+2026-04-24 00:55:10,611 - INFO - 127.0.0.1 - - [24/Apr/2026 00:55:10] "GET /notifications/count HTTP/1.1" 200 -
+2026-04-24 00:55:10,616 - INFO - 127.0.0.1 - - [24/Apr/2026 00:55:10] "GET /messages/unread_count HTTP/1.1" 200 -
+2026-04-24 00:55:16,819 - INFO -  * Detected change in '/workspaces/goodgurl.gg/app.py', reloading
+2026-04-24 00:55:17,944 - INFO -  * Restarting with stat
+2026-04-24 00:55:22,412 - WARNING -  * Debugger is active!
+2026-04-24 00:55:22,414 - INFO -  * Debugger PIN: 136-627-038
+2026-04-24 00:55:35,811 - INFO -  * Detected change in '/workspaces/goodgurl.gg/app.py', reloading
+2026-04-24 00:55:36,744 - INFO -  * Restarting with stat
+2026-04-24 00:55:41,138 - WARNING -  * Debugger is active!
+2026-04-24 00:55:41,139 - INFO -  * Debugger PIN: 136-627-038
+2026-04-24 00:55:41,172 - INFO - 127.0.0.1 - - [24/Apr/2026 00:55:41] "GET /messages/unread_count HTTP/1.1" 200 -
+2026-04-24 00:55:41,178 - INFO - 127.0.0.1 - - [24/Apr/2026 00:55:41] "GET /notifications/count HTTP/1.1" 200 -
+2026-04-24 00:55:54,498 - INFO -  * Detected change in '/workspaces/goodgurl.gg/app.py', reloading
+2026-04-24 00:55:55,276 - INFO -  * Restarting with stat
+2026-04-24 00:55:58,828 - WARNING -  * Debugger is active!
+2026-04-24 00:55:58,829 - INFO -  * Debugger PIN: 136-627-038
+2026-04-24 00:56:07,291 - INFO - 127.0.0.1 - - [24/Apr/2026 00:56:07] "GET /notifications/count HTTP/1.1" 200 -
+2026-04-24 00:56:07,342 - INFO - 127.0.0.1 - - [24/Apr/2026 00:56:07] "GET /messages/unread_count HTTP/1.1" 200 -
+2026-04-24 00:56:37,329 - INFO - 127.0.0.1 - - [24/Apr/2026 00:56:37] "GET /messages/unread_count HTTP/1.1" 200 -
+2026-04-24 00:56:37,340 - INFO - 127.0.0.1 - - [24/Apr/2026 00:56:37] "GET /notifications/count HTTP/1.1" 200 -
+2026-04-24 00:57:06,831 - INFO -  * Detected change in '/workspaces/goodgurl.gg/migrations/versions/9f51d9f4ef2d_add_duel_spectator_queue.py', reloading
+2026-04-24 00:57:07,154 - INFO -  * Restarting with stat
+2026-04-24 00:57:09,665 - WARNING -  * Debugger is active!
+2026-04-24 00:57:09,666 - INFO -  * Debugger PIN: 136-627-038
+2026-04-24 00:57:35,352 - INFO - 127.0.0.1 - - [24/Apr/2026 00:57:35] "GET /messages/unread_count HTTP/1.1" 200 -
+2026-04-24 00:57:36,876 - INFO - 127.0.0.1 - - [24/Apr/2026 00:57:36] "GET /notifications/count HTTP/1.1" 200 -
+2026-04-24 00:58:11,714 - INFO -  * Detected change in '/workspaces/goodgurl.gg/app.py', reloading
+2026-04-24 00:58:12,397 - INFO -  * Restarting with stat
+2026-04-24 00:58:15,140 - WARNING -  * Debugger is active!
+2026-04-24 00:58:15,141 - INFO -  * Debugger PIN: 136-627-038

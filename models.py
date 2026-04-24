@@ -892,3 +892,12 @@ class DuelSpectator(db.Model):
     __table_args__ = (
         db.UniqueConstraint("duel_id", "user_id", name="uq_duel_spectator"),
     )
+
+
+class DuelSpectatorQueue(db.Model):
+    """Users waiting to be assigned to a duel as a spectator."""
+    __tablename__ = "duel_spectator_queue"
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False, unique=True, index=True)
+    joined_at = db.Column(db.DateTime, default=utcnow)
+    user = db.relationship("User", backref=db.backref("spectator_queue_entry", uselist=False))

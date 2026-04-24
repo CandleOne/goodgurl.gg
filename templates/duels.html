@@ -13,7 +13,7 @@
 </div>
 
 {% if my_queue %}
-<!-- In Queue -->
+<!-- In matchmaking Queue -->
 <div class="card glass-card p-4 mb-4 border border-warning" style="border-color:rgba(251,191,36,.4)!important">
     <div class="d-flex align-items-center gap-3">
         <div class="spinner-border text-warning" role="status" style="width:1.4rem;height:1.4rem;"></div>
@@ -27,6 +27,23 @@
         </form>
     </div>
     <p class="text-muted small mb-0 mt-2">Waiting to be matched with an opponent… you'll be redirected automatically.</p>
+</div>
+{% endif %}
+
+{% if my_spectator_queue %}
+<!-- In spectator queue -->
+<div class="card glass-card p-4 mb-4" style="border:1px solid rgba(168,85,247,.35);">
+    <div class="d-flex align-items-center gap-3">
+        <div class="spinner-border" style="color:#a855f7;width:1.4rem;height:1.4rem;" role="status"></div>
+        <div>
+            <strong>Spectator queue</strong> &mdash;
+            <span class="text-muted">{{ spectator_queue_count }} waiting</span>
+        </div>
+        <form method="POST" action="{{ url_for('spectator_queue_leave') }}" class="ms-auto">
+            <button class="btn btn-sm btn-outline-danger">Leave Queue</button>
+        </form>
+    </div>
+    <p class="text-muted small mb-0 mt-2">No live duels right now. You'll be sent to the next one that starts automatically.</p>
 </div>
 {% endif %}
 
@@ -112,8 +129,13 @@
 const socket = io();
 socket.emit('subscribe_user');
 
-// Redirect when matched
+// Redirect when matched as a participant
 socket.on('duel_matched', function(data) {
+    window.location.href = '/duels/' + data.duel_id;
+});
+
+// Redirect when dispatched from spectator queue
+socket.on('spectator_duel_ready', function(data) {
     window.location.href = '/duels/' + data.duel_id;
 });
 </script>
