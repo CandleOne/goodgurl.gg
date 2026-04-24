@@ -23,6 +23,9 @@
     <link rel="stylesheet" href="https://cdn.plyr.io/3.8.4/plyr.css" />
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <script src="https://cdn.jsdelivr.net/npm/iconify-icon@2.3.0/dist/iconify-icon.min.js"></script>
+    <style>
+        .gift-glow { filter: drop-shadow(0 0 4px #ffc107); }
+    </style>
     {% block head_extra %}{% endblock %}
 </head>
 <body>
@@ -123,7 +126,7 @@
                     <li class="nav-item me-2 d-flex align-items-center">
                         <a href="{{ url_for('gifts') }}" class="nav-link position-relative" title="Gift Chest">
                             <img src="{{ url_for('static', filename='assets/checticon.png') }}" width="20" height="20" alt="Gifts"
-                                 style="{% if unclaimed_gifts > 0 %}filter: drop-shadow(0 0 4px #ffc107);{% endif %}">
+                                 class="{% if unclaimed_gifts > 0 %}gift-glow{% endif %}">
                             {% if unclaimed_gifts > 0 %}
                             <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.6rem;">
                                 {{ unclaimed_gifts }}
@@ -156,7 +159,7 @@
                         {% if current_user.role == 'sissy' %}
                         <span class="badge bg-info ms-2"><i class="bi bi-lightning"></i> {{ current_user.xp }} XP</span>
                         <span class="badge bg-purple ms-2">Lv.{{ current_user.level }}</span>
-                        <span class="badge ms-2" style="background: {{ current_user.tier.color }}; color: #fff;">
+                        <span class="badge ms-2 tier-badge" data-color="{{ current_user.tier.color }}">
                             <iconify-icon icon="{{ current_user.tier.icon }}" inline></iconify-icon> {{ current_user.rank }}
                         </span>
                         {% endif %}
@@ -351,6 +354,13 @@
     </script>
     {% endif %}
     {% block scripts %}{% endblock %}
+    <script>
+    // Apply tier badge colors from data attributes (avoids Jinja2 inside style= linter warnings)
+    document.querySelectorAll('.tier-badge[data-color]').forEach(function(el){
+        el.style.background = el.dataset.color;
+        el.style.color = '#fff';
+    });
+    </script>
     <script>
     document.querySelectorAll('form[method="POST"], form[method="post"]').forEach(function(f){
         if(!f.querySelector('input[name="csrf_token"]')){
