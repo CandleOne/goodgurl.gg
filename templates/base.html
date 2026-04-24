@@ -25,6 +25,32 @@
     <script src="https://cdn.jsdelivr.net/npm/iconify-icon@2.3.0/dist/iconify-icon.min.js"></script>
     <style>
         .gift-glow { filter: drop-shadow(0 0 4px #ffc107); }
+
+        /* ── Goddess NPC walking sprite ── */
+        @keyframes npc-walk {
+            from { background-position: 0 0; }
+            to   { background-position: -2496px 0; }
+        }
+        @keyframes npc-move {
+            from { transform: translateX(calc(100vw + 200px)); }
+            to   { transform: translateX(-200px); }
+        }
+        .goddess-npc {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 192px;
+            height: 192px;
+            background-image: url("{{ url_for('static', filename='assets/GandalfHardcore Goddess NPC.png') }}");
+            background-size: 2496px 192px;
+            background-repeat: no-repeat;
+            image-rendering: pixelated;
+            z-index: 1050;
+            pointer-events: none;
+            animation:
+                npc-walk 1.08s steps(13) infinite,
+                npc-move 20s linear infinite;
+        }
     </style>
     {% block head_extra %}{% endblock %}
 </head>
@@ -372,5 +398,7 @@
         }
     });
     </script>
+    <!-- Goddess NPC walking sprite -->
+    <div class="goddess-npc" title="Goddess NPC"></div>
 </body>
 </html>
