@@ -3073,6 +3073,14 @@ from flask_socketio import emit, join_room, leave_room
 @app.route("/duels")
 @login_required
 def duels():
+    # If the user was just matched (race-condition fix: redirect before SocketIO fires)
+    active_duel = Duel.query.filter(
+        Duel.status.in_(["active", "voting", "waiting"]),
+        db.or_(Duel.challenger_id == current_user.id, Duel.opponent_id == current_user.id),
+    ).first()
+    if active_duel:
+        return redirect(url_for("duel_arena", duel_id=active_duel.id))
+
     active_duels = Duel.query.filter(
         Duel.status.in_(["waiting", "active", "voting"])
     ).order_by(Duel.created_at.desc()).limit(20).all()
