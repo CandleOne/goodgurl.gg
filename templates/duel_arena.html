@@ -127,6 +127,14 @@
     <button id="btnStartVoting" class="btn btn-warning d-none" onclick="startVoting()">
         <i class="bi bi-hand-thumbs-up"></i> Open Voting
     </button>
+    <button id="btnForceEnd" class="btn btn-outline-danger" onclick="forceEnd()" title="Force end the duel immediately">
+        <i class="bi bi-skip-end-fill"></i> Force End
+    </button>
+    {% endif %}
+    {% if current_user.role == 'admin' and not is_challenger %}
+    <button id="btnForceEnd" class="btn btn-outline-danger" onclick="forceEnd()" title="Admin: Force end this duel">
+        <i class="bi bi-skip-end-fill"></i> Force End
+    </button>
     {% endif %}
     {% else %}
     <!-- Spectator vote buttons -->
@@ -250,6 +258,12 @@ function onPerformEnd() {
 
 function onVoteEnd() {
     if (IS_CHALLENGER) socket.emit('duel_end', { duel_id: DUEL_ID });
+}
+
+// ─── Force end (challenger or admin) ─────────────────────────────────────────
+function forceEnd() {
+    if (!confirm('Force end this duel now? Votes so far will determine the winner.')) return;
+    socket.emit('duel_end', { duel_id: DUEL_ID, force: true });
 }
 
 // ─── Challenger controls ──────────────────────────────────────────────────────

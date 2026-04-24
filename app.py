@@ -3369,12 +3369,15 @@ def ws_start_voting(data):
 
 @socketio.on("duel_end")
 def ws_end_duel(data):
-    """Auto-called by challenger client when voting timer expires."""
+    """Called when voting timer expires, challenger force-ends, or admin force-ends."""
     duel_id = data.get("duel_id")
     duel = Duel.query.get(duel_id)
     if not duel or duel.status not in ("active", "voting"):
         return
-    if current_user.id != duel.challenger_id:
+
+    is_admin = current_user.is_authenticated and current_user.role == "admin"
+    is_challenger = current_user.is_authenticated and current_user.id == duel.challenger_id
+    if not is_challenger and not is_admin:
         return
 
     from constants import utcnow as _now
