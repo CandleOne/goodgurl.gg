@@ -88,6 +88,29 @@ def main():
         print(f"\n{'='*60}")
         print(f"  App running at : http://localhost:{PORT}")
         print(f"  ngrok URL      : {tunnel_url}")
+
+        # ── Generate QR code ────────────────────────────────────────────
+        try:
+            import qrcode
+            from datetime import datetime
+
+            qr_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "qrcodes")
+            os.makedirs(qr_dir, exist_ok=True)
+
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            qr_path   = os.path.join(qr_dir, f"ngrok_{timestamp}.png")
+            latest    = os.path.join(qr_dir, "latest.png")
+
+            img = qrcode.make(tunnel_url)
+            img.save(qr_path)
+            # Always overwrite 'latest.png' so it's easy to find
+            img.save(latest)
+
+            print(f"  QR code saved  : {qr_path}")
+            print(f"  (also saved as): {latest}")
+        except Exception as e:
+            print(f"  [QR] Could not generate QR code: {e}")
+
         print(f"{'='*60}\n")
     else:
         print("[start.py] Could not read tunnel URL from ngrok API — check ngrok output above.")
