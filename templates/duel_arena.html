@@ -1,0 +1,418 @@
+{% extends "base.html" %}
+{% block title %}{{ duel.activity.emoji }} Duel — {{ duel.challenger.username }} vs {{ duel.opponent.username if duel.opponent else '???' }} – goodgurl.gg{% endblock %}
+
+{% block head_extra %}
+<style>
+.duel-arena { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+@media(max-width:768px){ .duel-arena { grid-template-columns:1fr; } }
+
+.duel-stream-box {
+    position:relative; background:#000; border-radius:10px;
+    overflow:hidden; aspect-ratio:16/9;
+    border:2px solid rgba(255,255,255,.12);
+    transition: border-color .3s;
+}
+.duel-stream-box.winning { border-color: var(--pink); box-shadow: 0 0 18px rgba(255,60,160,.35); }
+
+.duel-stream-box video {
+    width:100%; height:100%; object-fit:cover;
+}
+.duel-stream-label {
+    position:absolute; bottom:8px; left:8px;
+    background:rgba(0,0,0,.65); border-radius:6px;
+    padding:3px 8px; font-size:.8rem; display:flex; align-items:center; gap:6px;
+}
+.duel-stream-votes {
+    position:absolute; top:8px; right:8px;
+    background:rgba(0,0,0,.7); border-radius:20px;
+    padding:3px 12px; font-size:.9rem; font-weight:700;
+}
+.duel-timer {
+    font-size:2.5rem; font-weight:900; font-family:monospace;
+    color:var(--pink); text-shadow: 0 0 12px rgba(255,60,160,.5);
+}
+.duel-phase-badge {
+    font-size:.75rem; letter-spacing:.08em; text-transform:uppercase;
+    padding:4px 12px; border-radius:20px;
+}
+.cam-off-placeholder {
+    position:absolute; inset:0; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; color:#555; font-size:.85rem;
+}
+.vote-bar-wrap { height:8px; background:rgba(255,255,255,.08); border-radius:4px; overflow:hidden; }
+.vote-bar-left  { height:100%; background:var(--pink); border-radius:4px 0 0 4px; transition:width .4s; }
+.vote-bar-right { height:100%; background:#a855f7;    float:right; border-radius:0 4px 4px 0; transition:width .4s; }
+</style>
+{% endblock %}
+
+{% block content %}
+{% set act = duel.activity %}
+<div class="d-flex align-items-center gap-3 mb-3 flex-wrap">
+    <span style="font-size:2rem">{{ act.emoji }}</span>
+    <div>
+        <h3 class="mb-0">{{ act.name }} Duel</h3>
+        <small class="text-muted">{{ act.description }}</small>
+    </div>
+    <div class="ms-auto text-center">
+        <div class="duel-timer" id="duelTimer">—</div>
+        <span id="duelPhaseBadge" class="duel-phase-badge
+            {% if duel.status == 'active' %}bg-success
+            {% elif duel.status == 'voting' %}bg-warning text-dark
+            {% else %}bg-secondary{% endif %}">
+            {{ duel.status }}
+        </span>
+    </div>
+</div>
+
+<!-- Streams -->
+<div class="duel-arena mb-3" id="duelArena">
+    <!-- Challenger -->
+    <div class="duel-stream-box" id="boxChallenger">
+        <video id="videoChallenger" autoplay playsinline muted></video>
+        <div class="cam-off-placeholder" id="placeholderChallenger">
+            <i class="bi bi-camera-video-off" style="font-size:2rem;"></i>
+            <span class="mt-1">{{ duel.challenger.username }}'s camera</span>
+        </div>
+        <div class="duel-stream-label">
+            <img src="{{ duel.challenger.avatar_url }}" width="20" height="20" class="rounded-circle" style="object-fit:cover;">
+            <strong>{{ duel.challenger.username }}</strong>
+            <span class="badge bg-pink ms-1" style="font-size:.65rem">Challenger</span>
+        </div>
+        <div class="duel-stream-votes" id="cVotes">0 votes</div>
+    </div>
+
+    <!-- Opponent -->
+    <div class="duel-stream-box" id="boxOpponent">
+        <video id="videoOpponent" autoplay playsinline muted></video>
+        <div class="cam-off-placeholder" id="placeholderOpponent">
+            <i class="bi bi-camera-video-off" style="font-size:2rem;"></i>
+            <span class="mt-1">{% if duel.opponent %}{{ duel.opponent.username }}'s camera{% else %}Waiting for opponent…{% endif %}</span>
+        </div>
+        <div class="duel-stream-label">
+            {% if duel.opponent %}
+            <img src="{{ duel.opponent.avatar_url }}" width="20" height="20" class="rounded-circle" style="object-fit:cover;">
+            <strong>{{ duel.opponent.username }}</strong>
+            {% else %}
+            <span class="text-muted">Opponent</span>
+            {% endif %}
+            <span class="badge bg-purple ms-1" style="font-size:.65rem">Opponent</span>
+        </div>
+        <div class="duel-stream-votes" id="oVotes">0 votes</div>
+    </div>
+</div>
+
+<!-- Vote bar -->
+<div class="mb-3">
+    <div class="d-flex justify-content-between small text-muted mb-1">
+        <span>{{ duel.challenger.username }}</span>
+        <span id="specCount">{{ duel.spectator_count }} watching</span>
+        <span>{% if duel.opponent %}{{ duel.opponent.username }}{% endif %}</span>
+    </div>
+    <div class="vote-bar-wrap">
+        <div class="vote-bar-left" id="voteBarLeft" style="width:50%;"></div>
+    </div>
+</div>
+
+<!-- Controls row -->
+<div class="d-flex gap-2 justify-content-center flex-wrap">
+    {% if is_participant %}
+    <!-- Camera toggle for participants -->
+    <button id="btnCam" class="btn btn-outline-light" onclick="toggleCam()">
+        <i class="bi bi-camera-video" id="camIcon"></i> Camera
+    </button>
+    <button id="btnMic" class="btn btn-outline-light" onclick="toggleMic()">
+        <i class="bi bi-mic" id="micIcon"></i> Mic
+    </button>
+    {% if is_challenger %}
+    <button id="btnStartVoting" class="btn btn-warning d-none" onclick="startVoting()">
+        <i class="bi bi-hand-thumbs-up"></i> Open Voting
+    </button>
+    {% endif %}
+    {% else %}
+    <!-- Spectator vote buttons -->
+    <div id="votePanel">
+        <button id="btnVoteC" class="btn btn-pink btn-lg px-4" onclick="castVote('challenger')" disabled>
+            <i class="bi bi-hand-thumbs-up"></i> Vote {{ duel.challenger.username }}
+        </button>
+        <button id="btnVoteO" class="btn btn-purple btn-lg px-4 ms-2" onclick="castVote('opponent')" disabled>
+            <i class="bi bi-hand-thumbs-up"></i> Vote {% if duel.opponent %}{{ duel.opponent.username }}{% else %}Opponent{% endif %}
+        </button>
+    </div>
+    {% endif %}
+    <a href="{{ url_for('duels') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-door-open"></i> Leave
+    </a>
+</div>
+
+<!-- Finished overlay (hidden until duel ends) -->
+<div id="finishedOverlay" class="text-center py-4 d-none">
+    <i class="bi bi-trophy-fill text-warning" style="font-size:3rem;"></i>
+    <h3 class="mt-2" id="winnerText"></h3>
+    <p class="text-muted" id="finalVotes"></p>
+    <a href="{{ url_for('duels') }}" class="btn btn-pink mt-2">Back to Duels</a>
+</div>
+
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<script>
+// ─── Config ─────────────────────────────────────────────────────────────────
+const DUEL_ID      = {{ duel.id }};
+const IS_PARTICIPANT = {{ 'true' if is_participant else 'false' }};
+const IS_CHALLENGER  = {{ 'true' if is_challenger else 'false' }};
+const MY_USERNAME    = "{{ current_user.username }}";
+const DURATION       = {{ duel.duration_seconds }};
+
+const CHALLENGER_NAME = "{{ duel.challenger.username }}";
+const OPPONENT_NAME   = "{{ duel.opponent.username if duel.opponent else '' }}";
+
+// ─── State ───────────────────────────────────────────────────────────────────
+const socket = io();
+let localStream   = null;
+let camEnabled    = false;
+let micEnabled    = false;
+
+// sid → RTCPeerConnection (one connection per remote peer)
+const peers = {};
+let mySid = null;
+
+// Timer
+let timerInterval = null;
+let phaseEndTime  = null;
+const PERFORM_SECS = DURATION;
+const VOTE_SECS    = 60;
+
+// ─── Socket Setup ─────────────────────────────────────────────────────────────
+socket.on('connect', () => {
+    mySid = socket.id;
+    socket.emit('join_duel', { duel_id: DUEL_ID });
+    socket.emit('subscribe_user');
+    updatePhaseUI('{{ duel.status }}');
+    if (IS_PARTICIPANT) startLocalCam();
+});
+
+socket.on('disconnect', () => {
+    socket.emit('leave_duel', { duel_id: DUEL_ID });
+});
+
+// ─── Spectator count ──────────────────────────────────────────────────────────
+socket.on('spectator_count', d => {
+    document.getElementById('specCount').textContent = d.count + ' watching';
+});
+
+// ─── Phase changes ────────────────────────────────────────────────────────────
+socket.on('phase_change', d => updatePhaseUI(d.phase));
+
+function updatePhaseUI(phase) {
+    const badge = document.getElementById('duelPhaseBadge');
+    badge.textContent = phase;
+    badge.className = 'duel-phase-badge ' +
+        (phase === 'active'  ? 'bg-success' :
+         phase === 'voting'  ? 'bg-warning text-dark' : 'bg-secondary');
+
+    // Show "Open Voting" button to challenger when active
+    const btnV = document.getElementById('btnStartVoting');
+    if (btnV) btnV.classList.toggle('d-none', phase !== 'active');
+
+    // Enable vote buttons for spectators during voting
+    const btnVC = document.getElementById('btnVoteC');
+    const btnVO = document.getElementById('btnVoteO');
+    if (btnVC) btnVC.disabled = phase !== 'voting';
+    if (btnVO) btnVO.disabled = phase !== 'voting';
+
+    startTimer(phase);
+}
+
+// ─── Timer ────────────────────────────────────────────────────────────────────
+function startTimer(phase) {
+    clearInterval(timerInterval);
+    if (phase === 'active')  { runTimer(PERFORM_SECS, onPerformEnd); }
+    if (phase === 'voting')  { runTimer(VOTE_SECS,    onVoteEnd); }
+}
+
+function runTimer(seconds, onEnd) {
+    let remaining = seconds;
+    updateTimerDisplay(remaining);
+    timerInterval = setInterval(() => {
+        remaining--;
+        updateTimerDisplay(remaining);
+        if (remaining <= 0) { clearInterval(timerInterval); onEnd(); }
+    }, 1000);
+}
+
+function updateTimerDisplay(s) {
+    const m = String(Math.floor(s / 60)).padStart(2,'0');
+    const sec = String(Math.max(0, s % 60)).padStart(2,'0');
+    document.getElementById('duelTimer').textContent = `${m}:${sec}`;
+}
+
+function onPerformEnd() {
+    if (IS_CHALLENGER) startVoting();
+}
+
+function onVoteEnd() {
+    if (IS_CHALLENGER) socket.emit('duel_end', { duel_id: DUEL_ID });
+}
+
+// ─── Challenger controls ──────────────────────────────────────────────────────
+function startVoting() {
+    socket.emit('duel_start_voting', { duel_id: DUEL_ID });
+}
+
+// ─── Camera / Mic ─────────────────────────────────────────────────────────────
+async function startLocalCam() {
+    try {
+        localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        const myVideo = IS_CHALLENGER
+            ? document.getElementById('videoChallenger')
+            : document.getElementById('videoOpponent');
+        myVideo.srcObject = localStream;
+        myVideo.muted = true; // don't echo own audio
+        document.getElementById(IS_CHALLENGER ? 'placeholderChallenger' : 'placeholderOpponent').style.display = 'none';
+        camEnabled = true; micEnabled = true;
+
+        // Signal other duel participant we're ready + broadcast to spectators
+        socket.emit('webrtc_offer_broadcast', { duel_id: DUEL_ID });
+    } catch(e) {
+        console.error('Cam error', e);
+    }
+}
+
+function toggleCam() {
+    if (!localStream) return;
+    localStream.getVideoTracks().forEach(t => { t.enabled = !t.enabled; });
+    camEnabled = !camEnabled;
+    document.getElementById('camIcon').className = camEnabled
+        ? 'bi bi-camera-video' : 'bi bi-camera-video-off';
+}
+
+function toggleMic() {
+    if (!localStream) return;
+    localStream.getAudioTracks().forEach(t => { t.enabled = !t.enabled; });
+    micEnabled = !micEnabled;
+    document.getElementById('micIcon').className = micEnabled
+        ? 'bi bi-mic' : 'bi bi-mic-mute';
+}
+
+// ─── WebRTC: create peer ───────────────────────────────────────────────────────
+function createPeer(targetSid, initiator) {
+    const pc = new RTCPeerConnection({
+        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+    });
+    peers[targetSid] = pc;
+
+    if (localStream) {
+        localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
+    }
+
+    pc.onicecandidate = e => {
+        if (e.candidate) {
+            socket.emit('webrtc_ice', {
+                duel_id: DUEL_ID,
+                target_sid: targetSid,
+                candidate: e.candidate,
+            });
+        }
+    };
+
+    pc.ontrack = e => {
+        const remote = IS_CHALLENGER
+            ? document.getElementById('videoOpponent')
+            : document.getElementById('videoChallenger');
+        if (remote.srcObject !== e.streams[0]) {
+            remote.srcObject = e.streams[0];
+            // Hide placeholder for remote
+            document.getElementById(IS_CHALLENGER ? 'placeholderOpponent' : 'placeholderChallenger').style.display = 'none';
+        }
+    };
+
+    if (initiator) {
+        pc.onnegotiationneeded = async () => {
+            const offer = await pc.createOffer();
+            await pc.setLocalDescription(offer);
+            socket.emit('webrtc_offer', {
+                duel_id: DUEL_ID,
+                target_sid: targetSid,
+                sdp: pc.localDescription,
+                role: IS_CHALLENGER ? 'challenger' : 'opponent',
+            });
+        };
+    }
+    return pc;
+}
+
+// ─── SocketIO WebRTC signals ───────────────────────────────────────────────────
+socket.on('webrtc_offer', async d => {
+    if (d.from_sid === mySid) return;
+    const pc = createPeer(d.from_sid, false);
+    await pc.setRemoteDescription(new RTCSessionDescription(d.sdp));
+    const answer = await pc.createAnswer();
+    await pc.setLocalDescription(answer);
+    socket.emit('webrtc_answer', {
+        duel_id: DUEL_ID,
+        target_sid: d.from_sid,
+        sdp: pc.localDescription,
+    });
+});
+
+socket.on('webrtc_answer', async d => {
+    const pc = peers[d.from_sid];
+    if (pc) await pc.setRemoteDescription(new RTCSessionDescription(d.sdp));
+});
+
+socket.on('webrtc_ice', async d => {
+    const pc = peers[d.from_sid];
+    if (pc) await pc.addIceCandidate(new RTCIceCandidate(d.candidate));
+});
+
+// When a new participant joins, initiate peer connection toward them
+socket.on('peer_joined', d => {
+    if (IS_PARTICIPANT && d.sid !== mySid) {
+        createPeer(d.sid, true);
+    }
+});
+
+// ─── Votes ────────────────────────────────────────────────────────────────────
+let hasVoted = false;
+
+function castVote(side) {
+    if (hasVoted) return;
+    hasVoted = true;
+    socket.emit('duel_vote', { duel_id: DUEL_ID, vote_for: side });
+    document.getElementById('btnVoteC').disabled = true;
+    document.getElementById('btnVoteO').disabled = true;
+}
+
+socket.on('vote_update', d => {
+    const total = (d.challenger_votes + d.opponent_votes) || 1;
+    const cPct = Math.round(d.challenger_votes / total * 100);
+    document.getElementById('voteBarLeft').style.width = cPct + '%';
+    document.getElementById('cVotes').textContent = d.challenger_votes + ' votes';
+    document.getElementById('oVotes').textContent = d.opponent_votes + ' votes';
+
+    // Highlight winning box
+    document.getElementById('boxChallenger').classList.toggle('winning', d.challenger_votes > d.opponent_votes);
+    document.getElementById('boxOpponent').classList.toggle('winning', d.opponent_votes > d.challenger_votes);
+});
+
+// ─── Finished ─────────────────────────────────────────────────────────────────
+socket.on('duel_finished', d => {
+    clearInterval(timerInterval);
+    document.getElementById('duelTimer').textContent = '—';
+    document.getElementById('duelPhaseBadge').textContent = 'ENDED';
+    document.getElementById('duelPhaseBadge').className = 'duel-phase-badge bg-secondary';
+    document.getElementById('finishedOverlay').classList.remove('d-none');
+
+    let winnerName = 'Tie!';
+    if (d.winner_id === {{ duel.challenger_id }}) winnerName = '🏆 ' + CHALLENGER_NAME + ' wins!';
+    else if (d.winner_id === {{ duel.opponent_id or 0 }}) winnerName = '🏆 ' + OPPONENT_NAME + ' wins!';
+    document.getElementById('winnerText').textContent = winnerName;
+    document.getElementById('finalVotes').textContent =
+        CHALLENGER_NAME + ': ' + d.challenger_votes + ' votes  •  ' +
+        OPPONENT_NAME + ': ' + d.opponent_votes + ' votes';
+});
+
+// ─── Redirect if matched (in queue on this page) ──────────────────────────────
+socket.on('duel_matched', d => {
+    window.location.href = '/duels/' + d.duel_id;
+});
+</script>
+{% endblock %}

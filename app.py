@@ -26,7 +26,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 
 # --- Project modules ---
-from extensions import db, login_manager, csrf, limiter, mail, migrate
+from extensions import db, login_manager, csrf, limiter, mail, migrate, socketio
 from constants import (
     utcnow, STARTING_LEVEL, LEVEL_CAP, LEVEL_XP_TABLE, TIERS,
     MULTIPLIER_STACK_STRATEGY,
@@ -42,7 +42,7 @@ from models import (
     ForumCategory, ForumThread, ForumReply, Report,
     DailyChallenge, UserDailyChallenge, ShopItem, UserPurchase, UserPowerup,
     Lesson, LessonProgress, JournalEntry, JournalPhoto, PostMedia,
-    HypnoChainWatch,
+    HypnoChainWatch, Duel, DuelQueue, DuelSpectator, DUEL_ACTIVITIES,
     likes_table, post_tags, followers_table, blocked_users,
 )
 from helpers import (
@@ -118,6 +118,7 @@ limiter.init_app(app)
 login_manager.init_app(app)
 mail.init_app(app)
 migrate.init_app(app, db)
+socketio.init_app(app)
 
 # Sentry error monitoring (only when DSN is configured)
 _sentry_dsn = os.environ.get("SENTRY_DSN", "")
@@ -3064,10 +3065,302 @@ def claim_quest(quest_id):
 # ---------------------------------------------------------------------------
 # GoodGurl Labs — Academy
 # ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Duels — Routes + SocketIO
+# ---------------------------------------------------------------------------
+from flask_socketio import emit, join_room, leave_room
+
 @app.route("/duels")
 @login_required
 def duels():
-    return render_template("duels.html")
+    active_duels = Duel.query.filter(
+        Duel.status.in_(["waiting", "active", "voting"])
+    ).order_by(Duel.created_at.desc()).limit(20).all()
+    my_queue = DuelQueue.query.filter_by(user_id=current_user.id).first()
+    return render_template(
+        "duels.html",
+        activities=DUEL_ACTIVITIES,
+        active_duels=active_duels,
+        my_queue=my_queue,
+    )
+
+
+@app.route("/duels/<int:duel_id>")
+@login_required
+def duel_arena(duel_id):
+    duel = Duel.query.get_or_404(duel_id)
+    if duel.status not in ("active", "voting", "waiting"):
+        flash("That duel has already ended.", "warning")
+        return redirect(url_for("duels"))
+
+    is_challenger = duel.challenger_id == current_user.id
+    is_opponent   = duel.opponent_id == current_user.id
+    is_participant = is_challenger or is_opponent
+
+    if not is_participant:
+        # Register as spectator — assign to this duel
+        existing = DuelSpectator.query.filter_by(
+            duel_id=duel.id, user_id=current_user.id).first()
+        if not existing:
+            db.session.add(DuelSpectator(duel_id=duel.id, user_id=current_user.id))
+            db.session.commit()
+
+    return render_template(
+        "duel_arena.html",
+        duel=duel,
+        is_participant=is_participant,
+        is_challenger=is_challenger,
+        activities=DUEL_ACTIVITIES,
+    )
+
+
+@app.route("/duels/spectate")
+@login_required
+def spectate_random_duel():
+    """Redirect spectator to a random active duel they haven't voted in."""
+    already_watching = db.session.query(DuelSpectator.duel_id).filter_by(
+        user_id=current_user.id).subquery()
+    duel = Duel.query.filter(
+        Duel.status == "active",
+        Duel.id.notin_(already_watching),
+        Duel.challenger_id != current_user.id,
+        Duel.opponent_id != current_user.id,
+    ).order_by(db.func.random()).first()
+
+    if not duel:
+        # Fall back to any active duel
+        duel = Duel.query.filter(
+            Duel.status == "active",
+            Duel.challenger_id != current_user.id,
+            Duel.opponent_id != current_user.id,
+        ).order_by(db.func.random()).first()
+
+    if not duel:
+        flash("No active duels to spectate right now. Check back soon!", "info")
+        return redirect(url_for("duels"))
+
+    return redirect(url_for("duel_arena", duel_id=duel.id))
+
+
+@app.route("/duels/queue/join", methods=["POST"])
+@login_required
+def duel_queue_join():
+    activity_id = request.form.get("activity_id", type=int)
+    if not activity_id or not any(a["id"] == activity_id for a in DUEL_ACTIVITIES):
+        flash("Invalid activity.", "danger")
+        return redirect(url_for("duels"))
+
+    # Remove any existing queue entry
+    existing = DuelQueue.query.filter_by(user_id=current_user.id).first()
+    if existing:
+        db.session.delete(existing)
+
+    entry = DuelQueue(user_id=current_user.id, activity_id=activity_id)
+    db.session.add(entry)
+    db.session.commit()
+
+    # Try to match with another queued user for the same activity
+    _try_matchmake(activity_id, current_user.id)
+    return redirect(url_for("duels"))
+
+
+@app.route("/duels/queue/leave", methods=["POST"])
+@login_required
+def duel_queue_leave():
+    entry = DuelQueue.query.filter_by(user_id=current_user.id).first()
+    if entry:
+        db.session.delete(entry)
+        db.session.commit()
+    return redirect(url_for("duels"))
+
+
+def _try_matchmake(activity_id, new_user_id):
+    """Pair two queued users for the same activity and create a Duel."""
+    partner = DuelQueue.query.filter(
+        DuelQueue.activity_id == activity_id,
+        DuelQueue.user_id != new_user_id,
+    ).order_by(DuelQueue.joined_at).first()
+
+    if not partner:
+        return  # Still waiting
+
+    # Remove both from queue
+    mine = DuelQueue.query.filter_by(user_id=new_user_id).first()
+    db.session.delete(mine)
+    db.session.delete(partner)
+
+    duel = Duel(
+        activity_id=activity_id,
+        challenger_id=partner.user_id,  # first in queue = challenger
+        opponent_id=new_user_id,
+        status="active",
+    )
+    from constants import utcnow as _now
+    duel.started_at = _now()
+    db.session.add(duel)
+    db.session.commit()
+
+    # Notify both via SocketIO
+    socketio.emit("duel_matched", {"duel_id": duel.id}, room=f"user_{partner.user_id}")
+    socketio.emit("duel_matched", {"duel_id": duel.id}, room=f"user_{new_user_id}")
+
+
+# ---- SocketIO: personal room subscription ----
+
+@socketio.on("subscribe_user")
+def ws_subscribe_user():
+    if current_user.is_authenticated:
+        join_room(f"user_{current_user.id}")
+
+
+# ---- SocketIO: duel room ----
+
+@socketio.on("join_duel")
+def ws_join_duel(data):
+    duel_id = data.get("duel_id")
+    if not duel_id:
+        return
+    join_room(f"duel_{duel_id}")
+    duel = Duel.query.get(duel_id)
+    if duel:
+        emit("spectator_count", {"count": duel.spectator_count}, room=f"duel_{duel_id}")
+        # Tell existing peers in the room that a new participant arrived
+        emit("peer_joined", {"sid": request.sid}, room=f"duel_{duel_id}", include_self=False)
+
+
+@socketio.on("leave_duel")
+def ws_leave_duel(data):
+    duel_id = data.get("duel_id")
+    if duel_id:
+        leave_room(f"duel_{duel_id}")
+        # Remove spectator record
+        if current_user.is_authenticated:
+            rec = DuelSpectator.query.filter_by(
+                duel_id=duel_id, user_id=current_user.id).first()
+            if rec:
+                db.session.delete(rec)
+                db.session.commit()
+        duel = Duel.query.get(duel_id)
+        if duel:
+            emit("spectator_count", {"count": duel.spectator_count}, room=f"duel_{duel_id}")
+
+
+# ---- SocketIO: WebRTC signaling ----
+
+@socketio.on("webrtc_offer")
+def ws_offer(data):
+    """Challenger → opponent (or challenger → spectator SID)."""
+    emit("webrtc_offer", {
+        "sdp": data["sdp"],
+        "from_sid": request.sid,
+        "role": data.get("role"),
+    }, room=data.get("target_sid") or f"duel_{data['duel_id']}", include_self=False)
+
+
+@socketio.on("webrtc_answer")
+def ws_answer(data):
+    emit("webrtc_answer", {
+        "sdp": data["sdp"],
+        "from_sid": request.sid,
+    }, to=data["target_sid"])
+
+
+@socketio.on("webrtc_ice")
+def ws_ice(data):
+    emit("webrtc_ice", {
+        "candidate": data["candidate"],
+        "from_sid": request.sid,
+    }, to=data["target_sid"])
+
+
+# ---- SocketIO: spectator vote ----
+
+@socketio.on("duel_vote")
+def ws_vote(data):
+    if not current_user.is_authenticated:
+        return
+    duel_id  = data.get("duel_id")
+    vote_for = data.get("vote_for")  # "challenger" or "opponent"
+    if not duel_id or vote_for not in ("challenger", "opponent"):
+        return
+
+    duel = Duel.query.get(duel_id)
+    if not duel or duel.status != "voting":
+        return
+
+    # Prevent participants from voting
+    if current_user.id in (duel.challenger_id, duel.opponent_id):
+        return
+
+    spec = DuelSpectator.query.filter_by(duel_id=duel_id, user_id=current_user.id).first()
+    if not spec or spec.has_voted:
+        return
+
+    if vote_for == "challenger":
+        duel.challenger_votes += 1
+    else:
+        duel.opponent_votes += 1
+    spec.has_voted = True
+    db.session.commit()
+
+    emit("vote_update", {
+        "challenger_votes": duel.challenger_votes,
+        "opponent_votes": duel.opponent_votes,
+    }, room=f"duel_{duel_id}")
+
+
+# ---- SocketIO: duel lifecycle ----
+
+@socketio.on("duel_start_voting")
+def ws_start_voting(data):
+    """Challenger signals that performance time is up — open voting."""
+    duel_id = data.get("duel_id")
+    duel = Duel.query.get(duel_id)
+    if not duel or duel.status != "active":
+        return
+    if current_user.id != duel.challenger_id:
+        return
+    duel.status = "voting"
+    db.session.commit()
+    emit("phase_change", {"phase": "voting"}, room=f"duel_{duel_id}")
+
+
+@socketio.on("duel_end")
+def ws_end_duel(data):
+    """Auto-called by challenger client when voting timer expires."""
+    duel_id = data.get("duel_id")
+    duel = Duel.query.get(duel_id)
+    if not duel or duel.status not in ("active", "voting"):
+        return
+    if current_user.id != duel.challenger_id:
+        return
+
+    from constants import utcnow as _now
+    duel.ended_at = _now()
+
+    if duel.challenger_votes > duel.opponent_votes:
+        duel.winner_id = duel.challenger_id
+    elif duel.opponent_votes > duel.challenger_votes:
+        duel.winner_id = duel.opponent_id
+    # else tie — no winner
+
+    duel.status = "finished"
+    db.session.commit()
+
+    # Award XP/coins to winner
+    if duel.winner_id:
+        winner = User.query.get(duel.winner_id)
+        if winner:
+            winner.add_points(50, reason="Duel victory")
+            winner.coins += 25
+            db.session.commit()
+
+    emit("duel_finished", {
+        "winner_id": duel.winner_id,
+        "challenger_votes": duel.challenger_votes,
+        "opponent_votes": duel.opponent_votes,
+    }, room=f"duel_{duel_id}")
+
 
 @app.route("/academy")
 @login_required
@@ -4276,5 +4569,5 @@ def share_stats_card():
 
 
 if __name__ == "__main__":
-    app.run(debug=os.environ.get("FLASK_DEBUG", "1") == "1", port=5000)
+    socketio.run(app, debug=os.environ.get("FLASK_DEBUG", "1") == "1", port=5000, allow_unsafe_werkzeug=True)
 

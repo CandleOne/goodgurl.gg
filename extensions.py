@@ -5,6 +5,7 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_mail import Mail
 from flask_migrate import Migrate
+from flask_socketio import SocketIO
 import os
 
 db = SQLAlchemy()
@@ -20,3 +21,4 @@ limiter = Limiter(
 )
 mail = Mail()
 migrate = Migrate()
+socketio = SocketIO(cors_allowed_origins="*", async_mode="threading")

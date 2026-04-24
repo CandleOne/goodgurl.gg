@@ -818,3 +818,77 @@ class HypnoChainWatch(db.Model):
     __table_args__ = (
         db.UniqueConstraint("user_id", "reddit_id", name="uq_hypno_watch_user_post"),
     )
+
+
+# ---------------------------------------------------------------------------
+# Duels
+# ---------------------------------------------------------------------------
+
+DUEL_ACTIVITIES = [
+    {"id": 1, "name": "Outfit Reveal",     "description": "Show off your most feminine outfit",         "icon": "bi-bag-heart",         "emoji": "👗"},
+    {"id": 2, "name": "Dance-Off",          "description": "Show your best dance moves live",             "icon": "bi-music-note-beamed", "emoji": "💃"},
+    {"id": 3, "name": "Makeup Challenge",   "description": "Apply makeup live — judges decide",           "icon": "bi-palette",           "emoji": "💄"},
+    {"id": 4, "name": "Flexibility Pose",   "description": "Strike your most impressive pose",            "icon": "bi-person-arms-up",    "emoji": "🧘"},
+    {"id": 5, "name": "Lip Sync Battle",    "description": "Best lip sync performance wins",              "icon": "bi-mic",               "emoji": "🎤"},
+    {"id": 6, "name": "Obedience Drill",    "description": "Follow audience commands in real time",       "icon": "bi-hand-index",        "emoji": "🎀"},
+    {"id": 7, "name": "Transformation",     "description": "Live before/after feminization reveal",       "icon": "bi-stars",             "emoji": "✨"},
+    {"id": 8, "name": "Catwalk",            "description": "Strut your stuff down the virtual runway",    "icon": "bi-walking",           "emoji": "👠"},
+]
+
+
+class Duel(db.Model):
+    __tablename__ = "duel"
+    id = db.Column(db.Integer, primary_key=True)
+    activity_id = db.Column(db.Integer, nullable=False)
+    challenger_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False, index=True)
+    opponent_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=True, index=True)
+    # waiting → active → voting → finished / cancelled
+    status = db.Column(db.String(16), default="waiting", nullable=False, index=True)
+    winner_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=True)
+    challenger_votes = db.Column(db.Integer, default=0)
+    opponent_votes = db.Column(db.Integer, default=0)
+    duration_seconds = db.Column(db.Integer, default=180)
+    created_at = db.Column(db.DateTime, default=utcnow, index=True)
+    started_at = db.Column(db.DateTime, nullable=True)
+    ended_at = db.Column(db.DateTime, nullable=True)
+
+    challenger = db.relationship("User", foreign_keys=[challenger_id],
+                                 backref=db.backref("duels_as_challenger", lazy="dynamic"))
+    opponent   = db.relationship("User", foreign_keys=[opponent_id],
+                                 backref=db.backref("duels_as_opponent", lazy="dynamic"))
+    winner     = db.relationship("User", foreign_keys=[winner_id])
+
+    @property
+    def activity(self):
+        return next((a for a in DUEL_ACTIVITIES if a["id"] == self.activity_id), None)
+
+    @property
+    def spectator_count(self):
+        return DuelSpectator.query.filter_by(duel_id=self.id).count()
+
+    @property
+    def total_votes(self):
+        return self.challenger_votes + self.opponent_votes
+
+
+class DuelQueue(db.Model):
+    """One row per user currently in matchmaking."""
+    __tablename__ = "duel_queue"
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False, unique=True, index=True)
+    activity_id = db.Column(db.Integer, nullable=False)
+    joined_at = db.Column(db.DateTime, default=utcnow)
+    user = db.relationship("User", backref=db.backref("duel_queue_entry", uselist=False))
+
+
+class DuelSpectator(db.Model):
+    """Tracks which users are actively spectating a duel (for live spectator count)."""
+    __tablename__ = "duel_spectator"
+    id = db.Column(db.Integer, primary_key=True)
+    duel_id = db.Column(db.Integer, db.ForeignKey("duel.id"), nullable=False, index=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    joined_at = db.Column(db.DateTime, default=utcnow)
+    has_voted = db.Column(db.Boolean, default=False)
+    __table_args__ = (
+        db.UniqueConstraint("duel_id", "user_id", name="uq_duel_spectator"),
+    )

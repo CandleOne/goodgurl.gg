@@ -96,6 +96,17 @@ body {
     background: linear-gradient(135deg, var(--pink-dark), #9333ea);
     color: #fff;
 }
+.btn-purple {
+    background: #a855f7;
+    border-color: #a855f7;
+    color: #fff;
+    font-weight: 600;
+}
+.btn-purple:hover {
+    background: #9333ea;
+    border-color: #9333ea;
+    color: #fff;
+}
 .btn-outline-pink {
     color: var(--pink);
     border: 1px solid var(--pink);

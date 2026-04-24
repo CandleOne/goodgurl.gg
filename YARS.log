@@ -3394,3 +3394,68 @@
 2026-04-24 00:33:19,850 - INFO - 127.0.0.1 - - [24/Apr/2026 00:33:19] "GET /messages/unread_count HTTP/1.1" 200 -
 2026-04-24 00:33:20,903 - INFO -  * Detected change in '/workspaces/goodgurl.gg/app.py', reloading
 2026-04-24 00:33:21,274 - INFO -  * Restarting with stat
+2026-04-24 00:33:27,731 - WARNING -  * Debugger is active!
+2026-04-24 00:33:27,740 - INFO -  * Debugger PIN: 136-627-038
+2026-04-24 00:33:34,634 - INFO - 127.0.0.1 - - [24/Apr/2026 00:33:34] "GET /academy HTTP/1.1" 200 -
+2026-04-24 00:33:34,818 - INFO - 127.0.0.1 - - [24/Apr/2026 00:33:34] "GET /static/style.css HTTP/1.1" 200 -
+2026-04-24 00:33:34,858 - INFO - 127.0.0.1 - - [24/Apr/2026 00:33:34] "GET /static/assets/gg.png HTTP/1.1" 200 -
+2026-04-24 00:33:34,964 - INFO - 127.0.0.1 - - [24/Apr/2026 00:33:34] "GET /static/assets/checticon.png HTTP/1.1" 200 -
+2026-04-24 00:33:34,987 - INFO - 127.0.0.1 - - [24/Apr/2026 00:33:34] "GET /static/avatars/LaceyDream.svg HTTP/1.1" 200 -
+2026-04-24 00:33:35,051 - INFO - 127.0.0.1 - - [24/Apr/2026 00:33:35] "GET /static/assets/sissyloving/slsponsorbanner.png HTTP/1.1" 200 -
+2026-04-24 00:33:35,081 - INFO - 127.0.0.1 - - [24/Apr/2026 00:33:35] "GET /static/assets/laboratory.png HTTP/1.1" 200 -
+2026-04-24 00:33:36,305 - INFO - 127.0.0.1 - - [24/Apr/2026 00:33:36] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2026-04-24 00:33:38,169 - INFO - 127.0.0.1 - - [24/Apr/2026 00:33:38] "GET /duels HTTP/1.1" 200 -
+2026-04-24 00:33:38,239 - INFO - 127.0.0.1 - - [24/Apr/2026 00:33:38] "[36mGET /static/style.css HTTP/1.1[0m" 304 -
+2026-04-24 00:33:38,241 - INFO - 127.0.0.1 - - [24/Apr/2026 00:33:38] "[36mGET /static/assets/gg.png HTTP/1.1[0m" 304 -
+2026-04-24 00:33:38,351 - INFO - 127.0.0.1 - - [24/Apr/2026 00:33:38] "[36mGET /static/avatars/LaceyDream.svg HTTP/1.1[0m" 304 -
+2026-04-24 00:33:38,355 - INFO - 127.0.0.1 - - [24/Apr/2026 00:33:38] "[36mGET /static/assets/checticon.png HTTP/1.1[0m" 304 -
+2026-04-24 00:33:38,360 - INFO - 127.0.0.1 - - [24/Apr/2026 00:33:38] "[36mGET /static/assets/laboratory.png HTTP/1.1[0m" 304 -
+2026-04-24 00:33:38,432 - INFO - 127.0.0.1 - - [24/Apr/2026 00:33:38] "[36mGET /static/assets/sissyloving/slsponsorbanner.png HTTP/1.1[0m" 304 -
+2026-04-24 00:34:09,306 - INFO - 127.0.0.1 - - [24/Apr/2026 00:34:09] "GET /notifications/count HTTP/1.1" 200 -
+2026-04-24 00:34:09,311 - INFO - 127.0.0.1 - - [24/Apr/2026 00:34:09] "GET /messages/unread_count HTTP/1.1" 200 -
+2026-04-24 00:34:39,312 - INFO - 127.0.0.1 - - [24/Apr/2026 00:34:39] "GET /notifications/count HTTP/1.1" 200 -
+2026-04-24 00:34:39,314 - INFO - 127.0.0.1 - - [24/Apr/2026 00:34:39] "GET /messages/unread_count HTTP/1.1" 200 -
+2026-04-24 00:35:09,333 - INFO - 127.0.0.1 - - [24/Apr/2026 00:35:09] "GET /notifications/count HTTP/1.1" 200 -
+2026-04-24 00:35:09,390 - INFO - 127.0.0.1 - - [24/Apr/2026 00:35:09] "GET /messages/unread_count HTTP/1.1" 200 -
+2026-04-24 00:35:39,446 - INFO - 127.0.0.1 - - [24/Apr/2026 00:35:39] "GET /messages/unread_count HTTP/1.1" 200 -
+2026-04-24 00:35:39,447 - INFO - 127.0.0.1 - - [24/Apr/2026 00:35:39] "GET /notifications/count HTTP/1.1" 200 -
+2026-04-24 00:36:09,340 - INFO - 127.0.0.1 - - [24/Apr/2026 00:36:09] "GET /notifications/count HTTP/1.1" 200 -
+2026-04-24 00:36:09,341 - INFO - 127.0.0.1 - - [24/Apr/2026 00:36:09] "GET /messages/unread_count HTTP/1.1" 200 -
+2026-04-24 00:36:39,559 - INFO - 127.0.0.1 - - [24/Apr/2026 00:36:39] "GET /messages/unread_count HTTP/1.1" 200 -
+2026-04-24 00:36:39,572 - INFO - 127.0.0.1 - - [24/Apr/2026 00:36:39] "GET /notifications/count HTTP/1.1" 200 -
+2026-04-24 00:37:35,310 - INFO - 127.0.0.1 - - [24/Apr/2026 00:37:35] "GET /notifications/count HTTP/1.1" 200 -
+2026-04-24 00:37:35,395 - INFO - 127.0.0.1 - - [24/Apr/2026 00:37:35] "GET /messages/unread_count HTTP/1.1" 200 -
+2026-04-24 00:38:35,393 - INFO - 127.0.0.1 - - [24/Apr/2026 00:38:35] "GET /notifications/count HTTP/1.1" 200 -
+2026-04-24 00:38:35,402 - INFO - 127.0.0.1 - - [24/Apr/2026 00:38:35] "GET /messages/unread_count HTTP/1.1" 200 -
+2026-04-24 00:39:35,519 - INFO - 127.0.0.1 - - [24/Apr/2026 00:39:35] "GET /notifications/count HTTP/1.1" 200 -
+2026-04-24 00:39:35,536 - INFO - 127.0.0.1 - - [24/Apr/2026 00:39:35] "GET /messages/unread_count HTTP/1.1" 200 -
+2026-04-24 00:39:54,945 - INFO -  * Detected change in '/workspaces/goodgurl.gg/extensions.py', reloading
+2026-04-24 00:39:57,865 - INFO -  * Restarting with stat
+2026-04-24 00:40:05,885 - WARNING -  * Debugger is active!
+2026-04-24 00:40:05,921 - INFO -  * Debugger PIN: 136-627-038
+2026-04-24 00:40:31,330 - INFO -  * Detected change in '/workspaces/goodgurl.gg/models.py', reloading
+2026-04-24 00:40:32,237 - INFO -  * Restarting with stat
+2026-04-24 00:40:38,114 - WARNING -  * Debugger is active!
+2026-04-24 00:40:38,115 - INFO -  * Debugger PIN: 136-627-038
+2026-04-24 00:40:38,153 - INFO - 127.0.0.1 - - [24/Apr/2026 00:40:38] "GET /messages/unread_count HTTP/1.1" 200 -
+2026-04-24 00:40:38,154 - INFO - 127.0.0.1 - - [24/Apr/2026 00:40:38] "GET /notifications/count HTTP/1.1" 200 -
+2026-04-24 00:41:24,877 - INFO -  * Detected change in '/workspaces/goodgurl.gg/app.py', reloading
+2026-04-24 00:41:25,575 - INFO -  * Restarting with stat
+2026-04-24 00:41:29,841 - WARNING -  * Debugger is active!
+2026-04-24 00:41:29,856 - INFO -  * Debugger PIN: 136-627-038
+2026-04-24 00:41:35,001 - INFO -  * Detected change in '/workspaces/goodgurl.gg/app.py', reloading
+2026-04-24 00:41:35,593 - INFO -  * Restarting with stat
+2026-04-24 00:41:39,096 - WARNING -  * Debugger is active!
+2026-04-24 00:41:39,097 - INFO -  * Debugger PIN: 136-627-038
+2026-04-24 00:41:39,125 - INFO - 127.0.0.1 - - [24/Apr/2026 00:41:39] "GET /notifications/count HTTP/1.1" 200 -
+2026-04-24 00:41:39,134 - INFO - 127.0.0.1 - - [24/Apr/2026 00:41:39] "GET /messages/unread_count HTTP/1.1" 200 -
+2026-04-24 00:41:57,633 - INFO -  * Detected change in '/workspaces/goodgurl.gg/app.py', reloading
+2026-04-24 00:41:58,262 - INFO -  * Restarting with stat
+2026-04-24 00:42:02,758 - WARNING -  * Debugger is active!
+2026-04-24 00:42:02,762 - INFO -  * Debugger PIN: 136-627-038
+2026-04-24 00:42:05,036 - INFO -  * Detected change in '/workspaces/goodgurl.gg/app.py', reloading
+2026-04-24 00:42:06,139 - INFO -  * Restarting with stat
+2026-04-24 00:42:08,603 - WARNING -  * Debugger is active!
+2026-04-24 00:42:08,603 - INFO -  * Debugger PIN: 136-627-038
+2026-04-24 00:42:35,330 - INFO - 127.0.0.1 - - [24/Apr/2026 00:42:35] "GET /notifications/count HTTP/1.1" 200 -
+2026-04-24 00:42:35,331 - INFO - 127.0.0.1 - - [24/Apr/2026 00:42:35] "GET /messages/unread_count HTTP/1.1" 200 -
