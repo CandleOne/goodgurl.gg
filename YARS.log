@@ -4124,3 +4124,17 @@
 2026-04-24 01:21:32,336 - INFO - 127.0.0.1 - - [24/Apr/2026 01:21:32] "GET /notifications/count HTTP/1.1" 200 -
 2026-04-24 01:21:35,646 - INFO - 127.0.0.1 - - [24/Apr/2026 01:21:35] "GET /messages/unread_count HTTP/1.1" 200 -
 2026-04-24 01:21:35,651 - INFO - 127.0.0.1 - - [24/Apr/2026 01:21:35] "GET /notifications/count HTTP/1.1" 200 -
+2026-04-24 21:14:32,123 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2026-04-24 21:14:32,167 - INFO - [33mPress CTRL+C to quit[0m
+2026-04-24 21:14:32,170 - INFO -  * Restarting with stat
+2026-04-24 21:14:40,623 - WARNING -  * Debugger is active!
+2026-04-24 21:14:40,625 - INFO -  * Debugger PIN: 385-837-011
+2026-04-24 21:17:03,094 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2026-04-24 21:17:03,094 - INFO - [33mPress CTRL+C to quit[0m
+2026-04-24 21:17:03,094 - INFO -  * Restarting with stat
+2026-04-24 21:17:05,234 - WARNING -  * Debugger is active!
+2026-04-24 21:17:05,235 - INFO -  * Debugger PIN: 385-837-011
+2026-04-24 21:17:05,475 - INFO - 127.0.0.1 - - [24/Apr/2026 21:17:05] "GET / HTTP/1.1" 200 -
+2026-04-24 21:17:17,840 - INFO - 127.0.0.1 - - [24/Apr/2026 21:17:17] "GET / HTTP/1.1" 200 -
