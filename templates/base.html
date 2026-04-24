@@ -228,17 +228,17 @@
     import AutoScroll from 'https://cdn.jsdelivr.net/npm/embla-carousel-auto-scroll@8/esm/embla-carousel-auto-scroll.esm.js';
     const viewport = document.getElementById('tickerViewport');
     if (viewport) {
-        // Clone slides until content is wider than the viewport to ensure seamless looping
         const container = document.getElementById('tickerContainer');
-        const minWidth = window.innerWidth * 2;
-        while (container.scrollWidth < minWidth) {
-            container.querySelectorAll('.ticker-slide').forEach(slide => {
+        // Only scroll if natural content already overflows the viewport
+        if (container.scrollWidth > viewport.clientWidth) {
+            // Clone once so the loop seams seamlessly
+            [...container.querySelectorAll('.ticker-slide')].forEach(slide => {
                 container.appendChild(slide.cloneNode(true));
             });
+            EmblaCarousel(viewport, {
+                loop: true, dragFree: true, containScroll: false, align: 'start',
+            }, [AutoScroll({ speed: 0.6, stopOnInteraction: false, stopOnFocusIn: false })]);
         }
-        EmblaCarousel(viewport, {
-            loop: true, dragFree: true, containScroll: false, align: 'start',
-        }, [AutoScroll({ speed: 0.6, stopOnInteraction: false, stopOnFocusIn: false })]);
     }
     </script>
     {% endif %}
