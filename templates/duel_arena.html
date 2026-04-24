@@ -127,14 +127,20 @@
     <button id="btnStartVoting" class="btn btn-warning d-none" onclick="startVoting()">
         <i class="bi bi-hand-thumbs-up"></i> Open Voting
     </button>
-    <button id="btnForceEnd" class="btn btn-outline-danger" onclick="forceEnd()" title="Force end the duel immediately">
-        <i class="bi bi-skip-end-fill"></i> Force End
-    </button>
+    <form method="POST" action="{{ url_for('duel_force_end', duel_id=duel.id) }}" onsubmit="return confirm('Force end this duel now?')" class="d-inline">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-outline-danger" title="Force end the duel immediately">
+            <i class="bi bi-skip-end-fill"></i> Force End
+        </button>
+    </form>
     {% endif %}
     {% if current_user.role == 'admin' and not is_challenger %}
-    <button id="btnForceEnd" class="btn btn-outline-danger" onclick="forceEnd()" title="Admin: Force end this duel">
-        <i class="bi bi-skip-end-fill"></i> Force End
-    </button>
+    <form method="POST" action="{{ url_for('duel_force_end', duel_id=duel.id) }}" onsubmit="return confirm('Admin: Force end this duel?')" class="d-inline">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-outline-danger" title="Admin: Force end this duel">
+            <i class="bi bi-skip-end-fill"></i> Force End
+        </button>
+    </form>
     {% endif %}
     {% else %}
     <!-- Spectator vote buttons -->
@@ -147,9 +153,21 @@
         </button>
     </div>
     {% endif %}
-    <a href="{{ url_for('duels') }}" class="btn btn-outline-secondary">
-        <i class="bi bi-door-open"></i> Leave
-    </a>
+    {% if is_participant %}
+    <form method="POST" action="{{ url_for('duel_leave', duel_id=duel.id) }}" onsubmit="return confirm('Leave this duel? You will forfeit if it is still running.')" class="d-inline">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-outline-secondary">
+            <i class="bi bi-door-open"></i> Leave
+        </button>
+    </form>
+    {% else %}
+    <form method="POST" action="{{ url_for('duel_leave', duel_id=duel.id) }}" class="d-inline">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-outline-secondary">
+            <i class="bi bi-door-open"></i> Leave
+        </button>
+    </form>
+    {% endif %}
 </div>
 
 <!-- Finished overlay (hidden until duel ends) -->

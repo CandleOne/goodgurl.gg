@@ -3181,6 +3181,75 @@ def spectator_queue_leave():
     return redirect(url_for("duels"))
 
 
+@app.route("/duels/<int:duel_id>/force_end", methods=["POST"])
+@login_required
+def duel_force_end(duel_id):
+    """HTTP fallback: challenger or admin force-ends the duel immediately."""
+    duel = Duel.query.get_or_404(duel_id)
+    is_challenger = current_user.id == duel.challenger_id
+    is_admin = current_user.role == "admin"
+    if not is_challenger and not is_admin:
+        abort(403)
+    if duel.status in ("active", "voting", "waiting"):
+        from constants import utcnow as _now
+        duel.ended_at = _now()
+        if duel.challenger_votes > duel.opponent_votes:
+            duel.winner_id = duel.challenger_id
+        elif duel.opponent_votes > duel.challenger_votes:
+            duel.winner_id = duel.opponent_id
+        duel.status = "finished"
+        db.session.commit()
+        if duel.winner_id:
+            winner = User.query.get(duel.winner_id)
+            if winner:
+                winner.add_points(50, reason="Duel victory")
+                winner.coins += 25
+                db.session.commit()
+        socketio.emit("duel_finished", {
+            "winner_id": duel.winner_id,
+            "challenger_votes": duel.challenger_votes,
+            "opponent_votes": duel.opponent_votes,
+        }, room=f"duel_{duel_id}")
+    return redirect(url_for("duels"))
+
+
+@app.route("/duels/<int:duel_id>/leave", methods=["POST"])
+@login_required
+def duel_leave(duel_id):
+    """Participant leaves a duel — forfeits if duel is still running."""
+    duel = Duel.query.get_or_404(duel_id)
+    is_challenger = current_user.id == duel.challenger_id
+    is_opponent = duel.opponent_id and current_user.id == duel.opponent_id
+    if (is_challenger or is_opponent) and duel.status in ("active", "voting", "waiting"):
+        from constants import utcnow as _now
+        duel.ended_at = _now()
+        # The player who leaves forfeits — other participant wins
+        if is_challenger:
+            duel.winner_id = duel.opponent_id
+        else:
+            duel.winner_id = duel.challenger_id
+        duel.status = "finished"
+        db.session.commit()
+        if duel.winner_id:
+            winner = User.query.get(duel.winner_id)
+            if winner:
+                winner.add_points(50, reason="Duel victory")
+                winner.coins += 25
+                db.session.commit()
+        socketio.emit("duel_finished", {
+            "winner_id": duel.winner_id,
+            "challenger_votes": duel.challenger_votes,
+            "opponent_votes": duel.opponent_votes,
+        }, room=f"duel_{duel_id}")
+    else:
+        # Spectator leaving — just remove spectator record
+        rec = DuelSpectator.query.filter_by(duel_id=duel_id, user_id=current_user.id).first()
+        if rec:
+            db.session.delete(rec)
+            db.session.commit()
+    return redirect(url_for("duels"))
+
+
 @app.route("/duels/queue/join", methods=["POST"])
 @login_required
 def duel_queue_join():
