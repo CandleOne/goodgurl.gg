@@ -293,7 +293,8 @@ function toggleMic() {
 }
 
 // ─── WebRTC: create peer ───────────────────────────────────────────────────────
-function createPeer(targetSid, initiator) {
+// role: 'challenger'|'opponent'|null — tells us whose stream we'll receive
+function createPeer(targetSid, initiator, role) {
     const pc = new RTCPeerConnection({
         iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
     });
@@ -314,13 +315,28 @@ function createPeer(targetSid, initiator) {
     };
 
     pc.ontrack = e => {
-        const remote = IS_CHALLENGER
-            ? document.getElementById('videoOpponent')
-            : document.getElementById('videoChallenger');
-        if (remote.srcObject !== e.streams[0]) {
-            remote.srcObject = e.streams[0];
-            // Hide placeholder for remote
-            document.getElementById(IS_CHALLENGER ? 'placeholderOpponent' : 'placeholderChallenger').style.display = 'none';
+        // Route the incoming stream to the correct video box:
+        //   role tells us WHO is sending (challenger or opponent).
+        //   Fallback for direct participant-to-participant link.
+        let videoEl, placeholderEl;
+        if (role === 'challenger') {
+            videoEl = document.getElementById('videoChallenger');
+            placeholderEl = document.getElementById('placeholderChallenger');
+        } else if (role === 'opponent') {
+            videoEl = document.getElementById('videoOpponent');
+            placeholderEl = document.getElementById('placeholderOpponent');
+        } else {
+            // Fallback: participant receiving the other participant's stream
+            videoEl = IS_CHALLENGER
+                ? document.getElementById('videoOpponent')
+                : document.getElementById('videoChallenger');
+            placeholderEl = IS_CHALLENGER
+                ? document.getElementById('placeholderOpponent')
+                : document.getElementById('placeholderChallenger');
+        }
+        if (videoEl && videoEl.srcObject !== e.streams[0]) {
+            videoEl.srcObject = e.streams[0];
+            if (placeholderEl) placeholderEl.style.display = 'none';
         }
     };
 
@@ -342,7 +358,7 @@ function createPeer(targetSid, initiator) {
 // ─── SocketIO WebRTC signals ───────────────────────────────────────────────────
 socket.on('webrtc_offer', async d => {
     if (d.from_sid === mySid) return;
-    const pc = createPeer(d.from_sid, false);
+    const pc = createPeer(d.from_sid, false, d.role);
     await pc.setRemoteDescription(new RTCSessionDescription(d.sdp));
     const answer = await pc.createAnswer();
     await pc.setLocalDescription(answer);
