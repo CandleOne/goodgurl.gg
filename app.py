@@ -3653,6 +3653,10 @@ def settings_page():
 def legal_page():
     return render_template("legal.html")
 
+@app.route("/2257")
+def compliance_2257():
+    return render_template("2257.html")
+
 # ---------------------------------------------------------------------------
 # New: Onboarding Modal Logic (set session flag)
 # ---------------------------------------------------------------------------
