@@ -2386,6 +2386,17 @@ def admin_panel():
     return render_template("admin.html", users=users, posts=posts, open_reports=open_reports)
 
 
+@app.route("/admin/assets")
+@login_required
+@admin_required
+def admin_assets():
+    import json as _json
+    sprite_json = os.path.join(app.static_folder, "assets", "maidanims", "sprites.json")
+    with open(sprite_json) as f:
+        data = _json.load(f)
+    return render_template("admin_assets.html", packs=data["packs"])
+
+
 @app.route("/admin/delete_post/<int:post_id>", methods=["POST"])
 @login_required
 @admin_required

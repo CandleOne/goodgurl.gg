@@ -1,0 +1,231 @@
+{% extends "base.html" %}
+{% block title %}Sprite Asset Viewer – Admin{% endblock %}
+{% block content %}
+<script src="{{ url_for('static', filename='maid_sprite.js') }}"></script>
+
+<style>
+  .pack-section { margin-bottom: 2.5rem; }
+  .pack-title   { font-size: 1.1rem; font-weight: 600; color: var(--bs-info); border-bottom: 1px solid rgba(255,255,255,.1); padding-bottom: .4rem; margin-bottom: 1rem; }
+  .sprite-card  { background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1); border-radius: .5rem; padding: .75rem; display: flex; flex-direction: column; align-items: center; gap: .5rem; }
+  .sprite-card:hover { border-color: rgba(255,255,255,.3); }
+  .sprite-label { font-size: .7rem; color: #aaa; text-align: center; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sprite-canvas { cursor: pointer; border-radius: 4px; border: 1px solid rgba(255,255,255,.15); background: #111; }
+  .sprite-controls { display: flex; align-items: center; gap: .35rem; flex-wrap: wrap; justify-content: center; }
+  .row-btns button { font-size: .65rem; padding: 0 .35rem; line-height: 1.4; }
+  .fps-range { width: 80px; accent-color: var(--bs-info); }
+  .preview-thumb { max-width: 100%; max-height: 200px; image-rendering: pixelated; border-radius: 4px; cursor: pointer; border: 1px solid rgba(255,255,255,.15); background: #111; }
+  .portrait-card { background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1); border-radius: .5rem; padding: .75rem; display: flex; flex-direction: column; align-items: center; gap: .5rem; }
+  #bigModal .modal-body { background: #0d0d12; display: flex; flex-direction: column; align-items: center; gap: 1rem; }
+  #bigPreview { image-rendering: pixelated; max-width: 100%; }
+  .badge-fps { font-size: .65rem; background: rgba(0,200,200,.2); color: var(--bs-info); border-radius: 3px; padding: 1px 5px; }
+</style>
+
+<div class="d-flex align-items-center gap-3 mb-4">
+  <h3 class="mb-0"><i class="bi bi-grid-3x3-gap me-2"></i>Sprite Asset Viewer</h3>
+  <a href="{{ url_for('admin_panel') }}" class="btn btn-sm btn-outline-secondary ms-auto">
+    <i class="bi bi-arrow-left me-1"></i>Admin Panel
+  </a>
+</div>
+
+<div class="mb-3 d-flex align-items-center gap-3">
+  <label class="text-muted small mb-0">Global FPS:</label>
+  <input type="range" id="globalFPS" min="1" max="24" value="8" class="fps-range">
+  <span id="globalFPSLabel" class="badge-fps">8 fps</span>
+  <button class="btn btn-sm btn-outline-secondary" id="globalPauseBtn">Pause All</button>
+  <button class="btn btn-sm btn-outline-secondary ms-auto" id="scaleBtn2x">2×</button>
+  <button class="btn btn-sm btn-outline-info" id="scaleBtn3x">3×</button>
+  <button class="btn btn-sm btn-outline-secondary" id="scaleBtn4x">4×</button>
+</div>
+
+{% for pack in packs %}
+<div class="pack-section">
+  <div class="pack-title">{{ pack.label }}
+    <span class="text-muted fw-normal" style="font-size:.75rem;"> — {{ pack.dir }}</span>
+  </div>
+  <div class="row g-2">
+    {% for s in pack.sprites %}
+      {% if not s.static %}
+      <div class="col-auto">
+        <div class="sprite-card" style="min-width:140px;">
+          <div class="sprite-canvas anim-canvas"
+               data-src="{{ url_for('static', filename=s.path) }}"
+               data-cols="{{ s.cols }}"
+               data-rows="{{ s.rows }}"
+               data-fw="{{ s.fw }}"
+               data-fh="{{ s.fh }}"
+               data-fps="8"
+               data-scale="3"
+               title="{{ s.name }}"
+               onclick="openBig('{{ url_for('static', filename=s.path) }}', {{ s.cols }}, {{ s.rows }}, {{ s.fw }}, {{ s.fh }}, '{{ s.name }}')">
+          </div>
+          <div class="sprite-label" title="{{ s.name }}">{{ s.name }}</div>
+          <div class="sprite-controls">
+            {% if s.rows > 1 %}
+            <div class="row-btns btn-group btn-group-sm">
+              {% for r in range(s.rows) %}
+              <button class="btn btn-outline-secondary row-btn" data-row="{{ r }}" title="Row {{ r + 1 }}">{{ r + 1 }}</button>
+              {% endfor %}
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      {% endif %}
+    {% endfor %}
+  </div>
+
+  {%- set static_sprites = pack.sprites | selectattr('static') | list %}
+  {% if static_sprites %}
+  <div class="mt-2">
+    <small class="text-muted">Static assets:</small>
+    <div class="d-flex gap-2 flex-wrap mt-1">
+      {% for s in static_sprites %}
+      <div class="portrait-card">
+        <img class="preview-thumb"
+             src="{{ url_for('static', filename=s.path) }}"
+             alt="{{ s.name }}"
+             title="{{ s.name }}"
+             onclick="openImgBig('{{ url_for('static', filename=s.path) }}', '{{ s.name }}')">
+        <div class="sprite-label" title="{{ s.name }}">{{ s.name }}</div>
+        <div class="sprite-label text-muted">{{ s.sheet_w }}×{{ s.sheet_h }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endfor %}
+
+<!-- Big preview modal -->
+<div class="modal fade" id="bigModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content" style="background:#0d0d12; border:1px solid rgba(255,255,255,.15);">
+      <div class="modal-header border-0">
+        <h6 class="modal-title text-info" id="bigModalTitle">Preview</h6>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="bigCanvas" class="sprite-canvas"
+             style="border:none; background:transparent;"></div>
+        <div class="d-flex align-items-center gap-2 mt-2" id="bigControls" style="display:none!important;"></div>
+        <hr style="border-color:rgba(255,255,255,.1);">
+        <small class="text-muted">Full sheet:</small><br>
+        <img id="bigSheetPreview" style="max-width:100%; image-rendering:pixelated; max-height:300px; background:#111; border-radius:4px;" alt="">
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Registry of all active MaidSprite instances keyed by canvas element
+  const players = new Map();
+  let globalPaused = false;
+  let globalScale = 3;
+
+  document.querySelectorAll('.anim-canvas').forEach(el => {
+    const d = el.dataset;
+    const p = new MaidSprite(el, {
+      src:   d.src,
+      cols: +d.cols,
+      rows: +d.rows,
+      fw:   +d.fw,
+      fh:   +d.fh,
+      fps:  +d.fps,
+      row:  0,
+      scale: +d.scale,
+    });
+    players.set(el, p);
+
+    // Wire up row buttons inside this card
+    const card = el.closest('.sprite-card');
+    card.querySelectorAll('.row-btn').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        const r = +btn.dataset.row;
+        p.setRow(r);
+        card.querySelectorAll('.row-btn').forEach(b => b.classList.remove('active', 'btn-info'));
+        btn.classList.add('active', 'btn-info');
+      });
+    });
+  });
+
+  // Global FPS slider
+  const fpsSlider = document.getElementById('globalFPS');
+  const fpsLabel  = document.getElementById('globalFPSLabel');
+  fpsSlider.addEventListener('input', () => {
+    const fps = +fpsSlider.value;
+    fpsLabel.textContent = fps + ' fps';
+    players.forEach(p => p.setFPS(fps));
+  });
+
+  // Global pause
+  document.getElementById('globalPauseBtn').addEventListener('click', function() {
+    globalPaused = !globalPaused;
+    this.textContent = globalPaused ? 'Resume All' : 'Pause All';
+    players.forEach(p => globalPaused ? p.stop() : p.play());
+  });
+
+  // Scale buttons
+  function setGlobalScale(s) {
+    globalScale = s;
+    players.forEach(p => p.setScale(s));
+  }
+  document.getElementById('scaleBtn2x').addEventListener('click', () => setGlobalScale(2));
+  document.getElementById('scaleBtn3x').addEventListener('click', () => setGlobalScale(3));
+  document.getElementById('scaleBtn4x').addEventListener('click', () => setGlobalScale(4));
+
+  // Big animated preview modal
+  let bigPlayer = null;
+  function openBig(src, cols, rows, fw, fh, name) {
+    if (bigPlayer) { bigPlayer.destroy(); bigPlayer = null; }
+    document.getElementById('bigModalTitle').textContent = name;
+    document.getElementById('bigSheetPreview').src = src;
+
+    const canvas = document.getElementById('bigCanvas');
+    canvas.style.background = '#111';
+    bigPlayer = new MaidSprite(canvas, { src, cols, rows, fw, fh, fps: +fpsSlider.value, row: 0, scale: 4 });
+
+    // Row controls in modal
+    const ctrl = document.getElementById('bigControls');
+    ctrl.innerHTML = '';
+    if (rows > 1) {
+      ctrl.style.removeProperty('display');
+      const label = document.createElement('small');
+      label.className = 'text-muted';
+      label.textContent = 'Row:';
+      ctrl.appendChild(label);
+      for (let r = 0; r < rows; r++) {
+        const btn = document.createElement('button');
+        btn.className = 'btn btn-sm ' + (r === 0 ? 'btn-info' : 'btn-outline-secondary');
+        btn.textContent = r + 1;
+        btn.addEventListener('click', () => {
+          bigPlayer.setRow(r);
+          ctrl.querySelectorAll('button').forEach(b => b.className = 'btn btn-sm btn-outline-secondary');
+          btn.className = 'btn btn-sm btn-info';
+        });
+        ctrl.appendChild(btn);
+      }
+    }
+
+    new bootstrap.Modal(document.getElementById('bigModal')).show();
+  }
+
+  function openImgBig(src, name) {
+    if (bigPlayer) { bigPlayer.destroy(); bigPlayer = null; }
+    document.getElementById('bigModalTitle').textContent = name;
+    document.getElementById('bigCanvas').style.width = '0';
+    document.getElementById('bigCanvas').style.height = '0';
+    document.getElementById('bigCanvas').style.backgroundImage = 'none';
+    document.getElementById('bigSheetPreview').src = src;
+    document.getElementById('bigControls').style.setProperty('display','none','important');
+    new bootstrap.Modal(document.getElementById('bigModal')).show();
+  }
+
+  // Clean up big player when modal closes
+  document.getElementById('bigModal').addEventListener('hidden.bs.modal', () => {
+    if (bigPlayer) { bigPlayer.destroy(); bigPlayer = null; }
+    document.getElementById('bigCanvas').style.width  = '';
+    document.getElementById('bigCanvas').style.height = '';
+  });
+</script>
+{% endblock %}
