@@ -31,9 +31,21 @@
             from { background-position: 0 0; }
             to   { background-position: -1920px 0; }
         }
+        @keyframes npc-move {
+            from { transform: translateX(calc(100vw + 200px)); }
+            to   { transform: translateX(-200px); }
+        }
+        .npc-strip {
+            width: 100%;
+            height: 192px;
+            overflow: hidden;
+            position: relative;
+            pointer-events: none;
+        }
         .goddess-npc {
-            display: block;
-            margin: 0 auto;
+            position: absolute;
+            bottom: 0;
+            left: 0;
             width: 192px;
             height: 192px;
             background-image: url("{{ url_for('static', filename='assets/maidanims/GandalfHardcore Maid Character 2/Maid Character2 red.png') }}");
@@ -41,7 +53,9 @@
             background-repeat: no-repeat;
             image-rendering: pixelated;
             pointer-events: none;
-            animation: npc-walk 1.25s steps(10) infinite;
+            animation:
+                npc-walk 1.25s steps(10) infinite,
+                npc-move 20s linear infinite;
         }
     </style>
     {% block head_extra %}{% endblock %}
@@ -294,7 +308,9 @@
     </main>
 
     <!-- Maid NPC sprite -->
-    <div class="goddess-npc" title="Maid NPC"></div>
+    <div class="npc-strip">
+        <div class="goddess-npc" title="Maid NPC"></div>
+    </div>
 
     <!-- Footer -->
     <footer class="text-center text-muted py-4 border-top mt-5">
