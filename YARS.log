@@ -4215,3 +4215,11 @@
 2026-04-24 21:22:15,919 - INFO - 127.0.0.1 - - [24/Apr/2026 21:22:15] "[36mGET /static/assets/gg.png HTTP/1.1[0m" 304 -
 2026-04-24 21:22:15,920 - INFO - 127.0.0.1 - - [24/Apr/2026 21:22:15] "[36mGET /static/avatars/LaceyDream.svg HTTP/1.1[0m" 304 -
 2026-04-24 21:22:15,932 - INFO - 127.0.0.1 - - [24/Apr/2026 21:22:15] "[36mGET /static/assets/sissyloving/slsponsorbanner.png HTTP/1.1[0m" 304 -
+2026-04-24 21:29:56,294 - INFO - 127.0.0.1 - - [24/Apr/2026 21:29:56] "GET /login?next=/duels HTTP/1.1" 200 -
+2026-04-24 21:29:56,469 - INFO - 127.0.0.1 - - [24/Apr/2026 21:29:56] "GET /static/style.css HTTP/1.1" 200 -
+2026-04-24 21:29:56,610 - INFO - 127.0.0.1 - - [24/Apr/2026 21:29:56] "GET /static/assets/gg.png HTTP/1.1" 200 -
+2026-04-24 21:29:56,611 - INFO - 127.0.0.1 - - [24/Apr/2026 21:29:56] "GET /static/avatars/LaceyDream.svg HTTP/1.1" 200 -
+2026-04-24 21:29:56,627 - INFO - 127.0.0.1 - - [24/Apr/2026 21:29:56] "GET /static/assets/sissyloving/slsponsorbanner.png HTTP/1.1" 200 -
+2026-04-24 21:29:56,627 - INFO - 127.0.0.1 - - [24/Apr/2026 21:29:56] "GET /static/assets/sword.png HTTP/1.1" 200 -
+2026-04-24 21:29:56,629 - INFO - 127.0.0.1 - - [24/Apr/2026 21:29:56] "GET /static/assets/laboratory.png HTTP/1.1" 200 -
+2026-04-24 21:29:57,043 - INFO - 127.0.0.1 - - [24/Apr/2026 21:29:57] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
