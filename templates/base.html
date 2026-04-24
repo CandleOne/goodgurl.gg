@@ -26,10 +26,10 @@
     <style>
         .gift-glow { filter: drop-shadow(0 0 4px #ffc107); }
 
-        /* ── Goddess NPC walking sprite ── */
+        /* ── Maid NPC walking sprite ── */
         @keyframes npc-walk {
             from { background-position: 0 0; }
-            to   { background-position: -2496px 0; }
+            to   { background-position: -1920px 0; }
         }
         @keyframes npc-move {
             from { transform: translateX(calc(100vw + 200px)); }
@@ -41,14 +41,14 @@
             left: 0;
             width: 192px;
             height: 192px;
-            background-image: url("{{ url_for('static', filename='assets/GandalfHardcore Goddess NPC.png') }}");
-            background-size: 2496px 192px;
+            background-image: url("{{ url_for('static', filename='assets/maidanims/GandalfHardcore Maid Character 2/Maid Character2 red.png') }}");
+            background-size: 1920px 960px;
             background-repeat: no-repeat;
             image-rendering: pixelated;
             z-index: 1050;
             pointer-events: none;
             animation:
-                npc-walk 1.08s steps(13) infinite,
+                npc-walk 1.25s steps(10) infinite,
                 npc-move 20s linear infinite;
         }
     </style>
@@ -399,6 +399,6 @@
     });
     </script>
     <!-- Goddess NPC walking sprite -->
-    <div class="goddess-npc" title="Goddess NPC"></div>
+    <div class="goddess-npc" title="Maid NPC"></div>
 </body>
 </html>
