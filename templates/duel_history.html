@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}My Duel History – goodgurl.gg{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center gap-3 mb-4">
+    <i class="bi bi-clock-history" style="font-size:2rem; color:var(--pink);"></i>
+    <div>
+        <h2 class="mb-0">Duel History</h2>
+        <small class="text-muted">Your past 50 completed duels</small>
+    </div>
+    <a href="{{ url_for('duels') }}" class="btn btn-outline-light btn-sm ms-auto">
+        <i class="bi bi-controller"></i> Back to Duels
+    </a>
+</div>
+
+{% if duels %}
+<div class="card glass-card p-0 overflow-hidden">
+    <table class="table table-dark table-hover mb-0 align-middle">
+        <thead style="background:rgba(255,255,255,.05);">
+            <tr>
+                <th class="ps-4">Activity</th>
+                <th>Challenger</th>
+                <th>Opponent</th>
+                <th>Votes</th>
+                <th>Result</th>
+                <th class="pe-4 text-end">Date</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for d in duels %}
+        {% set act = activities | selectattr("id","equalto",d.activity_id) | first %}
+        {% set won = d.winner_id == current_user.id %}
+        {% set lost = d.winner_id is not none and d.winner_id != current_user.id %}
+        <tr>
+            <td class="ps-4">
+                <span class="me-1">{{ act.emoji if act else '⚔️' }}</span>
+                {{ act.name if act else 'Unknown' }}
+            </td>
+            <td>
+                <img src="{{ d.challenger.avatar_url }}" width="22" height="22" class="rounded-circle me-1" style="object-fit:cover;">
+                {{ d.challenger.username }}
+                {% if d.challenger_id == current_user.id %}<span class="badge bg-secondary ms-1" style="font-size:.6rem">you</span>{% endif %}
+            </td>
+            <td>
+                {% if d.opponent %}
+                <img src="{{ d.opponent.avatar_url }}" width="22" height="22" class="rounded-circle me-1" style="object-fit:cover;">
+                {{ d.opponent.username }}
+                {% if d.opponent_id == current_user.id %}<span class="badge bg-secondary ms-1" style="font-size:.6rem">you</span>{% endif %}
+                {% else %}
+                <span class="text-muted">—</span>
+                {% endif %}
+            </td>
+            <td>
+                <span class="text-pink fw-bold">{{ d.challenger_votes }}</span>
+                <span class="text-muted mx-1">vs</span>
+                <span class="fw-bold" style="color:#a855f7">{{ d.opponent_votes }}</span>
+            </td>
+            <td>
+                {% if d.winner_id is none %}
+                <span class="badge bg-secondary">Tie</span>
+                {% elif won %}
+                <span class="badge bg-success"><i class="bi bi-trophy-fill me-1"></i>Won</span>
+                {% else %}
+                <span class="badge bg-danger">Lost</span>
+                {% endif %}
+            </td>
+            <td class="pe-4 text-end text-muted small">
+                {{ d.ended_at.strftime('%b %d, %Y') if d.ended_at else '—' }}
+            </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="text-center text-muted py-5">
+    <i class="bi bi-hourglass" style="font-size:2.5rem;"></i>
+    <p class="mt-3 mb-0">No completed duels yet.<br>Enter the queue to start your first duel!</p>
+    <a href="{{ url_for('duels') }}" class="btn btn-pink mt-3">
+        <i class="bi bi-controller"></i> Go to Duels
+    </a>
+</div>
+{% endif %}
+{% endblock %}

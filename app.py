@@ -3077,9 +3077,53 @@ def claim_quest(quest_id):
 # GoodGurl Labs — Academy
 # ---------------------------------------------------------------------------
 # ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
 # Duels — Routes + SocketIO
 # ---------------------------------------------------------------------------
 from flask_socketio import emit, join_room, leave_room
+
+# Duration (seconds) of the voting phase — shared between server & template
+VOTE_DURATION_SECONDS = 60
+
+# In-process tracking of when voting started per duel (lost on restart — acceptable)
+_voting_start_times: dict = {}
+
+
+def _do_finish_duel(duel):
+    """Resolve winner, mark finished, award prizes. Commits to DB. Idempotent."""
+    if duel.status == "finished":
+        return
+    from constants import utcnow as _now
+    duel.ended_at = _now()
+    if duel.challenger_votes > duel.opponent_votes:
+        duel.winner_id = duel.challenger_id
+    elif duel.opponent_votes > duel.challenger_votes:
+        duel.winner_id = duel.opponent_id
+    duel.status = "finished"
+    db.session.commit()
+    if duel.winner_id:
+        winner = User.query.get(duel.winner_id)
+        if winner:
+            winner.add_points(50, reason="Duel victory")
+            winner.coins += 25
+            db.session.commit()
+    _voting_start_times.pop(duel.id, None)
+
+
+def _auto_end_voting(duel_id):
+    """Background task: auto-end the voting phase after VOTE_DURATION_SECONDS."""
+    import time as _time
+    _time.sleep(VOTE_DURATION_SECONDS + 2)  # small buffer
+    with app.app_context():
+        duel = Duel.query.get(duel_id)
+        if duel and duel.status == "voting":
+            _do_finish_duel(duel)
+            socketio.emit("duel_finished", {
+                "winner_id": duel.winner_id,
+                "challenger_votes": duel.challenger_votes,
+                "opponent_votes": duel.opponent_votes,
+            }, room=f"duel_{duel_id}")
+
 
 @app.route("/duels")
 @login_required
@@ -3112,29 +3156,56 @@ def duels():
 @login_required
 def duel_arena(duel_id):
     duel = Duel.query.get_or_404(duel_id)
-    if duel.status not in ("active", "voting", "waiting"):
-        flash("That duel has already ended.", "warning")
-        return redirect(url_for("duels"))
 
-    is_challenger = duel.challenger_id == current_user.id
-    is_opponent   = duel.opponent_id == current_user.id
+    is_challenger  = duel.challenger_id == current_user.id
+    is_opponent    = duel.opponent_id is not None and duel.opponent_id == current_user.id
     is_participant = is_challenger or is_opponent
 
-    if not is_participant:
-        # Register as spectator — assign to this duel
-        existing = DuelSpectator.query.filter_by(
-            duel_id=duel.id, user_id=current_user.id).first()
+    if duel.status == "cancelled":
+        flash("That duel was cancelled.", "warning")
+        return redirect(url_for("duels"))
+
+    # Only register spectator record for live (non-finished) duels
+    if not is_participant and duel.status in ("active", "voting", "waiting"):
+        existing = DuelSpectator.query.filter_by(duel_id=duel.id, user_id=current_user.id).first()
         if not existing:
             db.session.add(DuelSpectator(duel_id=duel.id, user_id=current_user.id))
             db.session.commit()
+
+    # Compute server-side time remaining so client can sync immediately
+    time_remaining = None
+    if duel.status == "active" and duel.started_at:
+        elapsed = (utcnow() - duel.started_at).total_seconds()
+        time_remaining = max(0, int(duel.duration_seconds - elapsed))
+    elif duel.status == "voting":
+        vst = _voting_start_times.get(duel.id)
+        if vst:
+            elapsed = (utcnow() - vst).total_seconds()
+            time_remaining = max(0, int(VOTE_DURATION_SECONDS - elapsed))
+        else:
+            time_remaining = VOTE_DURATION_SECONDS
 
     return render_template(
         "duel_arena.html",
         duel=duel,
         is_participant=is_participant,
         is_challenger=is_challenger,
+        is_opponent=is_opponent,
         activities=DUEL_ACTIVITIES,
+        time_remaining=time_remaining,
+        vote_duration=VOTE_DURATION_SECONDS,
     )
+
+
+@app.route("/duels/history")
+@login_required
+def duel_history():
+    """Past duels the current user participated in."""
+    finished = Duel.query.filter(
+        db.or_(Duel.challenger_id == current_user.id, Duel.opponent_id == current_user.id),
+        Duel.status == "finished",
+    ).order_by(Duel.ended_at.desc()).limit(50).all()
+    return render_template("duel_history.html", duels=finished, activities=DUEL_ACTIVITIES)
 
 
 @app.route("/duels/spectate")
@@ -3191,20 +3262,7 @@ def duel_force_end(duel_id):
     if not is_challenger and not is_admin:
         abort(403)
     if duel.status in ("active", "voting", "waiting"):
-        from constants import utcnow as _now
-        duel.ended_at = _now()
-        if duel.challenger_votes > duel.opponent_votes:
-            duel.winner_id = duel.challenger_id
-        elif duel.opponent_votes > duel.challenger_votes:
-            duel.winner_id = duel.opponent_id
-        duel.status = "finished"
-        db.session.commit()
-        if duel.winner_id:
-            winner = User.query.get(duel.winner_id)
-            if winner:
-                winner.add_points(50, reason="Duel victory")
-                winner.coins += 25
-                db.session.commit()
+        _do_finish_duel(duel)
         socketio.emit("duel_finished", {
             "winner_id": duel.winner_id,
             "challenger_votes": duel.challenger_votes,
@@ -3219,23 +3277,14 @@ def duel_leave(duel_id):
     """Participant leaves a duel — forfeits if duel is still running."""
     duel = Duel.query.get_or_404(duel_id)
     is_challenger = current_user.id == duel.challenger_id
-    is_opponent = duel.opponent_id and current_user.id == duel.opponent_id
+    is_opponent = bool(duel.opponent_id) and current_user.id == duel.opponent_id
     if (is_challenger or is_opponent) and duel.status in ("active", "voting", "waiting"):
-        from constants import utcnow as _now
-        duel.ended_at = _now()
         # The player who leaves forfeits — other participant wins
-        if is_challenger:
+        if is_challenger and duel.opponent_id:
             duel.winner_id = duel.opponent_id
-        else:
+        elif is_opponent:
             duel.winner_id = duel.challenger_id
-        duel.status = "finished"
-        db.session.commit()
-        if duel.winner_id:
-            winner = User.query.get(duel.winner_id)
-            if winner:
-                winner.add_points(50, reason="Duel victory")
-                winner.coins += 25
-                db.session.commit()
+        _do_finish_duel(duel)
         socketio.emit("duel_finished", {
             "winner_id": duel.winner_id,
             "challenger_votes": duel.challenger_votes,
@@ -3345,9 +3394,36 @@ def ws_join_duel(data):
     join_room(f"duel_{duel_id}")
     duel = Duel.query.get(duel_id)
     if duel:
+        # Determine joining user's role
+        role = "spectator"
+        if current_user.is_authenticated:
+            if current_user.id == duel.challenger_id:
+                role = "challenger"
+            elif current_user.id == duel.opponent_id:
+                role = "opponent"
         emit("spectator_count", {"count": duel.spectator_count}, room=f"duel_{duel_id}")
-        # Tell existing peers in the room that a new participant arrived
-        emit("peer_joined", {"sid": request.sid}, room=f"duel_{duel_id}", include_self=False)
+        # Tell existing peers in the room that a new participant arrived (with role)
+        emit("peer_joined", {"sid": request.sid, "role": role}, room=f"duel_{duel_id}", include_self=False)
+        # Send timer sync so late joiners start from the correct remaining time
+        from constants import utcnow as _now
+        if duel.status == "active" and duel.started_at:
+            elapsed = (_now() - duel.started_at).total_seconds()
+            remaining = max(0, int(duel.duration_seconds - elapsed))
+            emit("timer_sync", {"phase": "active", "remaining": remaining})
+        elif duel.status == "voting":
+            vst = _voting_start_times.get(duel_id)
+            if vst:
+                elapsed = (_now() - vst).total_seconds()
+                remaining = max(0, int(VOTE_DURATION_SECONDS - elapsed))
+            else:
+                remaining = VOTE_DURATION_SECONDS
+            emit("timer_sync", {"phase": "voting", "remaining": remaining})
+        elif duel.status == "finished":
+            emit("duel_finished", {
+                "winner_id": duel.winner_id,
+                "challenger_votes": duel.challenger_votes,
+                "opponent_votes": duel.opponent_votes,
+            })
 
 
 @socketio.on("leave_duel")
@@ -3368,6 +3444,16 @@ def ws_leave_duel(data):
 
 
 # ---- SocketIO: WebRTC signaling ----
+
+@socketio.on("webrtc_offer_broadcast")
+def ws_offer_broadcast(data):
+    """Participant announces cam readiness — existing room members initiate WebRTC toward them."""
+    duel_id = data.get("duel_id")
+    role = data.get("role", "participant")
+    if duel_id:
+        # Tell every OTHER peer in the room to start a peer connection to this SID
+        emit("peer_joined", {"sid": request.sid, "role": role}, room=f"duel_{duel_id}", include_self=False)
+
 
 @socketio.on("webrtc_offer")
 def ws_offer(data):
@@ -3442,9 +3528,12 @@ def ws_start_voting(data):
         return
     if current_user.id != duel.challenger_id:
         return
+    from constants import utcnow as _now
     duel.status = "voting"
     db.session.commit()
-    emit("phase_change", {"phase": "voting"}, room=f"duel_{duel_id}")
+    _voting_start_times[duel_id] = _now()
+    socketio.start_background_task(_auto_end_voting, duel_id)
+    emit("phase_change", {"phase": "voting", "remaining": VOTE_DURATION_SECONDS}, room=f"duel_{duel_id}")
 
 
 @socketio.on("duel_end")
@@ -3460,26 +3549,7 @@ def ws_end_duel(data):
     if not is_challenger and not is_admin:
         return
 
-    from constants import utcnow as _now
-    duel.ended_at = _now()
-
-    if duel.challenger_votes > duel.opponent_votes:
-        duel.winner_id = duel.challenger_id
-    elif duel.opponent_votes > duel.challenger_votes:
-        duel.winner_id = duel.opponent_id
-    # else tie — no winner
-
-    duel.status = "finished"
-    db.session.commit()
-
-    # Award XP/coins to winner
-    if duel.winner_id:
-        winner = User.query.get(duel.winner_id)
-        if winner:
-            winner.add_points(50, reason="Duel victory")
-            winner.coins += 25
-            db.session.commit()
-
+    _do_finish_duel(duel)
     emit("duel_finished", {
         "winner_id": duel.winner_id,
         "challenger_votes": duel.challenger_votes,
