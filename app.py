@@ -3064,6 +3064,11 @@ def claim_quest(quest_id):
 # ---------------------------------------------------------------------------
 # GoodGurl Labs — Academy
 # ---------------------------------------------------------------------------
+@app.route("/duels")
+@login_required
+def duels():
+    return render_template("duels.html")
+
 @app.route("/academy")
 @login_required
 def academy():
