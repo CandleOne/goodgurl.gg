@@ -200,9 +200,7 @@
 const socket = io();
 socket.emit('subscribe_user');
 
-// Redirect when matched as a participant
-socket.on('duel_matched', function(data) {
-    // Update overlay to show "Match found!" before navigating
+function goToArena(duelId) {
     const overlay = document.getElementById('queueOverlay');
     if (overlay) {
         overlay.innerHTML = `
@@ -212,8 +210,26 @@ socket.on('duel_matched', function(data) {
             <div class="spinner-border text-pink mt-3" role="status"></div>
         `;
     }
-    setTimeout(() => { window.location.href = '/duels/' + data.duel_id; }, 800);
-});
+    setTimeout(() => { window.location.href = '/duels/' + duelId; }, 800);
+}
+
+// Redirect when matched as a participant
+socket.on('duel_matched', function(data) { goToArena(data.duel_id); });
+
+// Polling fallback: in case the socket event was missed (race condition on join)
+let _pollActive = !!document.getElementById('queueOverlay');
+if (_pollActive) {
+    const _poll = setInterval(async () => {
+        if (!document.getElementById('queueOverlay')) { clearInterval(_poll); return; }
+        try {
+            const r = await fetch('/api/my_active_duel');
+            if (r.ok) {
+                const d = await r.json();
+                if (d.duel_id) { clearInterval(_poll); goToArena(d.duel_id); }
+            }
+        } catch(e) {}
+    }, 2000);
+}
 
 // Redirect when dispatched as spectator
 socket.on('spectator_duel_ready', function(data) {

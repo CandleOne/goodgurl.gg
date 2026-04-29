@@ -13,8 +13,8 @@ import signal
 import threading
 
 # ── Config ──────────────────────────────────────────────────────────────────
-PORT        = int(os.environ.get("PORT", 5000))
-NGROK_BIN   = os.environ.get("NGROK_BIN", "ngrok")   # override if not on PATH
+PORT             = int(os.environ.get("PORT", 5000))
+CLOUDFLARED_BIN  = os.environ.get("CLOUDFLARED_BIN", "cloudflared")  # override if not on PATH
 
 
 def stream_output(proc, prefix):
@@ -52,42 +52,40 @@ def main():
     procs.append(flask_proc)
     threading.Thread(target=stream_output, args=(flask_proc, "flask"), daemon=True).start()
 
-    # Give Flask a moment to bind its port before starting ngrok
+    # Give Flask a moment to bind its port before starting tunnel
     time.sleep(2)
 
-    # ── 2. Start ngrok tunnel ────────────────────────────────────────────
-    print(f"[start.py] Starting ngrok tunnel → localhost:{PORT}…")
-    ngrok_proc = subprocess.Popen(
-        [NGROK_BIN, "http", str(PORT)],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
+    # ── 2. Start Cloudflare tunnel ───────────────────────────────────────
+    print(f"[start.py] Starting Cloudflare tunnel → localhost:{PORT}…")
+    cf_log_path = "/tmp/cloudflared.log"
+    cf_log_file = open(cf_log_path, "w")
+    cf_proc = subprocess.Popen(
+        [CLOUDFLARED_BIN, "tunnel", "--url", f"http://localhost:{PORT}"],
+        stdout=cf_log_file,
+        stderr=cf_log_file,
     )
-    procs.append(ngrok_proc)
-    threading.Thread(target=stream_output, args=(ngrok_proc, "ngrok"), daemon=True).start()
+    procs.append(cf_proc)
 
-    # ── 3. Poll ngrok API until tunnel URL is available ──────────────────
-    import urllib.request
-    import json
+    # ── 3. Poll cloudflared log for tunnel URL ───────────────────────────
+    import re
 
     tunnel_url = None
-    for _ in range(20):          # up to ~10 s
+    for _ in range(30):          # up to ~15 s
         time.sleep(0.5)
         try:
-            with urllib.request.urlopen("http://127.0.0.1:4040/api/tunnels", timeout=2) as r:
-                data = json.loads(r.read())
-                for t in data.get("tunnels", []):
-                    if t.get("proto") == "https":
-                        tunnel_url = t["public_url"]
-                        break
+            with open(cf_log_path) as f:
+                content = f.read()
+            match = re.search(r'https://[a-z0-9-]+\.trycloudflare\.com', content)
+            if match:
+                tunnel_url = match.group(0)
+                break
         except Exception:
             pass
-        if tunnel_url:
-            break
 
     if tunnel_url:
         print(f"\n{'='*60}")
-        print(f"  App running at : http://localhost:{PORT}")
-        print(f"  ngrok URL      : {tunnel_url}")
+        print(f"  App running at    : http://localhost:{PORT}")
+        print(f"  Cloudflare URL    : {tunnel_url}")
 
         # ── Generate QR code ────────────────────────────────────────────
         try:
@@ -98,30 +96,29 @@ def main():
             os.makedirs(qr_dir, exist_ok=True)
 
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            qr_path   = os.path.join(qr_dir, f"ngrok_{timestamp}.png")
+            qr_path   = os.path.join(qr_dir, f"cloudflare_{timestamp}.png")
             latest    = os.path.join(qr_dir, "latest.png")
 
             img = qrcode.make(tunnel_url)
             img.save(qr_path)
-            # Always overwrite 'latest.png' so it's easy to find
             img.save(latest)
 
-            print(f"  QR code saved  : {qr_path}")
-            print(f"  (also saved as): {latest}")
+            print(f"  QR code saved     : {qr_path}")
+            print(f"  (also saved as)   : {latest}")
         except Exception as e:
             print(f"  [QR] Could not generate QR code: {e}")
 
         print(f"{'='*60}\n")
     else:
-        print("[start.py] Could not read tunnel URL from ngrok API — check ngrok output above.")
+        print(f"[start.py] Could not detect Cloudflare tunnel URL — check {cf_log_path}")
 
     # ── 4. Wait until either process exits ──────────────────────────────
     while True:
         if flask_proc.poll() is not None:
-            print("[start.py] Flask exited. Stopping ngrok.")
+            print("[start.py] Flask exited. Stopping Cloudflare tunnel.")
             shutdown()
-        if ngrok_proc.poll() is not None:
-            print("[start.py] ngrok exited. Stopping Flask.")
+        if cf_proc.poll() is not None:
+            print("[start.py] Cloudflare tunnel exited. Stopping Flask.")
             shutdown()
         time.sleep(1)
 
