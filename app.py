@@ -2221,6 +2221,9 @@ def delete_post(post_id):
     # Delete related records
     Comment.query.filter_by(post_id=post.id).delete()
     Report.query.filter_by(post_id=post.id).delete()
+    PostMedia.query.filter_by(post_id=post.id).delete()
+    post.liked_by = []
+    post.tags = []
     db.session.delete(post)
     db.session.commit()
     flash("Post deleted.", "info")
@@ -2244,6 +2247,7 @@ def edit_post(post_id):
         return redirect(url_for("view_post", post_id=post.id))
     post.title = title[:200]
     post.body = body
+    post.edited_at = utcnow()
     db.session.commit()
     flash("Post updated!", "success")
     return redirect(url_for("view_post", post_id=post.id))
@@ -4988,15 +4992,45 @@ def admin_delete_user(user_id):
         return redirect(url_for("admin_panel"))
     uid = user.id
     try:
+        # Clean up posts (media + likes + tags) before deleting
+        user_posts = Post.query.filter_by(author_id=uid).all()
+        for p in user_posts:
+            PostMedia.query.filter_by(post_id=p.id).delete(synchronize_session=False)
+            Comment.query.filter_by(post_id=p.id).delete(synchronize_session=False)
+            Report.query.filter_by(post_id=p.id).delete(synchronize_session=False)
+            p.liked_by = []
+            p.tags = []
+        db.session.flush()
+        Post.query.filter_by(author_id=uid).delete(synchronize_session=False)
+
+        # Forum replies + threads
+        ForumReply.query.filter_by(author_id=uid).delete(synchronize_session=False)
+        user_threads = ForumThread.query.filter_by(author_id=uid).all()
+        for t in user_threads:
+            ForumReply.query.filter_by(thread_id=t.id).delete(synchronize_session=False)
+        ForumThread.query.filter_by(author_id=uid).delete(synchronize_session=False)
+
+        # User-scoped records
         Comment.query.filter_by(author_id=uid).delete(synchronize_session=False)
         Report.query.filter_by(reporter_id=uid).delete(synchronize_session=False)
         Notification.query.filter_by(user_id=uid).delete(synchronize_session=False)
         Transaction.query.filter_by(user_id=uid).delete(synchronize_session=False)
         Message.query.filter(db.or_(Message.sender_id == uid, Message.recipient_id == uid)).delete(synchronize_session=False)
         Task.query.filter(db.or_(Task.creator_id == uid, Task.assignee_id == uid)).delete(synchronize_session=False)
-        Post.query.filter_by(author_id=uid).delete(synchronize_session=False)
         Investment.query.filter(db.or_(Investment.investor_id == uid, Investment.sissy_id == uid)).delete(synchronize_session=False)
-        ForumThread.query.filter_by(author_id=uid).delete(synchronize_session=False)
+        Activity.query.filter_by(user_id=uid).delete(synchronize_session=False)
+        Streak.query.filter_by(user_id=uid).delete(synchronize_session=False)
+        StreakHistory.query.filter_by(user_id=uid).delete(synchronize_session=False)
+        XPAudit.query.filter_by(user_id=uid).delete(synchronize_session=False)
+        UserAchievement.query.filter_by(user_id=uid).delete(synchronize_session=False)
+        LessonProgress.query.filter_by(user_id=uid).delete(synchronize_session=False)
+        UserDailyChallenge.query.filter_by(user_id=uid).delete(synchronize_session=False)
+        UserPurchase.query.filter_by(user_id=uid).delete(synchronize_session=False)
+        UserPowerup.query.filter_by(user_id=uid).delete(synchronize_session=False)
+        JournalEntry.query.filter_by(user_id=uid).delete(synchronize_session=False)
+        DuelQueue.query.filter_by(user_id=uid).delete(synchronize_session=False)
+        Duel.query.filter(db.or_(Duel.challenger_id == uid, Duel.challenged_id == uid)).delete(synchronize_session=False)
+
         db.session.delete(user)
         db.session.commit()
         flash(f"User {uid} deleted.", "success")
