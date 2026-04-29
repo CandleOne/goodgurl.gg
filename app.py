@@ -3497,7 +3497,7 @@ def duels():
 def api_my_active_duel():
     duel = Duel.query.filter(
         ((Duel.challenger_id == current_user.id) | (Duel.opponent_id == current_user.id)),
-        Duel.status == "active",
+        Duel.status.in_(["active", "voting", "waiting"]),
     ).order_by(Duel.started_at.desc()).first()
     if duel:
         return jsonify({"duel_id": duel.id})
@@ -3752,14 +3752,14 @@ def _try_matchmake(activity_id, new_user_id):
 def ws_subscribe_user():
     if current_user.is_authenticated:
         join_room(f"user_{current_user.id}")
-        # Re-emit duel_matched in case the event fired before the socket subscribed
-        # (race condition: matchmake runs synchronously during the HTTP POST)
+        # Re-emit duel_matched directly to THIS socket in case the event fired
+        # before the socket subscribed (race condition on page load / reconnect)
         active_duel = Duel.query.filter(
             ((Duel.challenger_id == current_user.id) | (Duel.opponent_id == current_user.id)),
-            Duel.status == "active",
+            Duel.status.in_(["active", "voting", "waiting"]),
         ).order_by(Duel.started_at.desc()).first()
         if active_duel:
-            socketio.emit("duel_matched", {"duel_id": active_duel.id}, room=f"user_{current_user.id}")
+            emit("duel_matched", {"duel_id": active_duel.id})
 
 
 # ---- SocketIO: duel room ----

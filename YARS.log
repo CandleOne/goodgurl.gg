@@ -7680,3 +7680,107 @@
 2026-04-29 23:17:48,171 - INFO -  * Restarting with stat
 2026-04-29 23:17:52,158 - WARNING -  * Debugger is active!
 2026-04-29 23:17:52,159 - INFO -  * Debugger PIN: 294-247-812
+2026-04-29 23:18:10,907 - INFO - 127.0.0.1 - - [29/Apr/2026 23:18:10] "GET /notifications/count HTTP/1.1" 200 -
+2026-04-29 23:18:10,908 - INFO - 127.0.0.1 - - [29/Apr/2026 23:18:10] "GET /messages/unread_count HTTP/1.1" 200 -
+2026-04-29 23:18:13,073 - INFO - 127.0.0.1 - - [29/Apr/2026 23:18:13] "GET /messages/unread_count HTTP/1.1" 200 -
+2026-04-29 23:18:13,074 - INFO - 127.0.0.1 - - [29/Apr/2026 23:18:13] "GET /notifications/count HTTP/1.1" 200 -
+2026-04-29 23:18:19,704 - INFO - 127.0.0.1 - - [29/Apr/2026 23:18:19] "[32mGET /duels HTTP/1.1[0m" 302 -
+2026-04-29 23:18:19,968 - INFO - 127.0.0.1 - - [29/Apr/2026 23:18:19] "GET /duels/4 HTTP/1.1" 200 -
+2026-04-29 23:18:20,178 - INFO - 127.0.0.1 - - [29/Apr/2026 23:18:20] "GET /static/style.css HTTP/1.1" 200 -
+2026-04-29 23:18:20,179 - INFO - 127.0.0.1 - - [29/Apr/2026 23:18:20] "GET /static/avatars/LaceyDream.svg HTTP/1.1" 200 -
+2026-04-29 23:18:20,202 - INFO - 127.0.0.1 - - [29/Apr/2026 23:18:20] "GET /static/assets/gg.png HTTP/1.1" 200 -
+2026-04-29 23:18:20,381 - INFO - 127.0.0.1 - - [29/Apr/2026 23:18:20] "GET /static/assets/sword.png HTTP/1.1" 200 -
+2026-04-29 23:18:20,382 - INFO - 127.0.0.1 - - [29/Apr/2026 23:18:20] "GET /static/avatars/AdminGG.svg HTTP/1.1" 200 -
+2026-04-29 23:18:20,384 - INFO - 127.0.0.1 - - [29/Apr/2026 23:18:20] "GET /static/assets/laboratory.png HTTP/1.1" 200 -
+2026-04-29 23:18:20,415 - INFO - 127.0.0.1 - - [29/Apr/2026 23:18:20] "GET /static/assets/checticon.png HTTP/1.1" 200 -
+2026-04-29 23:18:20,448 - INFO - 127.0.0.1 - - [29/Apr/2026 23:18:20] "GET /static/assets/maidanims/GandalfHardcore%20Maid%20Character%202/Maid%20Character2%20red.png HTTP/1.1" 200 -
+2026-04-29 23:18:20,891 - INFO - 127.0.0.1 - - [29/Apr/2026 23:18:20] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2026-04-29 23:18:27,767 - INFO - 127.0.0.1 - - [29/Apr/2026 23:18:27] "[32mPOST /duels/4/force_end HTTP/1.1[0m" 302 -
+2026-04-29 23:18:27,861 - INFO - 127.0.0.1 - - [29/Apr/2026 23:18:27] "GET /duels HTTP/1.1" 200 -
+2026-04-29 23:18:27,997 - INFO - 127.0.0.1 - - [29/Apr/2026 23:18:27] "[36mGET /static/style.css HTTP/1.1[0m" 304 -
+2026-04-29 23:18:28,221 - INFO - 127.0.0.1 - - [29/Apr/2026 23:18:28] "[36mGET /static/assets/laboratory.png HTTP/1.1[0m" 304 -
+2026-04-29 23:18:28,223 - INFO - 127.0.0.1 - - [29/Apr/2026 23:18:28] "[36mGET /static/assets/sword.png HTTP/1.1[0m" 304 -
+2026-04-29 23:18:28,260 - INFO - 127.0.0.1 - - [29/Apr/2026 23:18:28] "[36mGET /static/assets/checticon.png HTTP/1.1[0m" 304 -
+2026-04-29 23:18:28,264 - INFO - 127.0.0.1 - - [29/Apr/2026 23:18:28] "[36mGET /static/assets/gg.png HTTP/1.1[0m" 304 -
+2026-04-29 23:18:28,264 - INFO - 127.0.0.1 - - [29/Apr/2026 23:18:28] "[36mGET /static/avatars/LaceyDream.svg HTTP/1.1[0m" 304 -
+2026-04-29 23:18:31,723 - INFO - 127.0.0.1 - - [29/Apr/2026 23:18:31] "GET /duels/4 HTTP/1.1" 200 -
+2026-04-29 23:18:31,811 - INFO - 127.0.0.1 - - [29/Apr/2026 23:18:31] "GET /static/avatars/LaceyDream.svg HTTP/1.1" 200 -
+2026-04-29 23:18:31,811 - INFO - 127.0.0.1 - - [29/Apr/2026 23:18:31] "GET /static/style.css HTTP/1.1" 200 -
+2026-04-29 23:18:31,813 - INFO - 127.0.0.1 - - [29/Apr/2026 23:18:31] "GET /static/assets/gg.png HTTP/1.1" 200 -
+2026-04-29 23:18:31,884 - INFO - 127.0.0.1 - - [29/Apr/2026 23:18:31] "GET /static/assets/checticon.png HTTP/1.1" 200 -
+2026-04-29 23:18:31,885 - INFO - 127.0.0.1 - - [29/Apr/2026 23:18:31] "GET /static/assets/laboratory.png HTTP/1.1" 200 -
+2026-04-29 23:18:31,886 - INFO - 127.0.0.1 - - [29/Apr/2026 23:18:31] "GET /static/assets/sword.png HTTP/1.1" 200 -
+2026-04-29 23:18:31,890 - INFO - 127.0.0.1 - - [29/Apr/2026 23:18:31] "GET /static/avatars/AdminGG.svg HTTP/1.1" 200 -
+2026-04-29 23:18:31,930 - INFO - 127.0.0.1 - - [29/Apr/2026 23:18:31] "GET /static/assets/maidanims/GandalfHardcore%20Maid%20Character%202/Maid%20Character2%20red.png HTTP/1.1" 200 -
+2026-04-29 23:18:32,012 - INFO - 127.0.0.1 - - [29/Apr/2026 23:18:32] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2026-04-29 23:18:34,951 - INFO - 127.0.0.1 - - [29/Apr/2026 23:18:34] "GET /duels HTTP/1.1" 200 -
+2026-04-29 23:18:35,036 - INFO - 127.0.0.1 - - [29/Apr/2026 23:18:35] "[36mGET /static/avatars/LaceyDream.svg HTTP/1.1[0m" 304 -
+2026-04-29 23:18:35,036 - INFO - 127.0.0.1 - - [29/Apr/2026 23:18:35] "[36mGET /static/assets/gg.png HTTP/1.1[0m" 304 -
+2026-04-29 23:18:35,037 - INFO - 127.0.0.1 - - [29/Apr/2026 23:18:35] "[36mGET /static/style.css HTTP/1.1[0m" 304 -
+2026-04-29 23:18:35,097 - INFO - 127.0.0.1 - - [29/Apr/2026 23:18:35] "[36mGET /static/assets/laboratory.png HTTP/1.1[0m" 304 -
+2026-04-29 23:18:35,101 - INFO - 127.0.0.1 - - [29/Apr/2026 23:18:35] "[36mGET /static/assets/checticon.png HTTP/1.1[0m" 304 -
+2026-04-29 23:18:35,103 - INFO - 127.0.0.1 - - [29/Apr/2026 23:18:35] "[36mGET /static/assets/sword.png HTTP/1.1[0m" 304 -
+2026-04-29 23:18:35,104 - INFO - 127.0.0.1 - - [29/Apr/2026 23:18:35] "[36mGET /static/assets/maidanims/GandalfHardcore%20Maid%20Character%202/Maid%20Character2%20red.png HTTP/1.1[0m" 304 -
+2026-04-29 23:18:38,150 - INFO - 127.0.0.1 - - [29/Apr/2026 23:18:38] "[32mPOST /duels/queue/join HTTP/1.1[0m" 302 -
+2026-04-29 23:18:38,222 - INFO - 127.0.0.1 - - [29/Apr/2026 23:18:38] "GET /duels HTTP/1.1" 200 -
+2026-04-29 23:18:38,304 - INFO - 127.0.0.1 - - [29/Apr/2026 23:18:38] "[36mGET /static/avatars/LaceyDream.svg HTTP/1.1[0m" 304 -
+2026-04-29 23:18:38,307 - INFO - 127.0.0.1 - - [29/Apr/2026 23:18:38] "[36mGET /static/assets/gg.png HTTP/1.1[0m" 304 -
+2026-04-29 23:18:38,373 - INFO - 127.0.0.1 - - [29/Apr/2026 23:18:38] "[36mGET /static/assets/laboratory.png HTTP/1.1[0m" 304 -
+2026-04-29 23:18:38,374 - INFO - 127.0.0.1 - - [29/Apr/2026 23:18:38] "[36mGET /static/style.css HTTP/1.1[0m" 304 -
+2026-04-29 23:18:38,435 - INFO - 127.0.0.1 - - [29/Apr/2026 23:18:38] "[36mGET /static/assets/checticon.png HTTP/1.1[0m" 304 -
+2026-04-29 23:18:38,437 - INFO - 127.0.0.1 - - [29/Apr/2026 23:18:38] "[36mGET /static/assets/sword.png HTTP/1.1[0m" 304 -
+2026-04-29 23:18:38,439 - INFO - 127.0.0.1 - - [29/Apr/2026 23:18:38] "[36mGET /static/assets/maidanims/GandalfHardcore%20Maid%20Character%202/Maid%20Character2%20red.png HTTP/1.1[0m" 304 -
+2026-04-29 23:18:41,594 - INFO - 127.0.0.1 - - [29/Apr/2026 23:18:41] "[32mPOST /duels/queue/join HTTP/1.1[0m" 302 -
+2026-04-29 23:18:41,664 - INFO - 127.0.0.1 - - [29/Apr/2026 23:18:41] "[32mGET /duels HTTP/1.1[0m" 302 -
+2026-04-29 23:18:41,756 - INFO - 127.0.0.1 - - [29/Apr/2026 23:18:41] "GET /duels/5 HTTP/1.1" 200 -
+2026-04-29 23:18:41,951 - INFO - 127.0.0.1 - - [29/Apr/2026 23:18:41] "[36mGET /static/style.css HTTP/1.1[0m" 304 -
+2026-04-29 23:18:42,092 - INFO - 127.0.0.1 - - [29/Apr/2026 23:18:42] "[36mGET /static/assets/gg.png HTTP/1.1[0m" 304 -
+2026-04-29 23:18:42,094 - INFO - 127.0.0.1 - - [29/Apr/2026 23:18:42] "[36mGET /static/assets/laboratory.png HTTP/1.1[0m" 304 -
+2026-04-29 23:18:42,099 - INFO - 127.0.0.1 - - [29/Apr/2026 23:18:42] "[36mGET /static/assets/checticon.png HTTP/1.1[0m" 304 -
+2026-04-29 23:18:42,101 - INFO - 127.0.0.1 - - [29/Apr/2026 23:18:42] "[36mGET /static/assets/sword.png HTTP/1.1[0m" 304 -
+2026-04-29 23:18:42,102 - INFO - 127.0.0.1 - - [29/Apr/2026 23:18:42] "[36mGET /static/avatars/LaceyDream.svg HTTP/1.1[0m" 304 -
+2026-04-29 23:18:42,188 - INFO - 127.0.0.1 - - [29/Apr/2026 23:18:42] "[36mGET /static/avatars/AdminGG.svg HTTP/1.1[0m" 304 -
+2026-04-29 23:19:09,049 - INFO - 127.0.0.1 - - [29/Apr/2026 23:19:09] "GET /messages/unread_count HTTP/1.1" 200 -
+2026-04-29 23:19:09,049 - INFO - 127.0.0.1 - - [29/Apr/2026 23:19:09] "GET /notifications/count HTTP/1.1" 200 -
+2026-04-29 23:19:12,144 - INFO - 127.0.0.1 - - [29/Apr/2026 23:19:12] "GET /messages/unread_count HTTP/1.1" 200 -
+2026-04-29 23:19:12,145 - INFO - 127.0.0.1 - - [29/Apr/2026 23:19:12] "GET /notifications/count HTTP/1.1" 200 -
+2026-04-29 23:19:39,204 - INFO - 127.0.0.1 - - [29/Apr/2026 23:19:39] "GET /messages/unread_count HTTP/1.1" 200 -
+2026-04-29 23:19:39,204 - INFO - 127.0.0.1 - - [29/Apr/2026 23:19:39] "GET /notifications/count HTTP/1.1" 200 -
+2026-04-29 23:19:42,174 - INFO - 127.0.0.1 - - [29/Apr/2026 23:19:42] "GET /notifications/count HTTP/1.1" 200 -
+2026-04-29 23:19:42,174 - INFO - 127.0.0.1 - - [29/Apr/2026 23:19:42] "GET /messages/unread_count HTTP/1.1" 200 -
+2026-04-29 23:20:09,041 - INFO - 127.0.0.1 - - [29/Apr/2026 23:20:09] "GET /messages/unread_count HTTP/1.1" 200 -
+2026-04-29 23:20:09,089 - INFO - 127.0.0.1 - - [29/Apr/2026 23:20:09] "GET /notifications/count HTTP/1.1" 200 -
+2026-04-29 23:20:12,189 - INFO - 127.0.0.1 - - [29/Apr/2026 23:20:12] "GET /notifications/count HTTP/1.1" 200 -
+2026-04-29 23:20:12,190 - INFO - 127.0.0.1 - - [29/Apr/2026 23:20:12] "GET /messages/unread_count HTTP/1.1" 200 -
+2026-04-29 23:20:39,049 - INFO - 127.0.0.1 - - [29/Apr/2026 23:20:39] "GET /messages/unread_count HTTP/1.1" 200 -
+2026-04-29 23:20:39,050 - INFO - 127.0.0.1 - - [29/Apr/2026 23:20:39] "GET /notifications/count HTTP/1.1" 200 -
+2026-04-29 23:20:42,202 - INFO - 127.0.0.1 - - [29/Apr/2026 23:20:42] "GET /messages/unread_count HTTP/1.1" 200 -
+2026-04-29 23:20:42,203 - INFO - 127.0.0.1 - - [29/Apr/2026 23:20:42] "GET /notifications/count HTTP/1.1" 200 -
+2026-04-29 23:21:09,040 - INFO - 127.0.0.1 - - [29/Apr/2026 23:21:09] "GET /notifications/count HTTP/1.1" 200 -
+2026-04-29 23:21:09,040 - INFO - 127.0.0.1 - - [29/Apr/2026 23:21:09] "GET /messages/unread_count HTTP/1.1" 200 -
+2026-04-29 23:21:12,211 - INFO - 127.0.0.1 - - [29/Apr/2026 23:21:12] "GET /messages/unread_count HTTP/1.1" 200 -
+2026-04-29 23:21:12,213 - INFO - 127.0.0.1 - - [29/Apr/2026 23:21:12] "GET /notifications/count HTTP/1.1" 200 -
+2026-04-29 23:21:39,046 - INFO - 127.0.0.1 - - [29/Apr/2026 23:21:39] "GET /notifications/count HTTP/1.1" 200 -
+2026-04-29 23:21:39,046 - INFO - 127.0.0.1 - - [29/Apr/2026 23:21:39] "GET /messages/unread_count HTTP/1.1" 200 -
+2026-04-29 23:21:42,173 - INFO - 127.0.0.1 - - [29/Apr/2026 23:21:42] "GET /notifications/count HTTP/1.1" 200 -
+2026-04-29 23:21:42,174 - INFO - 127.0.0.1 - - [29/Apr/2026 23:21:42] "GET /messages/unread_count HTTP/1.1" 200 -
+2026-04-29 23:22:12,201 - INFO - 127.0.0.1 - - [29/Apr/2026 23:22:12] "GET /messages/unread_count HTTP/1.1" 200 -
+2026-04-29 23:22:12,202 - INFO - 127.0.0.1 - - [29/Apr/2026 23:22:12] "GET /notifications/count HTTP/1.1" 200 -
+2026-04-29 23:22:13,044 - INFO - 127.0.0.1 - - [29/Apr/2026 23:22:13] "GET /notifications/count HTTP/1.1" 200 -
+2026-04-29 23:22:13,044 - INFO - 127.0.0.1 - - [29/Apr/2026 23:22:13] "GET /messages/unread_count HTTP/1.1" 200 -
+2026-04-29 23:22:40,299 - INFO -  * Detected change in '/workspaces/goodgurl.gg/app.py', reloading
+2026-04-29 23:22:42,246 - INFO -  * Restarting with stat
+2026-04-29 23:22:46,585 - WARNING -  * Debugger is active!
+2026-04-29 23:22:46,586 - INFO -  * Debugger PIN: 294-247-812
+2026-04-29 23:22:46,650 - INFO - 127.0.0.1 - - [29/Apr/2026 23:22:46] "GET /messages/unread_count HTTP/1.1" 200 -
+2026-04-29 23:22:46,651 - INFO - 127.0.0.1 - - [29/Apr/2026 23:22:46] "GET /notifications/count HTTP/1.1" 200 -
+2026-04-29 23:23:12,218 - INFO - 127.0.0.1 - - [29/Apr/2026 23:23:12] "GET /messages/unread_count HTTP/1.1" 200 -
+2026-04-29 23:23:12,219 - INFO - 127.0.0.1 - - [29/Apr/2026 23:23:12] "GET /notifications/count HTTP/1.1" 200 -
+2026-04-29 23:23:13,045 - INFO - 127.0.0.1 - - [29/Apr/2026 23:23:13] "GET /messages/unread_count HTTP/1.1" 200 -
+2026-04-29 23:23:13,045 - INFO - 127.0.0.1 - - [29/Apr/2026 23:23:13] "GET /notifications/count HTTP/1.1" 200 -
+2026-04-29 23:23:41,036 - INFO -  * Detected change in '/workspaces/goodgurl.gg/app.py', reloading
+2026-04-29 23:23:41,510 - INFO -  * Restarting with stat
+2026-04-29 23:23:43,506 - WARNING -  * Debugger is active!
+2026-04-29 23:23:43,506 - INFO -  * Debugger PIN: 294-247-812
+2026-04-29 23:23:43,537 - INFO - 127.0.0.1 - - [29/Apr/2026 23:23:43] "GET /messages/unread_count HTTP/1.1" 200 -
+2026-04-29 23:23:43,542 - INFO - 127.0.0.1 - - [29/Apr/2026 23:23:43] "GET /notifications/count HTTP/1.1" 200 -

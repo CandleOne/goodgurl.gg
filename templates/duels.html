@@ -222,13 +222,19 @@ if (_pollActive) {
     const _poll = setInterval(async () => {
         if (!document.getElementById('queueOverlay')) { clearInterval(_poll); return; }
         try {
-            const r = await fetch('/api/my_active_duel');
-            if (r.ok) {
+            const r = await fetch('/api/my_active_duel', { cache: 'no-store', credentials: 'same-origin' });
+            if (r.ok && r.headers.get('content-type')?.includes('application/json')) {
                 const d = await r.json();
-                if (d.duel_id) { clearInterval(_poll); goToArena(d.duel_id); }
+                if (d.duel_id) { clearInterval(_poll); goToArena(d.duel_id); return; }
+            } else if (r.redirected || !r.ok) {
+                // Session issue or unexpected response — force a page reload which
+                // will trigger the server-side redirect to the arena if matched
+                window.location.href = '/duels';
             }
-        } catch(e) {}
-    }, 2000);
+        } catch(e) {
+            console.warn('[duel poll error]', e);
+        }
+    }, 1500);
 }
 
 // Redirect when dispatched as spectator
