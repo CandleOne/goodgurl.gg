@@ -390,6 +390,8 @@ async function startLocalCam() {
         document.getElementById(IS_CHALLENGER ? 'placeholderChallenger' : 'placeholderOpponent').style.display = 'none';
         camEnabled = true;
         micEnabled = true;
+        updateCamBtn();
+        updateMicBtn();
 
         // Now that cam is ready:
         // 1. Broadcast our presence to the room (existing members will initiate to us)
@@ -412,18 +414,43 @@ async function startLocalCam() {
     }
 }
 
-function toggleCam() {
-    if (!localStream) return;
-    localStream.getVideoTracks().forEach(t => { t.enabled = !t.enabled; });
-    camEnabled = !camEnabled;
-    document.getElementById('camIcon').className = camEnabled ? 'bi bi-camera-video' : 'bi bi-camera-video-off';
+function updateCamBtn() {
+    const btn = document.getElementById('btnCam');
+    const icon = document.getElementById('camIcon');
+    if (!btn || !icon) return;
+    icon.className = camEnabled ? 'bi bi-camera-video' : 'bi bi-camera-video-off';
+    btn.classList.toggle('btn-outline-light', !camEnabled);
+    btn.classList.toggle('btn-light', camEnabled);
 }
 
-function toggleMic() {
-    if (!localStream) return;
+function updateMicBtn() {
+    const btn = document.getElementById('btnMic');
+    const icon = document.getElementById('micIcon');
+    if (!btn || !icon) return;
+    icon.className = micEnabled ? 'bi bi-mic' : 'bi bi-mic-mute';
+    btn.classList.toggle('btn-outline-light', !micEnabled);
+    btn.classList.toggle('btn-light', micEnabled);
+}
+
+async function toggleCam() {
+    if (!localStream) {
+        // Stream not started yet — start it now
+        await startLocalCam();
+        return;
+    }
+    localStream.getVideoTracks().forEach(t => { t.enabled = !t.enabled; });
+    camEnabled = !camEnabled;
+    updateCamBtn();
+}
+
+async function toggleMic() {
+    if (!localStream) {
+        await startLocalCam();
+        return;
+    }
     localStream.getAudioTracks().forEach(t => { t.enabled = !t.enabled; });
     micEnabled = !micEnabled;
-    document.getElementById('micIcon').className = micEnabled ? 'bi bi-mic' : 'bi bi-mic-mute';
+    updateMicBtn();
 }
 
 // ─── WebRTC ───────────────────────────────────────────────────────────────────
