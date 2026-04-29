@@ -57,21 +57,15 @@ echo "Flask app is listening on port $APP_PORT."
 
 # --- Start Cloudflare Tunnel ---
 echo "Starting Cloudflare Tunnel for $TUNNEL_URL..."
-# Ensure cloudflared is installed and authenticated
 if ! command -v "$CLOUDFLARED_BIN" &> /dev/null; then
     echo "Error: cloudflared command not found. Please install it or ensure it's in your PATH."
-    echo "See: https://developers.cloudflare.com/cloudflare-one- pelanggan/connections/connect-apps/install-and-setup/installation/"
+    echo "See: https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/install-and-setup/installation/"
     echo "Killing Flask app (PID $APP_PID)."
     kill $APP_PID 2>/dev/null || true
     exit 1
 fi
 
-if ! "$CLOUDFLARED_BIN" tunnel --url "$TUNNEL_URL" > "$LOG_TUNNEL" 2>&1 &; then
-    echo "Error: Failed to start Cloudflare Tunnel."
-    echo "Check $LOG_TUNNEL for details. Killing Flask app (PID $APP_PID)."
-    kill $APP_PID 2>/dev/null || true
-    exit 1
-fi
+"$CLOUDFLARED_BIN" tunnel --url "$TUNNEL_URL" > "$LOG_TUNNEL" 2>&1 &
 TUNNEL_PID=$!
 echo "Cloudflare Tunnel started. PID: $TUNNEL_PID. Logging to $LOG_TUNNEL."
 
@@ -83,10 +77,30 @@ TUNNEL_URL_DETECTED=$(grep -o 'https://[a-z0-9-]*\.trycloudflare\.com' "$LOG_TUN
 if [ -z "$TUNNEL_URL_DETECTED" ]; then
     echo "Warning: Could not automatically detect Cloudflare Tunnel URL from logs."
     echo "Please check $LOG_TUNNEL and access your service via the dynamic URL."
-    echo "Ensure you've authenticated cloudflared: cloudflared tunnel login"
 else
-    echo "✅ Tunnel is likely live at: $TUNNEL_URL_DETECTED"
+    echo "✅ Tunnel is live at: $TUNNEL_URL_DETECTED"
     echo "   (This URL may change on restarts with the free tier)"
+
+    # --- Generate QR code ---
+    python3 - <<PYEOF
+import sys, os
+try:
+    import qrcode
+    from datetime import datetime
+    url = "$TUNNEL_URL_DETECTED"
+    qr_dir = os.path.join("$APP_DIR", "qrcodes")
+    os.makedirs(qr_dir, exist_ok=True)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    qr_path = os.path.join(qr_dir, f"cloudflare_{timestamp}.png")
+    latest  = os.path.join(qr_dir, "latest.png")
+    img = qrcode.make(url)
+    img.save(qr_path)
+    img.save(latest)
+    print(f"  QR code saved  : {qr_path}")
+    print(f"  (also saved as): {latest}")
+except Exception as e:
+    print(f"  [QR] Could not generate QR code: {e}", file=sys.stderr)
+PYEOF
 fi
 
 echo "Services running in background. To stop:"
