@@ -511,6 +511,8 @@ def feed():
     page = request.args.get("page", 1, type=int)
     tab = request.args.get("tab", "all")
 
+    muted_ids = [u.id for u in current_user.muted_users.all()] if current_user.is_authenticated else []
+
     if current_user.is_authenticated and tab == "following":
         followed_ids = [u.id for u in current_user.followed.all()]
         if followed_ids:
@@ -522,7 +524,10 @@ def feed():
     else:
         q = Post.query
 
-    q = q.order_by(Post.is_boosted.desc(), Post.created_at.desc())
+    if muted_ids:
+        q = q.filter(~Post.author_id.in_(muted_ids))
+
+    q = q.order_by(Post.is_pinned.desc(), Post.is_boosted.desc(), Post.created_at.desc())
     pagination = q.paginate(page=page, per_page=FEED_PER_PAGE, error_out=False)
 
     # Top users (by XP)
@@ -1691,12 +1696,16 @@ def search():
     q = request.args.get("q", "").strip()
     results_users = []
     results_posts = []
+    results_threads = []
     if q:
         results_users = User.query.filter(User.username.ilike(f"%{q}%")).limit(20).all()
         results_posts = Post.query.filter(
             Post.title.ilike(f"%{q}%") | Post.body.ilike(f"%{q}%")
         ).order_by(Post.created_at.desc()).limit(20).all()
-    return render_template("search.html", q=q, users=results_users, posts=results_posts)
+        results_threads = ForumThread.query.filter(
+            ForumThread.title.ilike(f"%{q}%") | ForumThread.body.ilike(f"%{q}%")
+        ).order_by(ForumThread.created_at.desc()).limit(20).all()
+    return render_template("search.html", q=q, users=results_users, posts=results_posts, threads=results_threads)
 
 
 # ---------------------------------------------------------------------------
@@ -1826,15 +1835,95 @@ def new_avatar():
 @limiter.limit("10 per minute")
 @role_required("master")
 def buy_coins():
-    amount = request.form.get("amount", 0, type=int)
-    if amount <= 0 or amount > 10000:
-        flash("Invalid amount (1-10000).", "danger")
+    # Legacy stub — now redirected to Stripe checkout
+    return redirect(url_for("checkout_coins"))
+
+
+# ---------------------------------------------------------------------------
+# Stripe Coin Checkout
+# ---------------------------------------------------------------------------
+COIN_TIERS = {
+    "100":  {"coins": 100,  "price_cents": 99,   "label": "100 coins — $0.99"},
+    "500":  {"coins": 500,  "price_cents": 399,  "label": "500 coins — $3.99"},
+    "2000": {"coins": 2000, "price_cents": 1299, "label": "2000 coins — $12.99"},
+}
+
+
+@app.route("/checkout/coins", methods=["GET", "POST"])
+@login_required
+@role_required("master")
+def checkout_coins():
+    import stripe as _stripe
+    _stripe.api_key = os.environ.get("STRIPE_SECRET_KEY", "")
+    if not _stripe.api_key:
+        flash("Payment system is not configured. Contact an admin.", "danger")
         return redirect(url_for("account"))
-    current_user.coins += amount
-    db.session.add(Transaction(user_id=current_user.id, amount=amount, description=f"Purchased {amount} coins"))
-    log_activity(current_user.id, "buy_coins", f'Purchased {amount} coins')
-    db.session.commit()
-    flash(f"Added {amount} coins to your account!", "success")
+
+    tier_key = request.form.get("tier") if request.method == "POST" else request.args.get("tier")
+    tier = COIN_TIERS.get(tier_key)
+    if not tier:
+        flash("Select a coin tier to purchase.", "info")
+        return render_template("checkout_coins.html", tiers=COIN_TIERS)
+
+    try:
+        session = _stripe.checkout.Session.create(
+            payment_method_types=["card"],
+            line_items=[{
+                "price_data": {
+                    "currency": "usd",
+                    "unit_amount": tier["price_cents"],
+                    "product_data": {"name": f"goodgurl.gg — {tier['coins']} Coins"},
+                },
+                "quantity": 1,
+            }],
+            mode="payment",
+            success_url=url_for("checkout_success", tier=tier_key, _external=True) + "&session_id={CHECKOUT_SESSION_ID}",
+            cancel_url=url_for("checkout_cancel", _external=True),
+            metadata={"user_id": str(current_user.id), "coins": str(tier["coins"])},
+        )
+        return redirect(session.url, code=303)
+    except Exception as e:
+        flash(f"Payment error: {e}", "danger")
+        return redirect(url_for("account"))
+
+
+@app.route("/checkout/success")
+@login_required
+def checkout_success():
+    import stripe as _stripe
+    _stripe.api_key = os.environ.get("STRIPE_SECRET_KEY", "")
+    tier_key = request.args.get("tier")
+    tier = COIN_TIERS.get(tier_key)
+    session_id = request.args.get("session_id", "")
+    if tier and session_id and _stripe.api_key:
+        try:
+            sess = _stripe.checkout.Session.retrieve(session_id)
+            if sess.payment_status == "paid" and str(sess.metadata.get("user_id")) == str(current_user.id):
+                # Idempotency: check if this session_id was already processed
+                existing = Transaction.query.filter_by(description=f"Stripe:{session_id}").first()
+                if not existing:
+                    current_user.coins += tier["coins"]
+                    db.session.add(Transaction(
+                        user_id=current_user.id,
+                        amount=tier["coins"],
+                        description=f"Stripe:{session_id}",
+                    ))
+                    log_activity(current_user.id, "buy_coins", f'Purchased {tier["coins"]} coins via Stripe')
+                    db.session.commit()
+                    flash(f"🎉 {tier['coins']} coins added to your wallet!", "success")
+                else:
+                    flash("This purchase was already applied.", "info")
+        except Exception as e:
+            flash(f"Could not verify payment: {e}", "danger")
+    else:
+        flash("Purchase confirmed! Coins will appear shortly.", "success")
+    return redirect(url_for("account"))
+
+
+@app.route("/checkout/cancel")
+@login_required
+def checkout_cancel():
+    flash("Purchase cancelled.", "info")
     return redirect(url_for("account"))
 
 
@@ -2118,6 +2207,63 @@ def report_thread(thread_id):
     db.session.commit()
     flash("Report submitted. A moderator will review it.", "success")
     return redirect(url_for("forum_thread", thread_id=thread_id))
+
+
+# ---------------------------------------------------------------------------
+# Post Delete / Edit (author or admin)
+# ---------------------------------------------------------------------------
+@app.route("/post/<int:post_id>/delete", methods=["POST"])
+@login_required
+def delete_post(post_id):
+    post = Post.query.get_or_404(post_id)
+    if post.author_id != current_user.id and current_user.role != "admin":
+        abort(403)
+    # Delete related records
+    Comment.query.filter_by(post_id=post.id).delete()
+    Report.query.filter_by(post_id=post.id).delete()
+    db.session.delete(post)
+    db.session.commit()
+    flash("Post deleted.", "info")
+    return redirect(url_for("feed"))
+
+
+@app.route("/post/<int:post_id>/edit", methods=["POST"])
+@login_required
+def edit_post(post_id):
+    post = Post.query.get_or_404(post_id)
+    if post.author_id != current_user.id:
+        abort(403)
+    age = (utcnow() - post.created_at).total_seconds()
+    if age > 86400:
+        flash("Posts can only be edited within 24 hours of posting.", "danger")
+        return redirect(url_for("view_post", post_id=post.id))
+    title = request.form.get("title", "").strip()
+    body = request.form.get("body", "").strip()
+    if not title or not body:
+        flash("Title and body are required.", "danger")
+        return redirect(url_for("view_post", post_id=post.id))
+    post.title = title[:200]
+    post.body = body
+    db.session.commit()
+    flash("Post updated!", "success")
+    return redirect(url_for("view_post", post_id=post.id))
+
+
+# ---------------------------------------------------------------------------
+# Comment Delete (author or admin)
+# ---------------------------------------------------------------------------
+@app.route("/post/<int:post_id>/comment/<int:comment_id>/delete", methods=["POST"])
+@login_required
+def delete_comment(post_id, comment_id):
+    comment = Comment.query.get_or_404(comment_id)
+    if comment.post_id != post_id:
+        abort(404)
+    if comment.author_id != current_user.id and current_user.role != "admin":
+        abort(403)
+    db.session.delete(comment)
+    db.session.commit()
+    flash("Comment deleted.", "info")
+    return redirect(url_for("view_post", post_id=post_id))
 
 
 # ---------------------------------------------------------------------------
@@ -2491,6 +2637,20 @@ def admin_toggle_market():
     state = "listed on" if user.listed_on_market else "removed from"
     flash(f"{user.username} has been {state} the market.", "success")
     return redirect(url_for("admin_panel"))
+
+
+@app.route("/account/toggle_market_listing", methods=["POST"])
+@login_required
+@role_required("sissy")
+def toggle_market_listing():
+    if current_user.level < 5:
+        flash("You must be level 5 to list on the market.", "danger")
+        return redirect(url_for("account"))
+    current_user.listed_on_market = not current_user.listed_on_market
+    db.session.commit()
+    state = "listed on" if current_user.listed_on_market else "removed from"
+    flash(f"You have been {state} the market.", "success")
+    return redirect(url_for("account"))
 
 
 @app.route("/admin/report/<int:report_id>/dismiss", methods=["POST"])
@@ -4142,6 +4302,20 @@ def help_page():
 def settings_page():
     return render_template("settings.html")
 
+
+@app.route("/settings/save", methods=["POST"])
+@login_required
+def settings_save():
+    theme = request.form.get("theme", "default")
+    if theme not in ("default", "pastel"):
+        theme = "default"
+    current_user.theme = theme
+    current_user.notif_email_dm = bool(request.form.get("notif_email_dm"))
+    current_user.notif_email_like = bool(request.form.get("notif_email_like"))
+    db.session.commit()
+    flash("Settings saved!", "success")
+    return redirect(url_for("settings_page"))
+
 @app.route("/legal")
 def legal_page():
     return render_template("legal.html")
@@ -4213,6 +4387,27 @@ with app.app_context():
             conn.commit()
         except Exception:
             conn.rollback()
+        # New: post is_pinned and edited_at
+        for stmt in [
+            "ALTER TABLE post ADD COLUMN is_pinned BOOLEAN DEFAULT 0",
+            "ALTER TABLE post ADD COLUMN edited_at DATETIME DEFAULT NULL",
+        ]:
+            try:
+                conn.execute(db.text(stmt))
+                conn.commit()
+            except Exception:
+                conn.rollback()
+        # New: user theme + notification prefs
+        for stmt in [
+            "ALTER TABLE user ADD COLUMN theme VARCHAR(32) DEFAULT 'default'",
+            "ALTER TABLE user ADD COLUMN notif_email_dm BOOLEAN DEFAULT 0",
+            "ALTER TABLE user ADD COLUMN notif_email_like BOOLEAN DEFAULT 0",
+        ]:
+            try:
+                conn.execute(db.text(stmt))
+                conn.commit()
+            except Exception:
+                conn.rollback()
     seed_data()
     seed_shop_items()
     seed_academy_lessons()
@@ -4761,6 +4956,161 @@ def share_stats_card():
         mimetype="image/png",
         headers=headers,
     )
+
+
+# ---------------------------------------------------------------------------
+# Admin: Unban User
+# ---------------------------------------------------------------------------
+@app.route("/admin/unban_user/<int:user_id>", methods=["POST"])
+@login_required
+@admin_required
+def admin_unban_user(user_id):
+    user = db.session.get(User, user_id)
+    if user:
+        user.is_banned = False
+        if user.bio and user.bio.startswith("[BANNED] "):
+            user.bio = user.bio[len("[BANNED] "):]
+        db.session.commit()
+        flash(f"User {user.username} unbanned.", "success")
+    return redirect(url_for("admin_panel"))
+
+
+# ---------------------------------------------------------------------------
+# Admin: Delete User (cascade)
+# ---------------------------------------------------------------------------
+@app.route("/admin/delete_user/<int:user_id>", methods=["POST"])
+@login_required
+@admin_required
+def admin_delete_user(user_id):
+    user = db.session.get(User, user_id)
+    if not user or user.role == "admin":
+        flash("Cannot delete this user.", "danger")
+        return redirect(url_for("admin_panel"))
+    uid = user.id
+    try:
+        Comment.query.filter_by(author_id=uid).delete(synchronize_session=False)
+        Report.query.filter_by(reporter_id=uid).delete(synchronize_session=False)
+        Notification.query.filter_by(user_id=uid).delete(synchronize_session=False)
+        Transaction.query.filter_by(user_id=uid).delete(synchronize_session=False)
+        Message.query.filter(db.or_(Message.sender_id == uid, Message.recipient_id == uid)).delete(synchronize_session=False)
+        Task.query.filter(db.or_(Task.creator_id == uid, Task.assignee_id == uid)).delete(synchronize_session=False)
+        Post.query.filter_by(author_id=uid).delete(synchronize_session=False)
+        Investment.query.filter(db.or_(Investment.investor_id == uid, Investment.sissy_id == uid)).delete(synchronize_session=False)
+        ForumThread.query.filter_by(author_id=uid).delete(synchronize_session=False)
+        db.session.delete(user)
+        db.session.commit()
+        flash(f"User {uid} deleted.", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Error deleting user: {e}", "danger")
+    return redirect(url_for("admin_panel"))
+
+
+# ---------------------------------------------------------------------------
+# Admin: Clear Duel Queue (flush stale entries)
+# ---------------------------------------------------------------------------
+@app.route("/admin/clear_duel_queue", methods=["POST"])
+@login_required
+@admin_required
+def admin_clear_duel_queue():
+    count = DuelQueue.query.delete()
+    db.session.commit()
+    flash(f"Duel queue cleared ({count} entries removed).", "info")
+    return redirect(url_for("admin_panel"))
+
+
+# ---------------------------------------------------------------------------
+# Admin: Pin / Unpin Post
+# ---------------------------------------------------------------------------
+@app.route("/admin/pin_post/<int:post_id>", methods=["POST"])
+@login_required
+@admin_required
+def admin_pin_post(post_id):
+    post = Post.query.get_or_404(post_id)
+    post.is_pinned = not getattr(post, "is_pinned", False)
+    db.session.commit()
+    state = "pinned" if post.is_pinned else "unpinned"
+    flash(f"Post {state}.", "success")
+    return redirect(request.referrer or url_for("feed"))
+
+
+# ---------------------------------------------------------------------------
+# Admin: Leaderboard Stats API
+# ---------------------------------------------------------------------------
+@app.route("/admin/leaderboard_stats")
+@login_required
+@admin_required
+def admin_leaderboard_stats():
+    top = User.query.order_by(User.xp.desc()).limit(10).all()
+    return jsonify([
+        {"username": u.username, "xp": u.xp, "level": u.level, "rank": u.rank}
+        for u in top
+    ])
+
+
+# ---------------------------------------------------------------------------
+# Mute / Unmute User
+# ---------------------------------------------------------------------------
+@app.route("/mute/<string:username>", methods=["POST"])
+@login_required
+def mute_user(username):
+    user = User.query.filter_by(username=username).first_or_404()
+    if user.id == current_user.id:
+        flash("You can't mute yourself.", "warning")
+        return redirect(url_for("profile", username=username))
+    if not current_user.is_muting(user):
+        current_user.muted_users.append(user)
+        db.session.commit()
+        flash(f"Muted {user.username}. Their posts won't appear in your feed.", "info")
+    else:
+        flash(f"Already muting {user.username}.", "info")
+    return redirect(url_for("profile", username=username))
+
+
+@app.route("/unmute/<string:username>", methods=["POST"])
+@login_required
+def unmute_user(username):
+    user = User.query.filter_by(username=username).first_or_404()
+    if current_user.is_muting(user):
+        current_user.muted_users.remove(user)
+        db.session.commit()
+        flash(f"Unmuted {user.username}.", "success")
+    return redirect(url_for("profile", username=username))
+
+
+# ---------------------------------------------------------------------------
+# Notifications: Mark individual as read
+# ---------------------------------------------------------------------------
+@app.route("/notifications/<int:notif_id>/read", methods=["POST"])
+@login_required
+def mark_notification_read(notif_id):
+    notif = Notification.query.get_or_404(notif_id)
+    if notif.user_id != current_user.id:
+        abort(403)
+    notif.is_read = True
+    db.session.commit()
+    return redirect(request.referrer or url_for("notifications"))
+
+
+# ---------------------------------------------------------------------------
+# API: User Search (typeahead)
+# ---------------------------------------------------------------------------
+@app.route("/api/users/search")
+@login_required
+def api_user_search():
+    q = request.args.get("q", "").strip()
+    if not q or len(q) < 2:
+        return jsonify([])
+    users = User.query.filter(User.username.ilike(f"%{q}%")).limit(10).all()
+    return jsonify([
+        {
+            "username": u.username,
+            "avatar_url": u.avatar_url or url_for("static", filename="avatars/default.png"),
+            "rank": u.rank,
+            "level": u.level,
+        }
+        for u in users
+    ])
 
 
 if __name__ == "__main__":

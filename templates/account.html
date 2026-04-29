@@ -70,6 +70,18 @@
                     <div class="fs-4 fw-bold text-success">{{ current_user.market_value }}</div>
                     <small class="text-muted">Market Value</small>
                 </div>
+                {% if current_user.fp %}
+                <div>
+                    <div class="fs-4 fw-bold" style="color:#ff4da6">{{ current_user.fp }}</div>
+                    <small class="text-muted">FP</small>
+                </div>
+                {% endif %}
+                {% if current_user.bp %}
+                <div>
+                    <div class="fs-4 fw-bold text-purple">{{ current_user.bp }}</div>
+                    <small class="text-muted">BP</small>
+                </div>
+                {% endif %}
                 {% endif %}
             </div>
 
@@ -89,11 +101,28 @@
 
             {% if current_user.role == 'master' %}
             <hr>
-            <h6>Buy Coins <small class="text-muted">(PoC – instant)</small></h6>
-            <form method="POST" action="{{ url_for('buy_coins') }}" class="d-flex gap-2">
-                <input type="number" name="amount" class="form-control" min="1" max="10000" placeholder="Amount" required>
-                <button class="btn btn-warning">Buy</button>
+            <h6><i class="bi bi-coin text-warning"></i> Buy Coins</h6>
+            <div class="d-flex flex-column gap-2">
+                <a href="{{ url_for('checkout_coins', tier='100') }}" class="btn btn-outline-warning btn-sm">💰 100 coins — $0.99</a>
+                <a href="{{ url_for('checkout_coins', tier='500') }}" class="btn btn-outline-warning btn-sm">💰 500 coins — $3.99</a>
+                <a href="{{ url_for('checkout_coins', tier='2000') }}" class="btn btn-warning btn-sm">💰 2000 coins — $12.99 <span class="badge bg-danger ms-1">Best Value</span></a>
+            </div>
+            {% endif %}
+
+            {% if current_user.role == 'sissy' and current_user.level >= 5 %}
+            <hr>
+            <h6><i class="bi bi-graph-up text-success"></i> Market Listing</h6>
+            {% if current_user.listed_on_market %}
+            <p class="text-muted small mb-2">You are currently listed on the market.</p>
+            <form method="POST" action="{{ url_for('toggle_market_listing') }}">
+                <button class="btn btn-outline-danger btn-sm w-100">Remove Me from Market</button>
             </form>
+            {% else %}
+            <p class="text-muted small mb-2">List yourself on the sissy market at level 5+.</p>
+            <form method="POST" action="{{ url_for('toggle_market_listing') }}">
+                <button class="btn btn-outline-success btn-sm w-100">List Me on Market</button>
+            </form>
+            {% endif %}
             {% endif %}
 
             <!-- Followers / Following -->

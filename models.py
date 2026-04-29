@@ -58,6 +58,12 @@ blocked_users = db.Table(
     db.Column("blocked_id", db.Integer, db.ForeignKey("user.id"), primary_key=True),
 )
 
+muted_users_table = db.Table(
+    "muted_users",
+    db.Column("muter_id", db.Integer, db.ForeignKey("user.id"), primary_key=True),
+    db.Column("muted_id", db.Integer, db.ForeignKey("user.id"), primary_key=True),
+)
+
 
 # ---------------------------------------------------------------------------
 # User
@@ -93,6 +99,9 @@ class User(UserMixin, db.Model):
     social_onlyfans = db.Column(db.String(120), nullable=True, default=None)
     social_reddit    = db.Column(db.String(120), nullable=True, default=None)
     social_x         = db.Column(db.String(120), nullable=True, default=None)
+    theme            = db.Column(db.String(32), default="default")
+    notif_email_dm   = db.Column(db.Boolean, default=False)
+    notif_email_like = db.Column(db.Boolean, default=False)
 
     @property
     def social_urls(self):
@@ -387,6 +396,8 @@ class Post(db.Model):
     media_url = db.Column(db.String(512), default="")
     created_at = db.Column(db.DateTime, default=utcnow, index=True)
     is_boosted = db.Column(db.Boolean, default=False)
+    is_pinned = db.Column(db.Boolean, default=False)
+    edited_at = db.Column(db.DateTime, nullable=True, default=None)
     tags = db.relationship("Tag", secondary=post_tags, backref="posts", lazy="dynamic")
     media_items = db.relationship("PostMedia", backref="post", lazy="select", order_by="PostMedia.position")
 
@@ -717,6 +728,20 @@ User.blocked = db.relationship(
     secondaryjoin=(blocked_users.c.blocked_id == User.id),
     backref=db.backref("blocked_by", lazy="dynamic"), lazy="dynamic"
 )
+
+User.muted_users = db.relationship(
+    "User", secondary=muted_users_table,
+    primaryjoin=(muted_users_table.c.muter_id == User.id),
+    secondaryjoin=(muted_users_table.c.muted_id == User.id),
+    backref=db.backref("muted_by", lazy="dynamic"), lazy="dynamic"
+)
+
+
+def _is_muting(self, user):
+    return self.muted_users.filter(muted_users_table.c.muted_id == user.id).count() > 0
+
+
+User.is_muting = _is_muting
 
 
 # ---------------------------------------------------------------------------

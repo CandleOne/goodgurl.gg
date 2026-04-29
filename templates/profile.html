@@ -34,6 +34,18 @@
                     <div class="fw-bold text-success fs-5">{{ user.market_value }}</div>
                     <small class="text-muted">Value</small>
                 </div>
+                {% if user.fp %}
+                <div>
+                    <div class="fw-bold fs-5" style="color:#ff4da6">{{ user.fp }}</div>
+                    <small class="text-muted">FP</small>
+                </div>
+                {% endif %}
+                {% if user.bp %}
+                <div>
+                    <div class="fw-bold text-purple fs-5">{{ user.bp }}</div>
+                    <small class="text-muted">BP</small>
+                </div>
+                {% endif %}
             </div>
             {% if login_streak %}
             <div class="mt-2">
@@ -128,6 +140,15 @@
                 {% else %}
                 <form method="POST" action="{{ url_for('block_user', username=user.username) }}">
                     <button class="btn btn-sm btn-outline-danger" onclick="return confirm('Block this user? They won\'t be able to message you.')"><i class="bi bi-slash-circle"></i> Block</button>
+                </form>
+                {% endif %}
+                {% if current_user.is_muting(user) %}
+                <form method="POST" action="{{ url_for('unmute_user', username=user.username) }}">
+                    <button class="btn btn-sm btn-outline-secondary"><i class="bi bi-volume-mute"></i> Unmute</button>
+                </form>
+                {% else %}
+                <form method="POST" action="{{ url_for('mute_user', username=user.username) }}">
+                    <button class="btn btn-sm btn-outline-secondary"><i class="bi bi-volume-mute-fill"></i> Mute</button>
                 </form>
                 {% endif %}
             </div>

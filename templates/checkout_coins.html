@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Buy Coins – goodgurl.gg{% endblock %}
+{% block content %}
+<div class="container py-5" style="max-width:480px;">
+    <h2 class="mb-4 text-center"><i class="bi bi-coin text-warning"></i> Buy Coins</h2>
+    <p class="text-muted text-center mb-4">Choose a coin bundle. Payment is processed securely via Stripe.</p>
+    <div class="d-flex flex-column gap-3">
+        {% for key, tier in tiers.items() %}
+        <form method="POST" action="{{ url_for('checkout_coins') }}">
+            <input type="hidden" name="tier" value="{{ key }}">
+            <button type="submit" class="btn btn-outline-warning w-100 py-3 text-start" style="font-size:1.1rem;">
+                <i class="bi bi-coin text-warning me-2"></i>
+                <strong>{{ tier.coins }} Coins</strong>
+                <span class="ms-2 text-muted">${'%0.2f' % (tier.price_cents / 100)}</span>
+                {% if key == '2000' %}<span class="badge bg-danger ms-2">Best Value</span>{% endif %}
+            </button>
+        </form>
+        {% endfor %}
+    </div>
+    <p class="text-muted text-center mt-4 small">
+        <i class="bi bi-lock-fill"></i> Payments are secured by <a href="https://stripe.com" target="_blank" rel="noopener" class="text-muted">Stripe</a>.
+        Coins are added instantly after payment.
+    </p>
+    <div class="text-center mt-2">
+        <a href="{{ url_for('account') }}" class="btn btn-outline-light btn-sm">← Back to Account</a>
+    </div>
+</div>
+{% endblock %}

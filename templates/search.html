@@ -38,7 +38,7 @@
 
 <h5>Posts</h5>
 {% if posts %}
-<div class="row g-3">
+<div class="row g-3 mb-4">
     {% for post in posts %}
     <div class="col-md-6">
         <div class="card glass-card p-3">
@@ -50,7 +50,24 @@
     {% endfor %}
 </div>
 {% else %}
-<p class="text-muted">No posts found.</p>
+<p class="text-muted mb-4">No posts found.</p>
+{% endif %}
+
+<h5>Forum Threads</h5>
+{% if threads %}
+<div class="row g-3">
+    {% for thread in threads %}
+    <div class="col-md-6">
+        <div class="card glass-card p-3">
+            <h6><a href="{{ url_for('forum_thread', thread_id=thread.id) }}" class="text-decoration-none">{{ thread.title }}</a></h6>
+            <p class="text-muted small mb-1">{{ thread.body[:100] }}{% if thread.body|length > 100 %}…{% endif %}</p>
+            <small class="text-muted">by {{ thread.author.username }} &middot; {{ thread.created_at.strftime('%b %d') }}</small>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<p class="text-muted">No forum threads found.</p>
 {% endif %}
 {% endif %}
 {% endblock %}

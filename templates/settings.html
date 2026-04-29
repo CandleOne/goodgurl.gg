@@ -1,55 +1,53 @@
 {% extends "base.html" %}
 {% block title %}Settings – goodgurl.gg{% endblock %}
 {% block content %}
-<div class="container py-4">
-    <h2 class="mb-4">Theme Settings</h2>
-    <form id="themeForm">
-        <div class="mb-3">
-            <label for="themeSelect" class="form-label">Choose a color theme:</label>
-            <select class="form-select" id="themeSelect" name="theme">
-                <option value="default">Default (Neon)</option>
-                <option value="pastel">Pastel Pink & Blue</option>
-            </select>
+<div class="container py-4" style="max-width:600px;">
+    <h2 class="mb-4">Settings</h2>
+    <form method="POST" action="{{ url_for('settings_save') }}" id="settingsForm">
+        <div class="card mb-4" style="background:rgba(255,255,255,0.04); border:1px solid rgba(168,85,247,.25);">
+            <div class="card-body">
+                <h5 class="mb-3"><i class="bi bi-palette text-purple"></i> Theme</h5>
+                <div class="mb-3">
+                    <label for="themeSelect" class="form-label">Color theme</label>
+                    <select class="form-select" id="themeSelect" name="theme">
+                        <option value="default" {% if current_user.theme == 'default' %}selected{% endif %}>Default (Neon)</option>
+                        <option value="pastel" {% if current_user.theme == 'pastel' %}selected{% endif %}>Pastel Pink & Blue</option>
+                    </select>
+                </div>
+            </div>
         </div>
-        <button type="submit" class="btn btn-pink">Save Theme</button>
+        <div class="card mb-4" style="background:rgba(255,255,255,0.04); border:1px solid rgba(168,85,247,.25);">
+            <div class="card-body">
+                <h5 class="mb-3"><i class="bi bi-bell text-pink"></i> Notifications</h5>
+                <div class="form-check form-switch mb-2">
+                    <input class="form-check-input" type="checkbox" id="notifDm" name="notif_email_dm" value="1"
+                        {% if current_user.notif_email_dm %}checked{% endif %}>
+                    <label class="form-check-label" for="notifDm">Email me when I get a direct message</label>
+                </div>
+                <div class="form-check form-switch mb-2">
+                    <input class="form-check-input" type="checkbox" id="notifLike" name="notif_email_like" value="1"
+                        {% if current_user.notif_email_like %}checked{% endif %}>
+                    <label class="form-check-label" for="notifLike">Email me when someone likes my post</label>
+                </div>
+            </div>
+        </div>
+        <button type="submit" class="btn btn-pink w-100">Save Settings</button>
     </form>
 </div>
 <script>
-// Theme palette CSS variables
 const palettes = {
-    default: {
-        '--pink': '#ff4da6',
-        '--pink-dark': '#cc3d85',
-        '--purple': '#a855f7',
-        '--gold': '#fbbf24',
-    },
-    pastel: {
-        '--pink': '#FFCCDE',
-        '--pink-dark': '#FF8EB7',
-        '--purple': '#E04582',
-        '--gold': '#BADFFF',
-        '--blue': '#7FC3FF',
-    }
+    default: { '--pink': '#ff4da6', '--pink-dark': '#cc3d85', '--purple': '#a855f7', '--gold': '#fbbf24' },
+    pastel:  { '--pink': '#FFCCDE', '--pink-dark': '#FF8EB7', '--purple': '#E04582', '--gold': '#BADFFF', '--blue': '#7FC3FF' }
 };
-
 function setTheme(theme) {
     const root = document.documentElement;
     const palette = palettes[theme] || palettes.default;
-    for (const [key, value] of Object.entries(palette)) {
-        root.style.setProperty(key, value);
-    }
+    for (const [key, value] of Object.entries(palette)) root.style.setProperty(key, value);
     localStorage.setItem('theme', theme);
 }
-
-document.getElementById('themeForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    const theme = document.getElementById('themeSelect').value;
-    setTheme(theme);
-});
-
+document.getElementById('themeSelect').addEventListener('change', function() { setTheme(this.value); });
 window.addEventListener('DOMContentLoaded', function() {
-    const saved = localStorage.getItem('theme') || 'default';
-    document.getElementById('themeSelect').value = saved;
+    const saved = document.getElementById('themeSelect').value || localStorage.getItem('theme') || 'default';
     setTheme(saved);
 });
 </script>
