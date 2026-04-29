@@ -42,7 +42,7 @@ from models import (
     ForumCategory, ForumThread, ForumReply, Report,
     DailyChallenge, UserDailyChallenge, ShopItem, UserPurchase, UserPowerup,
     Lesson, LessonProgress, JournalEntry, JournalPhoto, PostMedia,
-    HypnoChainWatch, Duel, DuelQueue, DuelSpectator, DuelSpectatorQueue, DUEL_ACTIVITIES,
+    HypnoChainWatch, Duel, DuelQueue, DuelSpectator, DuelSpectatorQueue, DuelChat, DUEL_ACTIVITIES,
     likes_table, post_tags, followers_table, blocked_users,
 )
 from helpers import (
@@ -3369,7 +3369,7 @@ _voting_start_times: dict = {}
 
 
 def _do_finish_duel(duel):
-    """Resolve winner, mark finished, award prizes. Commits to DB. Idempotent."""
+    """Resolve winner, mark finished, award prizes + stats + notifications. Commits to DB. Idempotent."""
     if duel.status == "finished":
         return
     from constants import utcnow as _now
@@ -3378,15 +3378,76 @@ def _do_finish_duel(duel):
         duel.winner_id = duel.challenger_id
     elif duel.opponent_votes > duel.challenger_votes:
         duel.winner_id = duel.opponent_id
+    # tie → no winner_id
     duel.status = "finished"
     db.session.commit()
+
+    act = duel.activity
+    act_name = act["name"] if act else "Duel"
+
+    challenger = User.query.get(duel.challenger_id)
+    opponent = User.query.get(duel.opponent_id) if duel.opponent_id else None
+
     if duel.winner_id:
-        winner = User.query.get(duel.winner_id)
+        winner_id = duel.winner_id
+        loser_id = duel.opponent_id if winner_id == duel.challenger_id else duel.challenger_id
+        winner = User.query.get(winner_id)
+        loser = User.query.get(loser_id) if loser_id else None
+
         if winner:
-            winner.add_points(50, reason="Duel victory")
+            winner.duel_wins = (winner.duel_wins or 0) + 1
+            winner.add_points(50, reason=f"Duel victory: {act_name}")
             winner.coins += 25
-            db.session.commit()
+            db.session.add(Transaction(user_id=winner.id, amount=25, description=f"Duel victory: {act_name}"))
+            notify(winner.id, "duel",
+                   f"🏆 You won the {act_name} duel! +50 XP, +25 coins",
+                   url_for("duel_arena", duel_id=duel.id))
+
+        if loser:
+            loser.duel_losses = (loser.duel_losses or 0) + 1
+            loser.add_points(10, reason=f"Duel participation: {act_name}")
+            notify(loser.id, "duel",
+                   f"You lost the {act_name} duel — but earned +10 XP for competing!",
+                   url_for("duel_arena", duel_id=duel.id))
+    else:
+        # Tie — both get participation XP
+        for user in [challenger, opponent]:
+            if user:
+                user.duel_wins = (user.duel_wins or 0)   # no change to wins
+                user.add_points(20, reason=f"Duel tie: {act_name}")
+                notify(user.id, "duel",
+                       f"Your {act_name} duel ended in a tie! +20 XP",
+                       url_for("duel_arena", duel_id=duel.id))
+
+    # Check duel achievements
+    for user in [challenger, opponent]:
+        if user:
+            wins = user.duel_wins or 0
+            _check_duel_achievements(user, wins)
+
+    db.session.commit()
     _voting_start_times.pop(duel.id, None)
+
+
+def _check_duel_achievements(user, wins):
+    """Award duel-based achievements."""
+    milestones = {
+        1:  ("First Duel Win", "Win your first duel", "bi-trophy", 30),
+        5:  ("Duel Veteran", "Win 5 duels", "bi-trophy-fill", 75),
+        25: ("Duel Champion", "Win 25 duels", "bi-award", 200),
+    }
+    for threshold, (name, desc, icon, xp) in milestones.items():
+        if wins >= threshold:
+            existing_ach = Achievement.query.filter_by(name=name).first()
+            if not existing_ach:
+                existing_ach = Achievement(name=name, description=desc, icon=icon, xp_reward=xp)
+                db.session.add(existing_ach)
+                db.session.flush()
+            already = UserAchievement.query.filter_by(user_id=user.id, achievement_id=existing_ach.id).first()
+            if not already:
+                db.session.add(UserAchievement(user_id=user.id, achievement_id=existing_ach.id))
+                user.add_points(xp, reason=f"Achievement: {name}")
+                notify(user.id, "achievement", f"🏅 Achievement unlocked: {name}!")
 
 
 def _auto_end_voting(duel_id):
@@ -3581,23 +3642,41 @@ def duel_leave(duel_id):
 @app.route("/duels/queue/join", methods=["POST"])
 @login_required
 def duel_queue_join():
+    # Purge stale queue entries (>10 min old) before doing anything
+    _purge_stale_queue()
+
     activity_id = request.form.get("activity_id", type=int)
     if not activity_id or not any(a["id"] == activity_id for a in DUEL_ACTIVITIES):
         flash("Invalid activity.", "danger")
         return redirect(url_for("duels"))
+
+    VALID_DURATIONS = {30: "30s", 60: "1 min", 120: "2 min", 180: "3 min", 300: "5 min"}
+    duration = request.form.get("duration", 180, type=int)
+    if duration not in VALID_DURATIONS:
+        duration = 180
 
     # Remove any existing queue entry
     existing = DuelQueue.query.filter_by(user_id=current_user.id).first()
     if existing:
         db.session.delete(existing)
 
-    entry = DuelQueue(user_id=current_user.id, activity_id=activity_id)
+    entry = DuelQueue(user_id=current_user.id, activity_id=activity_id, duration_seconds=duration)
     db.session.add(entry)
     db.session.commit()
 
     # Try to match with another queued user for the same activity
     _try_matchmake(activity_id, current_user.id)
     return redirect(url_for("duels"))
+
+
+def _purge_stale_queue():
+    """Remove queue entries older than 10 minutes to prevent ghost matches."""
+    cutoff = utcnow() - timedelta(minutes=10)
+    stale = DuelQueue.query.filter(DuelQueue.joined_at < cutoff).all()
+    for s in stale:
+        db.session.delete(s)
+    if stale:
+        db.session.commit()
 
 
 @app.route("/duels/queue/leave", methods=["POST"])

@@ -102,6 +102,8 @@ class User(UserMixin, db.Model):
     theme            = db.Column(db.String(32), default="default")
     notif_email_dm   = db.Column(db.Boolean, default=False)
     notif_email_like = db.Column(db.Boolean, default=False)
+    duel_wins        = db.Column(db.Integer, default=0)
+    duel_losses      = db.Column(db.Integer, default=0)
 
     @property
     def social_urls(self):
@@ -904,6 +906,7 @@ class DuelQueue(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False, unique=True, index=True)
     activity_id = db.Column(db.Integer, nullable=False)
+    duration_seconds = db.Column(db.Integer, default=180)
     joined_at = db.Column(db.DateTime, default=utcnow)
     user = db.relationship("User", backref=db.backref("duel_queue_entry", uselist=False))
 
@@ -928,3 +931,15 @@ class DuelSpectatorQueue(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False, unique=True, index=True)
     joined_at = db.Column(db.DateTime, default=utcnow)
     user = db.relationship("User", backref=db.backref("spectator_queue_entry", uselist=False))
+
+
+class DuelChat(db.Model):
+    """Real-time chat messages sent during a duel (spectators + participants)."""
+    __tablename__ = "duel_chat"
+    id = db.Column(db.Integer, primary_key=True)
+    duel_id = db.Column(db.Integer, db.ForeignKey("duel.id"), nullable=False, index=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    body = db.Column(db.String(280), nullable=False)
+    created_at = db.Column(db.DateTime, default=utcnow)
+    user = db.relationship("User", backref=db.backref("duel_chat_messages", lazy="dynamic"))
+    duel = db.relationship("Duel", backref=db.backref("chat_messages", lazy="dynamic"))
