@@ -115,8 +115,17 @@
                                         </td>
                                         <td>
                                             {% if user.role != 'admin' %}
+                                            {% if user.is_banned %}
+                                            <form method="POST" action="{{ url_for('admin_unban_user', user_id=user.id) }}" class="d-inline">
+                                                <button class="btn btn-sm btn-outline-success" onclick="return confirm('Unban this user?')" title="Unban"><i class="bi bi-check-circle"></i></button>
+                                            </form>
+                                            {% else %}
                                             <form method="POST" action="{{ url_for('admin_ban_user', user_id=user.id) }}" class="d-inline">
                                                 <button class="btn btn-sm btn-outline-danger" onclick="return confirm('Ban this user?')" title="Ban"><i class="bi bi-ban"></i></button>
+                                            </form>
+                                            {% endif %}
+                                            <form method="POST" action="{{ url_for('admin_delete_user', user_id=user.id) }}" class="d-inline ms-1">
+                                                <button class="btn btn-sm btn-danger" onclick="return confirm('PERMANENTLY delete this user and all their data? This cannot be undone.')" title="Delete User"><i class="bi bi-trash3"></i></button>
                                             </form>
                                             {% endif %}
                                             <form method="POST" action="{{ url_for('admin_rankup') }}" class="d-inline ms-1">

@@ -11,6 +11,24 @@
             </h4>
         </div>
 
+        {% if pagination and pagination.pages > 1 %}
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <small class="text-muted">Page {{ page }} of {{ pagination.pages }}</small>
+            <div class="d-flex gap-2">
+                {% if pagination.has_next %}
+                <a href="{{ url_for('message_thread', username=partner.username, page=page+1) }}" class="btn btn-sm btn-outline-light">
+                    <i class="bi bi-arrow-up"></i> Older
+                </a>
+                {% endif %}
+                {% if pagination.has_prev %}
+                <a href="{{ url_for('message_thread', username=partner.username, page=page-1) }}" class="btn btn-sm btn-outline-light">
+                    <i class="bi bi-arrow-down"></i> Newer
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
         <div class="card glass-card p-3 mb-3" style="max-height: 500px; overflow-y: auto;" id="message-list">
             {% if not messages %}
             <p class="text-muted text-center">Start the conversation!</p>

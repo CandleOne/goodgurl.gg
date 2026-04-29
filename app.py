@@ -1927,6 +1927,57 @@ def checkout_cancel():
     return redirect(url_for("account"))
 
 
+# ---------------------------------------------------------------------------
+# Stripe Webhook — reliable fulfillment (fires even if user closes tab)
+# ---------------------------------------------------------------------------
+@app.route("/checkout/stripe_webhook", methods=["POST"])
+@csrf.exempt
+def stripe_webhook():
+    import stripe as _stripe
+    _stripe.api_key = os.environ.get("STRIPE_SECRET_KEY", "")
+    webhook_secret = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
+    payload = request.get_data(as_text=True)
+    sig_header = request.headers.get("Stripe-Signature", "")
+
+    try:
+        if webhook_secret:
+            event = _stripe.Webhook.construct_event(payload, sig_header, webhook_secret)
+        else:
+            event = _stripe.Event.construct_from(
+                __import__("json").loads(payload), _stripe.api_key
+            )
+    except Exception as e:
+        app.logger.warning("Stripe webhook error: %s", e)
+        return jsonify({"error": str(e)}), 400
+
+    if event["type"] == "checkout.session.completed":
+        sess = event["data"]["object"]
+        if sess.get("payment_status") == "paid":
+            session_id = sess["id"]
+            metadata = sess.get("metadata", {})
+            user_id = metadata.get("user_id")
+            coins = metadata.get("coins")
+            if user_id and coins:
+                try:
+                    existing = Transaction.query.filter_by(description=f"Stripe:{session_id}").first()
+                    if not existing:
+                        user = db.session.get(User, int(user_id))
+                        if user:
+                            user.coins += int(coins)
+                            db.session.add(Transaction(
+                                user_id=user.id,
+                                amount=int(coins),
+                                description=f"Stripe:{session_id}",
+                            ))
+                            log_activity(user.id, "buy_coins", f"Purchased {coins} coins via Stripe (webhook)")
+                            db.session.commit()
+                except Exception as e:
+                    db.session.rollback()
+                    app.logger.error("Stripe webhook fulfillment error: %s", e)
+
+    return jsonify({"status": "ok"}), 200
+
+
 @app.route("/account/change-password", methods=["POST"])
 @login_required
 def change_password():
@@ -1971,9 +2022,50 @@ def delete_account():
         flash("Incorrect password. Account not deleted.", "danger")
         return redirect(url_for("account"))
     user = current_user._get_current_object()
+    uid = user.id
     logout_user()
-    db.session.delete(user)
-    db.session.commit()
+    try:
+        # Clean up posts (media + likes + tags)
+        user_posts = Post.query.filter_by(author_id=uid).all()
+        for p in user_posts:
+            PostMedia.query.filter_by(post_id=p.id).delete(synchronize_session=False)
+            Comment.query.filter_by(post_id=p.id).delete(synchronize_session=False)
+            Report.query.filter_by(post_id=p.id).delete(synchronize_session=False)
+            p.liked_by = []
+            p.tags = []
+        db.session.flush()
+        Post.query.filter_by(author_id=uid).delete(synchronize_session=False)
+        # Forum
+        ForumReply.query.filter_by(author_id=uid).delete(synchronize_session=False)
+        user_threads = ForumThread.query.filter_by(author_id=uid).all()
+        for t in user_threads:
+            ForumReply.query.filter_by(thread_id=t.id).delete(synchronize_session=False)
+        ForumThread.query.filter_by(author_id=uid).delete(synchronize_session=False)
+        # User-scoped records
+        Comment.query.filter_by(author_id=uid).delete(synchronize_session=False)
+        Report.query.filter_by(reporter_id=uid).delete(synchronize_session=False)
+        Notification.query.filter_by(user_id=uid).delete(synchronize_session=False)
+        Transaction.query.filter_by(user_id=uid).delete(synchronize_session=False)
+        Message.query.filter(db.or_(Message.sender_id == uid, Message.recipient_id == uid)).delete(synchronize_session=False)
+        Task.query.filter(db.or_(Task.creator_id == uid, Task.assignee_id == uid)).delete(synchronize_session=False)
+        Investment.query.filter(db.or_(Investment.investor_id == uid, Investment.sissy_id == uid)).delete(synchronize_session=False)
+        Activity.query.filter_by(user_id=uid).delete(synchronize_session=False)
+        Streak.query.filter_by(user_id=uid).delete(synchronize_session=False)
+        StreakHistory.query.filter_by(user_id=uid).delete(synchronize_session=False)
+        XPAudit.query.filter_by(user_id=uid).delete(synchronize_session=False)
+        UserAchievement.query.filter_by(user_id=uid).delete(synchronize_session=False)
+        LessonProgress.query.filter_by(user_id=uid).delete(synchronize_session=False)
+        UserDailyChallenge.query.filter_by(user_id=uid).delete(synchronize_session=False)
+        UserPurchase.query.filter_by(user_id=uid).delete(synchronize_session=False)
+        UserPowerup.query.filter_by(user_id=uid).delete(synchronize_session=False)
+        JournalEntry.query.filter_by(user_id=uid).delete(synchronize_session=False)
+        DuelQueue.query.filter_by(user_id=uid).delete(synchronize_session=False)
+        Duel.query.filter(db.or_(Duel.challenger_id == uid, Duel.challenged_id == uid)).delete(synchronize_session=False)
+        db.session.delete(user)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error("delete_account cascade error: %s", e)
     flash("Your account has been permanently deleted.", "info")
     return redirect(url_for("feed"))
 
@@ -2159,13 +2251,17 @@ def message_thread(username):
     Message.query.filter_by(sender_id=partner.id, recipient_id=current_user.id, is_read=False).update({"is_read": True})
     db.session.commit()
 
-    msgs = Message.query.filter(
+    page = request.args.get("page", 1, type=int)
+    per_page = 50
+    pagination = Message.query.filter(
         db.or_(
             db.and_(Message.sender_id == current_user.id, Message.recipient_id == partner.id),
             db.and_(Message.sender_id == partner.id, Message.recipient_id == current_user.id),
         )
-    ).order_by(Message.created_at.asc()).limit(100).all()
-    return render_template("message_thread.html", partner=partner, messages=msgs)
+    ).order_by(Message.created_at.desc()).paginate(page=page, per_page=per_page, error_out=False)
+    msgs = list(reversed(pagination.items))
+    return render_template("message_thread.html", partner=partner, messages=msgs,
+                           pagination=pagination, page=page)
 
 
 # ---------------------------------------------------------------------------
@@ -2207,6 +2303,25 @@ def report_thread(thread_id):
     db.session.commit()
     flash("Report submitted. A moderator will review it.", "success")
     return redirect(url_for("forum_thread", thread_id=thread_id))
+
+
+@app.route("/report/comment/<int:comment_id>", methods=["POST"])
+@login_required
+@limiter.limit("10 per minute")
+def report_comment(comment_id):
+    comment = Comment.query.get_or_404(comment_id)
+    reason = request.form.get("reason", "").strip()
+    if not reason:
+        flash("Please provide a reason for reporting.", "danger")
+        return redirect(url_for("view_post", post_id=comment.post_id))
+    existing = Report.query.filter_by(reporter_id=current_user.id, comment_id=comment_id, status="open").first()
+    if existing:
+        flash("You have already reported this comment.", "info")
+        return redirect(url_for("view_post", post_id=comment.post_id))
+    db.session.add(Report(reporter_id=current_user.id, comment_id=comment_id, reason=reason))
+    db.session.commit()
+    flash("Comment reported. A moderator will review it.", "success")
+    return redirect(url_for("view_post", post_id=comment.post_id))
 
 
 # ---------------------------------------------------------------------------
@@ -4412,6 +4527,12 @@ with app.app_context():
                 conn.commit()
             except Exception:
                 conn.rollback()
+        # New: report.comment_id
+        try:
+            conn.execute(db.text("ALTER TABLE report ADD COLUMN comment_id INTEGER REFERENCES comment(id)"))
+            conn.commit()
+        except Exception:
+            conn.rollback()
     seed_data()
     seed_shop_items()
     seed_academy_lessons()
@@ -5131,6 +5252,7 @@ def mark_notification_read(notif_id):
 # ---------------------------------------------------------------------------
 @app.route("/api/users/search")
 @login_required
+@limiter.limit("30 per minute")
 def api_user_search():
     q = request.args.get("q", "").strip()
     if not q or len(q) < 2:

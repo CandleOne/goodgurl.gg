@@ -659,12 +659,14 @@ class Report(db.Model):
     reporter_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
     post_id = db.Column(db.Integer, db.ForeignKey("post.id"), nullable=True)
     thread_id = db.Column(db.Integer, db.ForeignKey("forum_thread.id"), nullable=True)
+    comment_id = db.Column(db.Integer, db.ForeignKey("comment.id"), nullable=True)
     reason = db.Column(db.String(256), nullable=False)
     status = db.Column(db.String(16), default="open")
     created_at = db.Column(db.DateTime, default=utcnow)
     reporter = db.relationship("User", backref="reports_filed")
     post = db.relationship("Post", backref="reports")
     thread = db.relationship("ForumThread", backref="reports")
+    comment = db.relationship("Comment", backref="reports")
 
 
 class DailyChallenge(db.Model):

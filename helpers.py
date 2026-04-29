@@ -63,6 +63,33 @@ def hashtagify_filter(text):
 def notify(user_id, type, message, link=""):
     n = Notification(user_id=user_id, type=type, message=message, link=link)
     db.session.add(n)
+    # Fire email notification if user has opted in
+    try:
+        user = User.query.get(user_id)
+        if user and user.email:
+            send_email = False
+            if type == "message" and getattr(user, "notif_email_dm", False):
+                send_email = True
+            elif type == "like" and getattr(user, "notif_email_like", False):
+                send_email = True
+            if send_email:
+                from flask_mail import Message as MailMessage
+                from extensions import mail
+                subject_map = {
+                    "message": "💌 New message on goodgurl.gg",
+                    "like": "💖 Someone liked your post on goodgurl.gg",
+                }
+                subject = subject_map.get(type, "New notification on goodgurl.gg")
+                base_url = current_app.config.get("SERVER_NAME") or "https://goodgurl.gg"
+                full_link = f"{base_url}{link}" if link and not link.startswith("http") else link
+                body_text = f"Hi {user.username},\n\n{message}\n\n{full_link}\n\n— goodgurl.gg"
+                try:
+                    msg = MailMessage(subject=subject, recipients=[user.email], body=body_text)
+                    mail.send(msg)
+                except Exception as mail_err:
+                    current_app.logger.warning("Email notification failed for user %s: %s", user_id, mail_err)
+    except Exception:
+        pass  # Never let notification emails crash the request
     return n
 
 

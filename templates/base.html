@@ -59,6 +59,23 @@
         }
     </style>
     {% block head_extra %}{% endblock %}
+    {# Apply saved theme server-side so it persists across devices #}
+    {% if current_user.is_authenticated and current_user.theme and current_user.theme != 'default' %}
+    <script>
+    (function(){
+        var palettes = {
+            pastel: { '--pink': '#FFCCDE', '--pink-dark': '#FF8EB7', '--purple': '#E04582', '--gold': '#BADFFF', '--blue': '#7FC3FF' }
+        };
+        var theme = {{ current_user.theme | tojson }};
+        var palette = palettes[theme];
+        if (palette) {
+            var root = document.documentElement;
+            for (var k in palette) root.style.setProperty(k, palette[k]);
+        }
+        localStorage.setItem('theme', theme);
+    })();
+    </script>
+    {% endif %}
 </head>
 <body>
     <!-- 18+ Age Gate Overlay -->
