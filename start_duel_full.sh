@@ -4,7 +4,7 @@
 set -euo pipefail
 
 # --- Configuration ---
-APP_DIR="/home/john/.openclaw/workspace/goodgurl.gg"
+APP_DIR="/workspaces/goodgurl.gg"
 VENV_PATH="$APP_DIR/.venv/bin/activate"
 APP_MODULE="app.py"
 APP_PORT=5000
