@@ -21,4 +21,12 @@ limiter = Limiter(
 )
 mail = Mail()
 migrate = Migrate()
-socketio = SocketIO(cors_allowed_origins="*", async_mode="threading")
+socketio = SocketIO(
+    cors_allowed_origins="*",
+    async_mode="threading",
+    # Force polling only — WebSocket upgrades fail through Cloudflare quick tunnels
+    # because they're served over HTTP/2 which doesn't support standard WS upgrade
+    transports=["polling"],
+    ping_timeout=60,
+    ping_interval=25,
+)

@@ -197,7 +197,7 @@
 
 <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 <script>
-const socket = io();
+const socket = io({ transports: ['polling'], upgrade: false });
 socket.emit('subscribe_user');
 
 function goToArena(duelId) {

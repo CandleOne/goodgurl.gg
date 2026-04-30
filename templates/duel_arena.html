@@ -256,7 +256,7 @@ const VOTE_DURATION   = {{ vote_duration }};
 const TIME_REMAINING  = {{ time_remaining if time_remaining is not none else 'null' }};
 
 // ─── State ───────────────────────────────────────────────────────────────────
-const socket    = io();
+const socket    = io({ transports: ['polling'], upgrade: false });
 let localStream = null;
 let camEnabled  = false;
 let micEnabled  = false;
