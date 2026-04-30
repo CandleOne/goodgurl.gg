@@ -1578,7 +1578,7 @@ def sell_investment(investment_id):
     inv = Investment.query.get_or_404(investment_id)
     if inv.investor_id != current_user.id:
         abort(403)
-    sissy = User.query.get(inv.sissy_id)
+    sissy = db.session.get(User, inv.sissy_id)
     if inv.bought_value > 0:
         growth = sissy.market_value / inv.bought_value
     else:
@@ -3385,14 +3385,14 @@ def _do_finish_duel(duel):
     act = duel.activity
     act_name = act["name"] if act else "Duel"
 
-    challenger = User.query.get(duel.challenger_id)
-    opponent = User.query.get(duel.opponent_id) if duel.opponent_id else None
+    challenger = db.session.get(User, duel.challenger_id)
+    opponent = db.session.get(User, duel.opponent_id) if duel.opponent_id else None
 
     if duel.winner_id:
         winner_id = duel.winner_id
         loser_id = duel.opponent_id if winner_id == duel.challenger_id else duel.challenger_id
-        winner = User.query.get(winner_id)
-        loser = User.query.get(loser_id) if loser_id else None
+        winner = db.session.get(User, winner_id)
+        loser = db.session.get(User, loser_id) if loser_id else None
 
         if winner:
             winner.duel_wins = (winner.duel_wins or 0) + 1
@@ -3455,7 +3455,7 @@ def _auto_end_voting(duel_id):
     import time as _time
     _time.sleep(VOTE_DURATION_SECONDS + 2)  # small buffer
     with app.app_context():
-        duel = Duel.query.get(duel_id)
+        duel = db.session.get(Duel, duel_id)
         if duel and duel.status == "voting":
             _do_finish_duel(duel)
             socketio.emit("duel_finished", {
@@ -3463,6 +3463,26 @@ def _auto_end_voting(duel_id):
                 "challenger_votes": duel.challenger_votes,
                 "opponent_votes": duel.opponent_votes,
             }, room=f"duel_{duel_id}")
+
+
+def _auto_end_active(duel_id, duration_seconds):
+    """Background task: auto-transition the active phase to voting after duration_seconds.
+    This is the server-side fallback so duels always advance even if clients disconnect."""
+    import time as _time
+    _time.sleep(duration_seconds + 2)  # small buffer
+    with app.app_context():
+        duel = db.session.get(Duel, duel_id)
+        if duel and duel.status == "active":
+            from constants import utcnow as _now
+            duel.status = "voting"
+            db.session.commit()
+            _voting_start_times[duel_id] = _now()
+            socketio.emit(
+                "phase_change",
+                {"phase": "voting", "remaining": VOTE_DURATION_SECONDS},
+                room=f"duel_{duel_id}",
+            )
+            socketio.start_background_task(_auto_end_voting, duel_id)
 
 
 @app.route("/duels")
@@ -3731,6 +3751,9 @@ def _try_matchmake(activity_id, new_user_id):
     socketio.emit("duel_matched", {"duel_id": duel.id}, room=f"user_{partner.user_id}")
     socketio.emit("duel_matched", {"duel_id": duel.id}, room=f"user_{new_user_id}")
 
+    # Server-side safety timer: auto-advance to voting if clients don't trigger it
+    socketio.start_background_task(_auto_end_active, duel.id, duel.duration_seconds)
+
     # Dispatch queued spectators (up to 10) to this new duel
     queued_spectators = DuelSpectatorQueue.query.order_by(
         DuelSpectatorQueue.joined_at
@@ -3770,7 +3793,7 @@ def ws_join_duel(data):
     if not duel_id:
         return
     join_room(f"duel_{duel_id}")
-    duel = Duel.query.get(duel_id)
+    duel = db.session.get(Duel, duel_id)
     if duel:
         # Determine joining user's role
         role = "spectator"
@@ -3816,7 +3839,7 @@ def ws_leave_duel(data):
             if rec:
                 db.session.delete(rec)
                 db.session.commit()
-        duel = Duel.query.get(duel_id)
+        duel = db.session.get(Duel, duel_id)
         if duel:
             emit("spectator_count", {"count": duel.spectator_count}, room=f"duel_{duel_id}")
 
@@ -3870,7 +3893,7 @@ def ws_vote(data):
     if not duel_id or vote_for not in ("challenger", "opponent"):
         return
 
-    duel = Duel.query.get(duel_id)
+    duel = db.session.get(Duel, duel_id)
     if not duel or duel.status != "voting":
         return
 
@@ -3901,7 +3924,7 @@ def ws_vote(data):
 def ws_start_voting(data):
     """Challenger signals that performance time is up — open voting."""
     duel_id = data.get("duel_id")
-    duel = Duel.query.get(duel_id)
+    duel = db.session.get(Duel, duel_id)
     if not duel or duel.status != "active":
         return
     if current_user.id != duel.challenger_id:
@@ -3918,7 +3941,7 @@ def ws_start_voting(data):
 def ws_end_duel(data):
     """Called when voting timer expires, challenger force-ends, or admin force-ends."""
     duel_id = data.get("duel_id")
-    duel = Duel.query.get(duel_id)
+    duel = db.session.get(Duel, duel_id)
     if not duel or duel.status not in ("active", "voting"):
         return
 

@@ -286,11 +286,20 @@ socket.on('disconnect', () => {
 });
 
 // ─── Init timer from template if server gave us remaining time ────────────────
+console.log('[duel] TIME_REMAINING=', TIME_REMAINING, 'STATUS=', DUEL_STATUS);
 if (TIME_REMAINING !== null && DUEL_STATUS === 'active') {
-    runTimer(TIME_REMAINING, onPerformEnd);
+    if (TIME_REMAINING <= 0) {
+        // Already expired — fire onPerformEnd immediately after socket connects
+        socket.once('connect', () => setTimeout(onPerformEnd, 500));
+    } else {
+        runTimer(TIME_REMAINING, onPerformEnd);
+    }
 } else if (TIME_REMAINING !== null && DUEL_STATUS === 'voting') {
     runTimer(TIME_REMAINING, onVoteEnd);
     enableVoteButtons();
+} else if (DUEL_STATUS === 'active' && TIME_REMAINING === null) {
+    // Fallback: start from full DURATION if server gave us nothing
+    runTimer(DURATION, onPerformEnd);
 }
 
 // Start cam for participants (do this immediately so we're ready when socket connects)
@@ -305,14 +314,24 @@ socket.on('spectator_count', d => {
 
 // ─── Timer sync (server pushes correct remaining time on join) ────────────────
 socket.on('timer_sync', d => {
-    // Authoritative server value overrides any client-side timer
-    clearInterval(timerInterval);
-    if (d.phase === 'active') {
-        runTimer(d.remaining, onPerformEnd);
-        updatePhaseUI('active', false);
-    } else if (d.phase === 'voting') {
-        runTimer(d.remaining, onVoteEnd);
-        updatePhaseUI('voting', false);
+    console.log('[duel] timer_sync received:', d);
+    // Only apply if more than 2s different from current display (avoid micro-resets)
+    const currentDisplay = (() => {
+        const el = document.getElementById('duelTimer');
+        if (!el || el.textContent === '—') return null;
+        const parts = el.textContent.split(':');
+        return parts.length === 2 ? parseInt(parts[0]) * 60 + parseInt(parts[1]) : null;
+    })();
+    const serverVal = d.remaining;
+    if (currentDisplay === null || Math.abs(currentDisplay - serverVal) > 2) {
+        clearInterval(timerInterval);
+        if (d.phase === 'active') {
+            runTimer(serverVal, onPerformEnd);
+            updatePhaseUI('active', false);
+        } else if (d.phase === 'voting') {
+            runTimer(serverVal, onVoteEnd);
+            updatePhaseUI('voting', false);
+        }
     }
 });
 
@@ -350,7 +369,8 @@ function enableVoteButtons() {
 // ─── Timer ────────────────────────────────────────────────────────────────────
 function runTimer(seconds, onEnd) {
     clearInterval(timerInterval);
-    let remaining = Math.max(0, seconds);
+    let remaining = Math.max(0, Math.round(seconds));
+    console.log('[duel] runTimer started, remaining=', remaining);
     updateTimerDisplay(remaining);
     timerInterval = setInterval(() => {
         remaining = Math.max(0, remaining - 1);
